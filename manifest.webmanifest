@@ -1,0 +1,14 @@
+{
+  "name": "¡Aventura Español!",
+  "short_name": "Aventura",
+  "description": "Learn Spanish with spaced repetition, sentences, and speaking practice.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1e3c72",
+  "theme_color": "#1e3c72",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

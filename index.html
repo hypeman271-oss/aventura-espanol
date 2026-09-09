@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>¡Aventura Español! — Learn Spanish</title>
+<meta name="description" content="Learn Spanish with spaced repetition, sentences, and speaking practice." />
+<meta name="theme-color" content="#1e3c72" />
+<!-- Install-to-home-screen / full-screen web app -->
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Aventura" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='180'%20height='180'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%231e3c72'/%3E%3Cstop%20offset='1'%20stop-color='%232a5298'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='180'%20height='180'%20rx='40'%20fill='url(%23g)'/%3E%3Ctext%20x='90'%20y='120'%20font-family='Arial'%20font-size='96'%20font-weight='bold'%20fill='%23ffd23f'%20text-anchor='middle'%3EES%3C/text%3E%3C/svg%3E" />
+<link rel="icon" href="icon.svg" />
+<link rel="manifest" href="manifest.webmanifest" />
+<style>
+  :root {
+    --bg1: #1e3c72;
+    --bg2: #2a5298;
+    --accent: #ffd23f;
+    --accent2: #ff6b35;
+    --good: #2ecc71;
+    --bad: #e74c3c;
+    --card: rgba(255, 255, 255, 0.12);
+    --card-solid: #ffffff;
+    --text: #ffffff;
+    --ink: #1a2a4a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { overscroll-behavior: none; }
+
+  /* Removes the 300ms tap delay / double-tap-zoom on interactive controls. */
+  .btn, .chip, .answer-btn, .mem-card, .mic-btn, .speak-btn, .back-link { touch-action: manipulation; }
+
+  body {
+    font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+    background: linear-gradient(135deg, var(--bg1), var(--bg2));
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh; /* fills the screen under mobile browser chrome */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .hidden { display: none !important; }
+
+  h1 {
+    font-size: clamp(2rem, 7vw, 3.2rem);
+    text-align: center;
+    text-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+    letter-spacing: 1px;
+  }
+  h1 .flag { -webkit-text-fill-color: initial; }
+
+  .subtitle {
+    text-align: center;
+    opacity: 0.85;
+    margin: 8px 0 28px;
+    font-size: 1.05rem;
+  }
+
+  .panel {
+    background: var(--card);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 26px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+
+  .section-title {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 1.2rem;
+    opacity: 0.9;
+  }
+
+  /* ---- Buttons ---- */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 16px 20px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    background: var(--card-solid);
+    color: var(--ink);
+    box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .btn:hover { transform: translateY(-2px); filter: brightness(1.03); }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  .btn .emoji { font-size: 1.5rem; }
+  .btn small { display:block; font-weight: 500; opacity: 0.7; font-size: 0.85rem; }
+
+  .btn.primary { background: var(--accent); }
+  .btn.accent2 { background: var(--accent2); color: #fff; }
+  .btn.center { justify-content: center; text-align: center; }
+
+  .btn-row { display: flex; gap: 10px; }
+  .btn-row .btn { margin: 10px 0; }
+
+  /* ---- Category chips ---- */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .chip {
+    padding: 12px 16px;
+    border-radius: 30px;
+    border: 2px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .chip:hover { background: rgba(255,255,255,0.2); }
+  .chip.selected {
+    background: var(--accent);
+    color: var(--ink);
+    border-color: var(--accent);
+    transform: scale(1.05);
+  }
+
+  /* ---- HUD ---- */
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+  .hud .hearts { letter-spacing: 2px; }
+  .hud .pill {
+    background: rgba(0,0,0,0.25);
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+  .streak-flame { color: var(--accent); }
+
+  .progressbar {
+    height: 10px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 22px;
+  }
+  .progressbar > div {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s ease;
+  }
+
+  /* ---- Question ---- */
+  .prompt-card {
+    background: var(--card-solid);
+    color: var(--ink);
+    border-radius: 16px;
+    padding: 28px 20px;
+    text-align: center;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .prompt-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.55; }
+  .prompt-word { font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 800; margin: 6px 0; }
+  .prompt-emoji { font-size: 3.4rem; line-height: 1; }
+  .speak-btn {
+    position: absolute; top: 12px; right: 12px;
+    background: var(--bg2); color: #fff; border: none;
+    width: 42px; height: 42px; border-radius: 50%;
+    font-size: 1.2rem; cursor: pointer;
+  }
+  .speak-btn:hover { background: var(--bg1); }
+
+  .answers { margin-top: 18px; }
+  .answer-btn {
+    background: var(--card-solid);
+    color: var(--ink);
+    justify-content: center;
+    text-align: center;
+    font-size: 1.15rem;
+  }
+  .answer-btn.correct { background: var(--good); color: #fff; }
+  .answer-btn.wrong { background: var(--bad); color: #fff; }
+  .answer-btn:disabled { cursor: default; opacity: 0.85; }
+
+  .feedback {
+    text-align: center;
+    min-height: 28px;
+    margin-top: 12px;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+  .feedback .translation {
+    margin-top: 6px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    opacity: 0.95;
+  }
+
+  /* ---- Typing input ---- */
+  .type-input {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.2rem;
+    border-radius: 12px;
+    border: 3px solid rgba(255,255,255,0.3);
+    text-align: center;
+    margin-top: 16px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .type-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ---- Result screen ---- */
+  .big-score {
+    font-size: 4rem;
+    text-align: center;
+    font-weight: 800;
+    color: var(--accent);
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+  }
+  .result-msg { text-align: center; font-size: 1.3rem; margin: 8px 0 20px; }
+  .stat-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
+  }
+  .stat-box { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 14px; text-align: center; }
+  .stat-box .num { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+  .stat-box .lbl { font-size: 0.85rem; opacity: 0.8; }
+
+  .back-link {
+    background: none; border: none; color: #fff; opacity: 0.8;
+    cursor: pointer; font-size: 0.95rem; margin-bottom: 14px; padding: 4px;
+  }
+  .back-link:hover { opacity: 1; text-decoration: underline; }
+
+  /* ---- Confetti pop ---- */
+  @keyframes pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    50% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .pop { animation: pop 0.35s ease; }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  .shake { animation: shake 0.3s ease; }
+
+  .footer-note { text-align:center; opacity:0.6; font-size:0.8rem; margin-top:18px; }
+
+  /* ---- Memory match grid ---- */
+  .mem-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 460px) { .mem-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
+
+  .mem-card {
+    aspect-ratio: 3 / 4;
+    perspective: 700px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+  }
+  .mem-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.45s;
+    transform-style: preserve-3d;
+  }
+  .mem-card.flipped .mem-inner { transform: rotateY(180deg); }
+
+  .mem-face {
+    position: absolute;
+    inset: 0;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  }
+  .mem-front {
+    background: linear-gradient(135deg, #a06cd5, #6a3fb0);
+    color: #fff;
+    font-size: 1.8rem;
+  }
+  .mem-back {
+    background: var(--card-solid);
+    color: var(--ink);
+    transform: rotateY(180deg);
+    font-weight: 700;
+    font-size: clamp(0.8rem, 2.6vw, 1.05rem);
+    line-height: 1.15;
+    word-break: break-word;
+  }
+  .mem-back .mem-emoji { font-size: 1.8rem; margin-bottom: 4px; }
+  .mem-back .mem-tag {
+    position: absolute; top: 5px; left: 0; right: 0;
+    font-size: 0.6rem; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; opacity: 0.45;
+  }
+
+  .mem-card.matched .mem-inner { transform: rotateY(180deg); }
+  .mem-card.matched .mem-back {
+    background: var(--good);
+    color: #fff;
+    animation: pop 0.4s ease;
+  }
+  .mem-card.matched { cursor: default; }
+
+  /* ---- Daily practice dashboard ---- */
+  .dash-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .dash-tile {
+    background: rgba(0,0,0,0.22);
+    border-radius: 14px;
+    padding: 12px 6px;
+    text-align: center;
+  }
+  .dash-tile .dnum { font-size: 1.6rem; font-weight: 800; color: var(--accent); line-height: 1.1; }
+  .dash-tile .dlbl { font-size: 0.72rem; opacity: 0.8; margin-top: 3px; }
+  .dash-next { text-align: center; opacity: 0.85; margin-top: 12px; font-size: 0.9rem; }
+  .btn.primary small { opacity: 0.8; }
+  @media (max-width: 460px) {
+    .dash-tile .dnum { font-size: 1.3rem; }
+    .dash-tile .dlbl { font-size: 0.62rem; }
+  }
+
+  /* ---- Speaking mode ---- */
+  #speakPanel { text-align: center; margin-top: 18px; }
+  .mic-btn {
+    width: 90px; height: 90px; border-radius: 50%;
+    border: none; cursor: pointer;
+    background: var(--accent2); color: #fff; font-size: 2.4rem;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .mic-btn:hover { transform: translateY(-2px); }
+  .mic-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.25); }
+  .mic-btn:disabled { opacity: 0.5; cursor: default; box-shadow: 0 2px 0 rgba(0,0,0,0.25); }
+  .mic-btn.listening { background: var(--good); animation: micpulse 1s infinite; }
+  @keyframes micpulse {
+    0%,100% { box-shadow: 0 6px 0 rgba(0,0,0,0.25), 0 0 0 0 rgba(46,204,113,0.5); }
+    50%     { box-shadow: 0 6px 0 rgba(0,0,0,0.25), 0 0 0 16px rgba(46,204,113,0); }
+  }
+  .mic-status { margin-top: 14px; font-size: 1rem; opacity: 0.9; min-height: 24px; }
+  .mic-skip {
+    display: inline-block; margin-top: 12px;
+    background: none; border: none; color: #fff; opacity: 0.75;
+    cursor: pointer; font-size: 0.9rem; text-decoration: underline;
+  }
+  .mic-skip:hover { opacity: 1; }
+
+  /* ---- Progress screen ---- */
+  .prog-section { margin: 22px 0; }
+  .prog-section h3 { font-size: 0.95rem; opacity: 0.85; margin-bottom: 10px; font-weight: 700; }
+  .mastery-bar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.25); }
+  .mastery-bar > span { display: block; height: 100%; transition: width 0.4s ease; }
+  .mastery-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 0.82rem; }
+  .mastery-legend .dot { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+  .cat-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  .cat-row .cat-name { flex: 0 0 42%; font-size: 0.9rem; }
+  .cat-row .cat-track { flex: 1; height: 12px; background: rgba(0,0,0,0.25); border-radius: 8px; overflow: hidden; }
+  .cat-row .cat-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.4s ease; }
+  .cat-row .cat-count { flex: 0 0 auto; font-size: 0.8rem; opacity: 0.8; min-width: 46px; text-align: right; }
+  .chart { display: flex; align-items: flex-end; gap: 4px; height: 96px; }
+  .chart .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .chart .bar { width: 72%; background: linear-gradient(180deg, var(--accent), var(--accent2)); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.4s ease; }
+  .chart .bar.empty { background: rgba(255,255,255,0.12); }
+  .chart .bar-lbl { font-size: 0.6rem; opacity: 0.7; margin-top: 4px; }
+  .chart .bar-val { font-size: 0.62rem; opacity: 0.85; margin-bottom: 2px; min-height: 13px; }
+  .prog-empty { text-align: center; opacity: 0.85; padding: 20px 0; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ HOME ============ -->
+  <div id="home">
+    <h1><span class="flag">🇪🇸</span> ¡Aventura Español!</h1>
+    <p class="subtitle">Learn Spanish the smart way — a little every day.</p>
+
+    <div class="panel" id="dashboard">
+      <p class="section-title">📅 Today's practice</p>
+      <div class="dash-stats" id="dashStats"></div>
+      <button class="btn primary center" id="startDailyBtn">▶️ Start daily practice</button>
+      <button class="btn center" id="openProgressBtn" style="background:rgba(255,255,255,0.15);color:#fff;">📊 View progress</button>
+      <p class="dash-next" id="dashNext"></p>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <p class="section-title">🎮 Free play — pick a topic</p>
+      <div class="chips" id="categoryChips"></div>
+
+      <p class="section-title" style="margin-top:24px;">Choose a game</p>
+      <button class="btn primary" data-mode="es2en">
+        <span class="emoji">🌎</span>
+        <span>Spanish → English<small>See the Spanish word, pick the meaning</small></span>
+      </button>
+      <button class="btn primary" data-mode="en2es">
+        <span class="emoji">🔤</span>
+        <span>English → Spanish<small>See English, pick the Spanish word</small></span>
+      </button>
+      <button class="btn accent2" data-mode="type">
+        <span class="emoji">⌨️</span>
+        <span>Type It Out<small>Spell the Spanish word yourself (harder!)</small></span>
+      </button>
+      <button class="btn accent2" data-mode="listen">
+        <span class="emoji">🔊</span>
+        <span>Listen &amp; Choose<small>Hear it spoken, pick the right word</small></span>
+      </button>
+      <button class="btn" data-mode="cloze" style="background:var(--good);color:#fff;">
+        <span class="emoji">📖</span>
+        <span>Fill the Blank<small>See &amp; hear the word in a real sentence</small></span>
+      </button>
+      <button class="btn accent2" data-mode="speak" id="speakModeBtn">
+        <span class="emoji">🎤</span>
+        <span>Speak It<small>Say the Spanish word out loud — it listens</small></span>
+      </button>
+      <button class="btn" data-mode="memory" style="background:#a06cd5;color:#fff;">
+        <span class="emoji">🃏</span>
+        <span>Match the Pairs<small>Flip cards to match Spanish &amp; English</small></span>
+      </button>
+    </div>
+    <p class="footer-note">Tip: tap the 🔊 speaker on any word to hear how it sounds.</p>
+  </div>
+
+  <!-- ============ GAME ============ -->
+  <div id="game" class="hidden">
+    <button class="back-link" id="quitBtn">← Quit to menu</button>
+    <div class="panel">
+      <div class="hud">
+        <span class="hearts" id="hearts">❤️❤️❤️</span>
+        <span class="pill"><span class="streak-flame">🔥</span> <span id="streak">0</span></span>
+        <span class="pill">⭐ <span id="score">0</span></span>
+      </div>
+      <div class="progressbar"><div id="progressFill"></div></div>
+
+      <div class="prompt-card" id="promptCard">
+        <button class="speak-btn" id="speakBtn" title="Hear it">🔊</button>
+        <div class="prompt-label" id="promptLabel">Spanish</div>
+        <div class="prompt-emoji" id="promptEmoji"></div>
+        <div class="prompt-word" id="promptWord"></div>
+      </div>
+
+      <div class="answers" id="answers"></div>
+      <input class="type-input hidden" id="typeInput" placeholder="Type the Spanish word…" autocomplete="off" />
+      <button class="btn primary center hidden" id="submitType">Check answer</button>
+
+      <div id="speakPanel" class="hidden">
+        <button class="mic-btn" id="micBtn" title="Tap and speak">🎤</button>
+        <div class="mic-status" id="micStatus"></div>
+        <button class="mic-skip" id="micSkip">Can't speak right now — show answer</button>
+      </div>
+
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </div>
+
+  <!-- ============ MEMORY MATCH ============ -->
+  <div id="memory" class="hidden">
+    <button class="back-link" id="memQuitBtn">← Quit to menu</button>
+    <div class="panel">
+      <div class="hud">
+        <span class="pill">🃏 <span id="memMatches">0</span>/<span id="memPairs">0</span></span>
+        <span class="pill">🔄 <span id="memMoves">0</span> moves</span>
+        <span class="pill">⏱️ <span id="memTime">0:00</span></span>
+      </div>
+      <p style="text-align:center;opacity:0.85;margin-bottom:14px;font-size:0.95rem;">
+        Match each Spanish word with its English meaning.
+      </p>
+      <div class="mem-grid" id="memGrid"></div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div id="results" class="hidden">
+    <div class="panel">
+      <p class="section-title" id="resultTitle">¡Fin del juego!</p>
+      <div class="big-score" id="resultScore">0</div>
+      <p class="result-msg" id="resultMsg"></p>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="num" id="statCorrect">0</div><div class="lbl" id="lblCorrect">Correct</div></div>
+        <div class="stat-box"><div class="num" id="statBest">0</div><div class="lbl" id="lblBest">Best streak 🔥</div></div>
+        <div class="stat-box"><div class="num" id="statAccuracy">0%</div><div class="lbl" id="lblAccuracy">Accuracy</div></div>
+        <div class="stat-box"><div class="num" id="statHigh">0</div><div class="lbl" id="lblHigh">High score 🏆</div></div>
+      </div>
+      <button class="btn primary center" id="playAgainBtn">🔁 Play again</button>
+      <button class="btn center" id="menuBtn">🏠 Back to menu</button>
+    </div>
+  </div>
+
+  <!-- ============ PROGRESS ============ -->
+  <div id="progress" class="hidden">
+    <button class="back-link" id="progQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <p class="section-title">📊 Your progress</p>
+      <div id="progBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   VOCABULARY  (Spanish, English, emoji)
+   ============================================================ */
+const VOCAB = {
+  "Animals 🐶": [
+    ["el perro","dog","🐶"],["el gato","cat","🐱"],["el caballo","horse","🐴"],
+    ["el pájaro","bird","🐦"],["el pez","fish","🐟"],["la vaca","cow","🐮"],
+    ["el cerdo","pig","🐷"],["el ratón","mouse","🐭"],["el conejo","rabbit","🐰"],
+    ["el oso","bear","🐻"],["el león","lion","🦁"],["el elefante","elephant","🐘"]
+  ],
+  "Food 🍎": [
+    ["la manzana","apple","🍎"],["el pan","bread","🍞"],["el queso","cheese","🧀"],
+    ["la leche","milk","🥛"],["el huevo","egg","🥚"],["el pollo","chicken","🍗"],
+    ["el arroz","rice","🍚"],["la naranja","orange","🍊"],["el plátano","banana","🍌"],
+    ["el agua","water","💧"],["el pastel","cake","🍰"],["el café","coffee","☕"]
+  ],
+  "Colors 🎨": [
+    ["rojo","red","🟥"],["azul","blue","🟦"],["verde","green","🟩"],
+    ["amarillo","yellow","🟨"],["negro","black","⬛"],["blanco","white","⬜"],
+    ["naranja","orange","🟧"],["morado","purple","🟪"],["rosa","pink","🌸"],
+    ["marrón","brown","🟫"]
+  ],
+  "Numbers 🔢": [
+    ["uno","one","1️⃣"],["dos","two","2️⃣"],["tres","three","3️⃣"],
+    ["cuatro","four","4️⃣"],["cinco","five","5️⃣"],["seis","six","6️⃣"],
+    ["siete","seven","7️⃣"],["ocho","eight","8️⃣"],["nueve","nine","9️⃣"],
+    ["diez","ten","🔟"]
+  ],
+  "Family 👨‍👩‍👧": [
+    ["la madre","mother","👩"],["el padre","father","👨"],["el hermano","brother","👦"],
+    ["la hermana","sister","👧"],["el abuelo","grandfather","👴"],["la abuela","grandmother","👵"],
+    ["el hijo","son","🧒"],["la hija","daughter","👧"],["el bebé","baby","👶"],
+    ["la familia","family","👨‍👩‍👧"]
+  ],
+  "Body 🧍": [
+    ["la cabeza","head","🗣️"],["la mano","hand","✋"],["el pie","foot","🦶"],
+    ["el ojo","eye","👁️"],["la boca","mouth","👄"],["la nariz","nose","👃"],
+    ["la oreja","ear","👂"],["el pelo","hair","💇"],["el brazo","arm","💪"],
+    ["el corazón","heart","❤️"]
+  ],
+  "Travel ✈️": [
+    ["el coche","car","🚗"],["el avión","airplane","✈️"],["el tren","train","🚆"],
+    ["el barco","boat","⛵"],["la calle","street","🛣️"],["el hotel","hotel","🏨"],
+    ["la playa","beach","🏖️"],["el mapa","map","🗺️"],["la maleta","suitcase","🧳"],
+    ["el billete","ticket","🎫"]
+  ],
+  "Greetings 👋": [
+    ["hola","hello","👋"],["adiós","goodbye","🫡"],["gracias","thank you","🙏"],
+    ["por favor","please","🤲"],["sí","yes","✅"],["no","no","❌"],
+    ["buenos días","good morning","🌅"],["buenas noches","good night","🌙"],
+    ["perdón","sorry","😟"],["amigo","friend","🤝"]
+  ]
+};
+
+/* ============================================================
+   EXAMPLE SENTENCES  (comprehensible input)
+   ------------------------------------------------------------
+   Keyed by card id ("Category||spanish"). Each entry is
+   [ sentence-with-___-blank, word-that-fills-the-blank, English ].
+   Used to (a) show each word in real context and (b) power the
+   cloze "fill the blank" practice mode.
+   ============================================================ */
+const SENTENCES = {
+  "Animals 🐶||el perro": ["El ___ corre en el parque.", "perro", "The dog runs in the park."],
+  "Animals 🐶||el gato": ["El ___ duerme en el sofá.", "gato", "The cat sleeps on the sofa."],
+  "Animals 🐶||el caballo": ["El ___ es muy rápido.", "caballo", "The horse is very fast."],
+  "Animals 🐶||el pájaro": ["El ___ canta por la mañana.", "pájaro", "The bird sings in the morning."],
+  "Animals 🐶||el pez": ["El ___ nada en el agua.", "pez", "The fish swims in the water."],
+  "Animals 🐶||la vaca": ["La ___ come hierba en el campo.", "vaca", "The cow eats grass in the field."],
+  "Animals 🐶||el cerdo": ["El ___ es rosa y gordo.", "cerdo", "The pig is pink and fat."],
+  "Animals 🐶||el ratón": ["El ___ es pequeño y gris.", "ratón", "The mouse is small and grey."],
+  "Animals 🐶||el conejo": ["El ___ come una zanahoria.", "conejo", "The rabbit eats a carrot."],
+  "Animals 🐶||el oso": ["El ___ vive en el bosque.", "oso", "The bear lives in the forest."],
+  "Animals 🐶||el león": ["El ___ es el rey de la selva.", "león", "The lion is the king of the jungle."],
+  "Animals 🐶||el elefante": ["El ___ es muy grande.", "elefante", "The elephant is very big."],
+
+  "Food 🍎||la manzana": ["Como una ___ roja.", "manzana", "I eat a red apple."],
+  "Food 🍎||el pan": ["Compro ___ en la panadería.", "pan", "I buy bread at the bakery."],
+  "Food 🍎||el queso": ["El ___ está en la mesa.", "queso", "The cheese is on the table."],
+  "Food 🍎||la leche": ["Bebo ___ con el desayuno.", "leche", "I drink milk with breakfast."],
+  "Food 🍎||el huevo": ["El ___ está en la sartén.", "huevo", "The egg is in the pan."],
+  "Food 🍎||el pollo": ["Cenamos ___ con arroz.", "pollo", "We have chicken with rice for dinner."],
+  "Food 🍎||el arroz": ["El ___ está muy caliente.", "arroz", "The rice is very hot."],
+  "Food 🍎||la naranja": ["La ___ tiene mucha vitamina C.", "naranja", "The orange has a lot of vitamin C."],
+  "Food 🍎||el plátano": ["El mono come un ___.", "plátano", "The monkey eats a banana."],
+  "Food 🍎||el agua": ["Bebo ___ cuando tengo sed.", "agua", "I drink water when I am thirsty."],
+  "Food 🍎||el pastel": ["El ___ de cumpleaños es de chocolate.", "pastel", "The birthday cake is chocolate."],
+  "Food 🍎||el café": ["Por la mañana tomo un ___.", "café", "In the morning I have a coffee."],
+
+  "Colors 🎨||rojo": ["El tomate es ___.", "rojo", "The tomato is red."],
+  "Colors 🎨||azul": ["El mar es ___.", "azul", "The sea is blue."],
+  "Colors 🎨||verde": ["El árbol es ___.", "verde", "The tree is green."],
+  "Colors 🎨||amarillo": ["El sol es ___.", "amarillo", "The sun is yellow."],
+  "Colors 🎨||negro": ["El café es ___.", "negro", "The coffee is black."],
+  "Colors 🎨||blanco": ["El papel es ___.", "blanco", "The paper is white."],
+  "Colors 🎨||naranja": ["El balón es ___.", "naranja", "The ball is orange."],
+  "Colors 🎨||morado": ["El vestido es ___.", "morado", "The dress is purple."],
+  "Colors 🎨||rosa": ["El cerdo es ___.", "rosa", "The pig is pink."],
+  "Colors 🎨||marrón": ["El oso es ___.", "marrón", "The bear is brown."],
+
+  "Numbers 🔢||uno": ["Solo queda ___ en la caja.", "uno", "Only one is left in the box."],
+  "Numbers 🔢||dos": ["Tengo ___ manos.", "dos", "I have two hands."],
+  "Numbers 🔢||tres": ["Hay ___ gatos en casa.", "tres", "There are three cats at home."],
+  "Numbers 🔢||cuatro": ["La mesa tiene ___ patas.", "cuatro", "The table has four legs."],
+  "Numbers 🔢||cinco": ["Una mano tiene ___ dedos.", "cinco", "A hand has five fingers."],
+  "Numbers 🔢||seis": ["Son las ___ de la tarde.", "seis", "It is six in the afternoon."],
+  "Numbers 🔢||siete": ["La semana tiene ___ días.", "siete", "The week has seven days."],
+  "Numbers 🔢||ocho": ["El pulpo tiene ___ brazos.", "ocho", "The octopus has eight arms."],
+  "Numbers 🔢||nueve": ["Mi primo tiene ___ años.", "nueve", "My cousin is nine years old."],
+  "Numbers 🔢||diez": ["Tengo ___ dedos en los pies.", "diez", "I have ten toes."],
+
+  "Family 👨‍👩‍👧||la madre": ["Mi ___ cocina la cena.", "madre", "My mother cooks dinner."],
+  "Family 👨‍👩‍👧||el padre": ["Mi ___ lee el periódico.", "padre", "My father reads the newspaper."],
+  "Family 👨‍👩‍👧||el hermano": ["Mi ___ juega al fútbol.", "hermano", "My brother plays soccer."],
+  "Family 👨‍👩‍👧||la hermana": ["Mi ___ estudia en la universidad.", "hermana", "My sister studies at university."],
+  "Family 👨‍👩‍👧||el abuelo": ["Mi ___ cuenta historias viejas.", "abuelo", "My grandfather tells old stories."],
+  "Family 👨‍👩‍👧||la abuela": ["Mi ___ hace un pastel.", "abuela", "My grandmother makes a cake."],
+  "Family 👨‍👩‍👧||el hijo": ["Su ___ tiene cinco años.", "hijo", "Their son is five years old."],
+  "Family 👨‍👩‍👧||la hija": ["Su ___ toca el piano.", "hija", "Their daughter plays the piano."],
+  "Family 👨‍👩‍👧||el bebé": ["El ___ duerme mucho.", "bebé", "The baby sleeps a lot."],
+  "Family 👨‍👩‍👧||la familia": ["Mi ___ es muy grande.", "familia", "My family is very big."],
+
+  "Body 🧍||la cabeza": ["Me duele la ___.", "cabeza", "My head hurts."],
+  "Body 🧍||la mano": ["Escribo con la ___ derecha.", "mano", "I write with my right hand."],
+  "Body 🧍||el pie": ["Me duele el ___ izquierdo.", "pie", "My left foot hurts."],
+  "Body 🧍||el ojo": ["Tengo algo en el ___.", "ojo", "I have something in my eye."],
+  "Body 🧍||la boca": ["Abre la ___, por favor.", "boca", "Open your mouth, please."],
+  "Body 🧍||la nariz": ["El payaso tiene una ___ roja.", "nariz", "The clown has a red nose."],
+  "Body 🧍||la oreja": ["El conejo tiene una ___ larga.", "oreja", "The rabbit has a long ear."],
+  "Body 🧍||el pelo": ["Ella tiene el ___ muy largo.", "pelo", "She has very long hair."],
+  "Body 🧍||el brazo": ["Levanto el ___ en clase.", "brazo", "I raise my arm in class."],
+  "Body 🧍||el corazón": ["El ___ late muy rápido.", "corazón", "The heart beats very fast."],
+
+  "Travel ✈️||el coche": ["Voy al trabajo en ___.", "coche", "I go to work by car."],
+  "Travel ✈️||el avión": ["El ___ vuela muy alto.", "avión", "The airplane flies very high."],
+  "Travel ✈️||el tren": ["El ___ llega a las ocho.", "tren", "The train arrives at eight."],
+  "Travel ✈️||el barco": ["El ___ cruza el mar.", "barco", "The boat crosses the sea."],
+  "Travel ✈️||la calle": ["La ___ está llena de gente.", "calle", "The street is full of people."],
+  "Travel ✈️||el hotel": ["Dormimos en un ___ bonito.", "hotel", "We sleep in a nice hotel."],
+  "Travel ✈️||la playa": ["En verano vamos a la ___.", "playa", "In summer we go to the beach."],
+  "Travel ✈️||el mapa": ["Miro el ___ para no perderme.", "mapa", "I look at the map so I don't get lost."],
+  "Travel ✈️||la maleta": ["Mi ___ es muy pesada.", "maleta", "My suitcase is very heavy."],
+  "Travel ✈️||el billete": ["Compro un ___ de tren.", "billete", "I buy a train ticket."],
+
+  "Greetings 👋||hola": ["___, ¿cómo estás?", "hola", "Hello, how are you?"],
+  "Greetings 👋||adiós": ["___, hasta mañana.", "adiós", "Goodbye, see you tomorrow."],
+  "Greetings 👋||gracias": ["Muchas ___ por tu ayuda.", "gracias", "Thank you very much for your help."],
+  "Greetings 👋||por favor": ["Un café, ___.", "por favor", "A coffee, please."],
+  "Greetings 👋||sí": ["___, quiero ir contigo.", "sí", "Yes, I want to go with you."],
+  "Greetings 👋||no": ["___, hoy no tengo tiempo.", "no", "No, I don't have time today."],
+  "Greetings 👋||buenos días": ["___, señora García.", "buenos días", "Good morning, Mrs. García."],
+  "Greetings 👋||buenas noches": ["___, que duermas bien.", "buenas noches", "Good night, sleep well."],
+  "Greetings 👋||perdón": ["___, no fue mi intención.", "perdón", "Sorry, it wasn't my intention."],
+  "Greetings 👋||amigo": ["Él es mi mejor ___.", "amigo", "He is my best friend."]
+};
+
+const QUESTIONS_PER_ROUND = 10;
+const START_LIVES = 3;
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let state = {};
+const $ = (id) => document.getElementById(id);
+
+/* ---- High score persistence (best-effort) ---- */
+function getHigh() { try { return +localStorage.getItem("aventura_high") || 0; } catch(e){ return 0; } }
+function setHigh(v) { try { localStorage.setItem("aventura_high", v); } catch(e){} }
+
+/* ============================================================
+   SPACED REPETITION ENGINE  (SM-2, the Anki algorithm)
+   ------------------------------------------------------------
+   Every vocab item becomes a "card" with a stable id and its own
+   schedule. A card is DUE when its `due` timestamp <= now. Daily
+   practice reviews everything due + introduces a few new cards,
+   grading each answer and pushing its next review further out the
+   better you know it.
+   ============================================================ */
+
+/* Flatten VOCAB into a trackable card list with stable ids. */
+const CARDS = [];
+Object.entries(VOCAB).forEach(([cat, list]) => {
+  list.forEach(([es, en, emoji]) => CARDS.push({ id: cat + "||" + es, es, en, emoji, cat }));
+});
+
+/* Drop a leading Spanish article so cloze options/answers line up. */
+function stripArticle(s) { return (s || "").replace(/^(el|la|los|las)\s+/i, ""); }
+
+/* Build the sentence object for a card (or null if it has none). */
+function getSentence(cat, es) {
+  const raw = SENTENCES[cat + "||" + es];
+  if (!raw) return null;
+  const [template, answer, en] = raw;
+  return { template, answer, en, full: template.replace("___", answer) };
+}
+function hasSentence(cat, es) { return !!SENTENCES[cat + "||" + es]; }
+
+const NEW_PER_DAY = 8;    // how many brand-new words to introduce per day
+const MAX_REVIEWS = 40;   // cap reviews per session so it never feels endless
+const DAY = 86400000;
+const SRS_KEY = "aventura_srs_v1";
+
+function blankStore() {
+  return { cards: {}, meta: { streak: 0, lastStudy: null, newDate: null, newCount: 0, totalXp: 0, history: {} } };
+}
+let store = loadStore();
+function loadStore() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SRS_KEY));
+    if (!s || typeof s !== "object") return blankStore();
+    s.cards = s.cards || {};
+    s.meta = Object.assign({ streak: 0, lastStudy: null, newDate: null, newCount: 0, totalXp: 0, history: {} }, s.meta || {});
+    return s;
+  } catch (e) { return blankStore(); }
+}
+function saveStore() { try { localStorage.setItem(SRS_KEY, JSON.stringify(store)); } catch (e) {} }
+
+/* Date helpers (local time). */
+function dateKey(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+const todayKey = () => dateKey(Date.now());
+
+/* New-card daily budget tracking. */
+function introducedToday() { return store.meta.newDate === todayKey() ? store.meta.newCount : 0; }
+function bumpNewCount() {
+  if (store.meta.newDate !== todayKey()) { store.meta.newDate = todayKey(); store.meta.newCount = 0; }
+  store.meta.newCount++;
+}
+
+/* SM-2 scheduler. quality q: 5 = easy/correct-hard, 4 = correct, <3 = wrong. */
+function schedule(prev, q) {
+  let ef = prev ? prev.ef : 2.5;
+  let interval = prev ? prev.interval : 0;
+  let reps = prev ? prev.reps : 0;
+  let lapses = prev ? prev.lapses : 0;
+
+  if (q < 3) {
+    reps = 0; interval = 1; lapses++;
+  } else {
+    if (reps === 0) interval = 1;
+    else if (reps === 1) interval = 6;
+    else interval = Math.round(interval * ef);
+    reps++;
+  }
+  ef = ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+  if (ef < 1.3) ef = 1.3;
+
+  return { ef, interval, reps, lapses, due: Date.now() + interval * DAY };
+}
+
+/* Build a daily session: due reviews (soonest first) + a few new cards.
+   If nothing is due and no new budget remains, offer a "practice ahead"
+   pull of the soonest-upcoming learned cards. */
+function buildSession() {
+  const now = Date.now();
+  const due = CARDS
+    .filter(c => store.cards[c.id] && store.cards[c.id].due <= now)
+    .sort((a, b) => store.cards[a.id].due - store.cards[b.id].due)
+    .slice(0, MAX_REVIEWS);
+
+  const newAllowed = Math.max(0, NEW_PER_DAY - introducedToday());
+  const newCards = CARDS.filter(c => !store.cards[c.id]).slice(0, newAllowed);
+
+  return { due, newCards };
+}
+
+/* Choose a game mode per card: new words use recognition (easier);
+   reviews lean on production/listening (harder = a truer signal). */
+function pickMode(item) {
+  const card = item.card;
+  if (item.kind === "new") return Math.random() < 0.5 ? "es2en" : "en2es";
+  const reps = store.cards[card.id] ? store.cards[card.id].reps : 0;
+  const canCloze = hasSentence(card.cat, card.es);
+  const r = Math.random();
+  // Output first: once a word is at all known, sometimes make the user say it.
+  if (SPEECH_OK && reps >= 1 && r < 0.25) return "speak";
+  // Then context recall: practise known words inside a sentence.
+  if (canCloze && reps >= 2 && r < 0.55) return r < 0.30 ? "clozetype" : "cloze";
+  if (reps >= 3) return r < 0.5 ? "type" : (r < 0.8 ? "listen" : "en2es");
+  return r < 0.4 ? "listen" : (r < 0.75 ? "en2es" : "es2en");
+}
+
+/* Grade the answer just given during an SRS session, update the schedule,
+   and (on a miss) requeue the card once more for extra practice this session. */
+function gradeSrs(isRight) {
+  const item = state.currentItem;
+  if (!item) return;
+
+  if (!item.graded) {
+    item.graded = true;
+    const isHard = ["type", "listen", "speak", "clozetype"].includes(item.mode);
+    const q = isRight ? (isHard ? 5 : 4) : 1;
+    const prev = store.cards[item.card.id];
+    const ns = schedule(prev, q);
+    ns.seen = (prev && prev.seen || 0) + 1;
+    ns.correct = (prev && prev.correct || 0) + (isRight ? 1 : 0);
+    store.cards[item.card.id] = ns;
+
+    if (item.kind === "new") { bumpNewCount(); state.srsStats.newLearned++; }
+    else state.srsStats.reviewed++;
+    state.srsStats.graded++;
+    if (isRight) state.srsStats.correct++;
+    state.doneDistinct++;
+
+    if (!isRight && !item.requeued) {
+      item.requeued = true;
+      state.queue.push({ card: item.card, kind: item.kind, mode: item.mode, graded: true, requeued: true });
+    }
+    saveStore();
+  }
+  state.qi++;
+}
+
+/* Advance the daily-practice queue. */
+function nextSrsQuestion() {
+  if (state.qi >= state.queue.length) return endSrs();
+  const item = state.queue[state.qi];
+  state.currentItem = item;
+  state.currentCard = item.card;
+  state.current = [item.card.es, item.card.en, item.card.emoji];
+  state.mode = item.mode;
+  state.pool = VOCAB[item.card.cat] || CARDS;
+  state.sentence = (item.mode === "cloze" || item.mode === "clozetype")
+    ? getSentence(item.card.cat, item.card.es) : null;
+  renderQuestion();
+}
+
+function startDaily() {
+  const { due, newCards } = buildSession();
+  let items = [];
+  due.forEach(c => items.push({ card: c, kind: "review" }));
+  newCards.forEach(c => items.push({ card: c, kind: "new" }));
+
+  if (items.length === 0) {
+    // All caught up: pull the soonest-upcoming learned cards to practice ahead.
+    CARDS.filter(c => store.cards[c.id])
+      .sort((a, b) => store.cards[a.id].due - store.cards[b.id].due)
+      .slice(0, 10)
+      .forEach(c => items.push({ card: c, kind: "review" }));
+  }
+  if (items.length === 0) return; // truly nothing to do (no cards at all)
+
+  items = shuffle(items);
+  items.forEach(it => it.mode = pickMode(it));
+
+  state = {
+    srs: true,
+    queue: items,
+    qi: 0,
+    lives: 999,               // reviews don't "run out of hearts"
+    score: 0,
+    streak: 0,
+    bestStreak: 0,
+    plannedTotal: items.length,
+    doneDistinct: 0,
+    srsStats: { graded: 0, correct: 0, reviewed: 0, newLearned: 0 },
+  };
+  show("game");
+  nextSrsQuestion();
+}
+
+/* Daily-streak bookkeeping — counts consecutive calendar days studied. */
+function updateStreak() {
+  const t = todayKey();
+  if (store.meta.lastStudy === t) return;
+  if (store.meta.lastStudy === dateKey(Date.now() - DAY)) store.meta.streak = (store.meta.streak || 0) + 1;
+  else store.meta.streak = 1;
+  store.meta.lastStudy = t;
+}
+
+/* Friendly "when do I come back" message. */
+function nextDueMsg() {
+  const now = Date.now();
+  const dueNow = CARDS.filter(c => { const s = store.cards[c.id]; return s && s.due <= now; }).length;
+  if (dueNow > 0) return dueNow + " more card" + (dueNow > 1 ? "s" : "") + " ready now — keep going!";
+  let soon = Infinity;
+  CARDS.forEach(c => { const s = store.cards[c.id]; if (s && s.due > now) soon = Math.min(soon, s.due); });
+  if (soon === Infinity) return "Add some words with daily practice to get started 🌱";
+  const h = Math.round((soon - now) / 3600000);
+  if (h < 1) return "Next review in under an hour ⏳";
+  if (h < 24) return "Next review in ~" + h + " hour" + (h > 1 ? "s" : "") + " ⏳";
+  const d = Math.round(h / 24);
+  return "Next review in ~" + d + " day" + (d > 1 ? "s" : "") + " 📅";
+}
+
+function endSrs() {
+  updateStreak();
+  store.meta.totalXp = (store.meta.totalXp || 0) + state.score;
+  // Log today's activity for the progress charts.
+  const hist = store.meta.history || (store.meta.history = {});
+  const k = todayKey();
+  const day = hist[k] || (hist[k] = { new: 0, reviews: 0, xp: 0 });
+  day.new += state.srsStats.newLearned;
+  day.reviews += state.srsStats.reviewed;
+  day.xp += state.score;
+  saveStore();
+  show("results");
+
+  const acc = state.srsStats.graded ? Math.round(state.srsStats.correct / state.srsStats.graded * 100) : 0;
+  $("resultTitle").textContent = "✅ ¡Sesión completa! (Session complete)";
+  $("resultScore").textContent = "+" + state.score + " XP";
+  $("statCorrect").textContent = state.srsStats.reviewed; $("lblCorrect").textContent = "Reviewed";
+  $("statBest").textContent = state.srsStats.newLearned;  $("lblBest").textContent = "New learned 🌱";
+  $("statAccuracy").textContent = acc + "%";              $("lblAccuracy").textContent = "Accuracy";
+  $("statHigh").textContent = store.meta.streak;          $("lblHigh").textContent = "Day streak 🔥";
+  $("resultMsg").textContent = nextDueMsg();
+}
+
+/* Home-screen "Today" dashboard. */
+function buildDashboard() {
+  const now = Date.now();
+  const learned = CARDS.filter(c => store.cards[c.id]).length;
+  const dueNow = CARDS.filter(c => { const s = store.cards[c.id]; return s && s.due <= now; }).length;
+  const newAvail = Math.max(0, Math.min(NEW_PER_DAY - introducedToday(), CARDS.filter(c => !store.cards[c.id]).length));
+  const streak = store.meta.streak || 0;
+
+  $("dashStats").innerHTML =
+    tile(dueNow, "Due now") + tile(newAvail, "New today") +
+    tile(learned, "Learned") + tile(streak + "🔥", "Day streak");
+
+  const btn = $("startDailyBtn");
+  const total = dueNow + newAvail;
+  if (total > 0) {
+    btn.innerHTML = "▶️ Start daily practice<br><small>Review " + dueNow + " · Learn " + newAvail + "</small>";
+  } else if (learned > 0) {
+    btn.innerHTML = "✨ All caught up — practice ahead";
+  } else {
+    btn.innerHTML = "▶️ Start daily practice";
+  }
+  $("dashNext").textContent = nextDueMsg();
+
+  function tile(num, lbl) {
+    return '<div class="dash-tile"><div class="dnum">' + num + '</div><div class="dlbl">' + lbl + '</div></div>';
+  }
+}
+
+/* Progress screen: mastery, per-topic coverage, activity + review forecast. */
+function buildProgress() {
+  const now = Date.now();
+  const body = $("progBody");
+  const learnedCards = CARDS.filter(c => store.cards[c.id]);
+  const learned = learnedCards.length;
+
+  if (!learned) {
+    body.innerHTML = '<p class="prog-empty">No words learned yet.<br>' +
+      'Tap <b>Start daily practice</b> on the home screen and your progress will grow here. 🌱</p>';
+    return;
+  }
+
+  let seen = 0, correct = 0;
+  const buckets = { learning: 0, familiar: 0, strong: 0, mastered: 0 };
+  learnedCards.forEach(c => {
+    const s = store.cards[c.id];
+    seen += s.seen || 0;
+    correct += s.correct || 0;
+    const iv = s.interval || 0;
+    if (iv >= 21) buckets.mastered++;
+    else if (iv >= 7) buckets.strong++;
+    else if (iv >= 2) buckets.familiar++;
+    else buckets.learning++;
+  });
+  const acc = seen ? Math.round(correct / seen * 100) : 0;
+  const COL = { learning: "#e67e22", familiar: "#f1c40f", strong: "#3498db", mastered: "#2ecc71" };
+  const DOW = ["S", "M", "T", "W", "T", "F", "S"];
+
+  // Stat tiles
+  const tileP = (num, lbl) => '<div class="dash-tile"><div class="dnum">' + num + '</div><div class="dlbl">' + lbl + '</div></div>';
+  const tiles = tileP(learned + "/" + CARDS.length, "Words learned") +
+    tileP(buckets.mastered, "Mastered 🌟") + tileP(acc + "%", "Accuracy") +
+    tileP((store.meta.streak || 0) + "🔥", "Day streak");
+
+  // Mastery bar + legend
+  const seg = (n, color) => n ? '<span style="width:' + (n / learned * 100).toFixed(1) + '%;background:' + color + ';"></span>' : '';
+  const masteryBar = '<div class="mastery-bar">' + seg(buckets.learning, COL.learning) +
+    seg(buckets.familiar, COL.familiar) + seg(buckets.strong, COL.strong) + seg(buckets.mastered, COL.mastered) + '</div>';
+  const legItem = (color, label, n) => '<span><span class="dot" style="background:' + color + ';"></span>' + label + ' ' + n + '</span>';
+  const legend = '<div class="mastery-legend">' + legItem(COL.learning, "Learning", buckets.learning) +
+    legItem(COL.familiar, "Familiar", buckets.familiar) + legItem(COL.strong, "Strong", buckets.strong) +
+    legItem(COL.mastered, "Mastered", buckets.mastered) + '</div>';
+
+  // Per-topic coverage
+  let cats = "";
+  Object.keys(VOCAB).forEach(cat => {
+    const tot = VOCAB[cat].length;
+    const done = VOCAB[cat].filter(w => store.cards[cat + "||" + w[0]]).length;
+    cats += '<div class="cat-row"><div class="cat-name">' + cat + '</div>' +
+      '<div class="cat-track"><div class="cat-fill" style="width:' + Math.round(done / tot * 100) + '%;"></div></div>' +
+      '<div class="cat-count">' + done + '/' + tot + '</div></div>';
+  });
+
+  // Activity, last 14 days
+  const hist = store.meta.history || {};
+  const barCol = (val, height, lbl) =>
+    '<div class="bar-col"><div class="bar-val">' + (val || "") + '</div>' +
+    '<div class="bar' + (val ? "" : " empty") + '" style="height:' + (val ? Math.max(6, height) : 4) + '%;"></div>' +
+    '<div class="bar-lbl">' + lbl + '</div></div>';
+  const act = [];
+  for (let i = 13; i >= 0; i--) { const ts = now - i * DAY; const d = hist[dateKey(ts)]; act.push({ ts, count: d ? ((d.new || 0) + (d.reviews || 0)) : 0 }); }
+  const actMax = Math.max(1, ...act.map(d => d.count));
+  const actChart = '<div class="chart">' +
+    act.map(d => barCol(d.count, Math.round(d.count / actMax * 100), DOW[new Date(d.ts).getDay()])).join("") + '</div>';
+
+  // Review forecast, next 7 days
+  const fc = [0, 0, 0, 0, 0, 0, 0];
+  CARDS.forEach(c => { const s = store.cards[c.id]; if (!s) return; let d = Math.ceil((s.due - now) / DAY); if (d < 0) d = 0; if (d < 7) fc[d]++; });
+  const fcMax = Math.max(1, ...fc);
+  const fcChart = '<div class="chart">' +
+    fc.map((n, i) => barCol(n, Math.round(n / fcMax * 100), i === 0 ? "Now" : DOW[new Date(now + i * DAY).getDay()])).join("") + '</div>';
+
+  body.innerHTML =
+    '<div class="dash-stats">' + tiles + '</div>' +
+    '<div class="prog-section"><h3>Mastery — ' + learned + ' word' + (learned > 1 ? "s" : "") + '</h3>' + masteryBar + legend + '</div>' +
+    '<div class="prog-section"><h3>By topic</h3>' + cats + '</div>' +
+    '<div class="prog-section"><h3>Activity — last 14 days</h3>' + actChart + '</div>' +
+    '<div class="prog-section"><h3>Reviews coming up</h3>' + fcChart + '</div>';
+}
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+function show(screen) {
+  ["home","game","memory","results","progress"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  if (screen === "home") buildDashboard();
+  if (screen === "progress") buildProgress();
+}
+
+/* ============================================================
+   HOME — build category chips
+   ============================================================ */
+let selectedCategory = Object.keys(VOCAB)[0];
+
+function buildChips() {
+  const wrap = $("categoryChips");
+  wrap.innerHTML = "";
+  Object.keys(VOCAB).forEach(cat => {
+    const chip = document.createElement("button");
+    chip.className = "chip" + (cat === selectedCategory ? " selected" : "");
+    chip.textContent = cat;
+    chip.onclick = () => {
+      selectedCategory = cat;
+      buildChips();
+    };
+    wrap.appendChild(chip);
+  });
+}
+
+/* ============================================================
+   SPEECH (pronounce Spanish)
+   ============================================================ */
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "es-ES";
+    u.rate = 0.9;
+    // Prefer a Spanish voice if available
+    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith("es"));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch(e) {}
+}
+// Warm up voices list
+if ("speechSynthesis" in window) { speechSynthesis.onvoiceschanged = () => {}; }
+
+/* ============================================================
+   SPEECH RECOGNITION  (output practice — say it aloud)
+   Uses the Web Speech API. Not in every browser (e.g. Firefox),
+   so speaking is always optional with a "show answer" fallback.
+   ============================================================ */
+const SPEECH_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+
+function matchesSpoken(heard, target) {
+  const h = normalize(heard), t = normalize(target);
+  if (!h) return false;
+  return h === t || h.includes(t) || t.includes(h);
+}
+
+function setMic(cls, text) {
+  const b = $("micBtn");
+  b.classList.toggle("listening", cls === "listening");
+  b.disabled = (cls === "done");
+  $("micStatus").innerHTML = text;
+}
+
+function startListening() {
+  if (state.answeredThis) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { setMic("idle", "Speech recognition isn't available in this browser."); return; }
+  const target = state.current[0];
+  const r = new SR();
+  r.lang = "es-ES";
+  r.interimResults = false;
+  r.maxAlternatives = 5;
+  state.recog = r;
+  setMic("listening", "🎧 Listening…");
+  try { r.start(); } catch (e) {}
+
+  r.onresult = (e) => {
+    const alts = [];
+    for (let i = 0; i < e.results.length; i++) {
+      const res = e.results[i];
+      for (let j = 0; j < res.length; j++) alts.push(res[j].transcript);
+    }
+    const heard = alts[0] || "";
+    const ok = alts.some(a => matchesSpoken(a, target));
+    setMic("done", "Heard: “" + heard + "”");
+    speak(target);
+    resolveAnswer(ok, target);
+  };
+  r.onerror = (e) => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed")
+      setMic("idle", "Microphone blocked — allow mic access, or use “show answer”.");
+    else if (e.error === "no-speech")
+      setMic("idle", "Didn't hear anything — tap the mic and try again.");
+    else
+      setMic("idle", "Try again — tap the mic when ready.");
+  };
+}
+
+function speakGiveUp() {
+  if (state.answeredThis) return;
+  if (state.recog) { try { state.recog.abort(); } catch (e) {} }
+  speak(state.current[0]);
+  resolveAnswer(false, state.current[0]);
+}
+
+/* ============================================================
+   GAME LOGIC
+   ============================================================ */
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startGame(mode) {
+  let words = VOCAB[selectedCategory];
+  if (mode === "cloze") words = words.filter(w => hasSentence(selectedCategory, w[0]));
+  const deck = shuffle(words).slice(0, Math.min(QUESTIONS_PER_ROUND, words.length));
+  state = {
+    mode,
+    deck,
+    pool: VOCAB[selectedCategory],
+    index: 0,
+    score: 0,
+    lives: START_LIVES,
+    streak: 0,
+    bestStreak: 0,
+    correct: 0,
+    answered: 0,
+  };
+  show("game");
+  nextQuestion();
+}
+
+function nextQuestion() {
+  if (state.index >= state.deck.length || state.lives <= 0) {
+    return endGame();
+  }
+  state.current = state.deck[state.index]; // [es, en, emoji]
+  state.currentCard = null;
+  state.currentItem = null;
+  state.sentence = (state.mode === "cloze" || state.mode === "clozetype")
+    ? getSentence(selectedCategory, state.current[0]) : null;
+  renderQuestion();
+}
+
+/* Renders the current question from state.current / state.mode / state.pool.
+   Shared by free-play (nextQuestion) and daily SRS (nextSrsQuestion). */
+function renderQuestion() {
+  const word = state.current; // [es, en, emoji]
+  state.answeredThis = false;
+
+  updateHUD();
+  $("feedback").textContent = "";
+  $("feedback").style.color = "var(--text)";
+
+  const card = $("promptCard");
+  card.classList.remove("pop"); void card.offsetWidth; card.classList.add("pop");
+
+  const mode = state.mode;
+  const answersWrap = $("answers");
+  const typeInput = $("typeInput");
+  const submitType = $("submitType");
+
+  answersWrap.classList.add("hidden");
+  typeInput.classList.add("hidden");
+  submitType.classList.add("hidden");
+  $("speakPanel").classList.add("hidden");
+  answersWrap.innerHTML = "";
+  $("promptWord").style.fontSize = ""; // reset (cloze sentences shrink it)
+
+  if (mode === "cloze" || mode === "clozetype") {
+    // Comprehensible input: show the sentence with a blank; hear it spoken.
+    const s = state.sentence;
+    $("promptLabel").textContent = "Fill in the blank";
+    $("promptEmoji").textContent = word[2];
+    $("promptWord").style.fontSize = "clamp(1.1rem, 4.2vw, 1.6rem)";
+    $("promptWord").innerHTML = s.template.replace(
+      "___", '<span style="color:var(--accent2);font-weight:900;">_____</span>');
+    if (mode === "cloze") {
+      answersWrap.classList.remove("hidden");
+      buildClozeChoices(s.answer);
+    } else {
+      typeInput.classList.remove("hidden");
+      submitType.classList.remove("hidden");
+      typeInput.value = "";
+      typeInput.disabled = false;
+      submitType.disabled = false;
+      typeInput.placeholder = "Type the missing word…";
+      setTimeout(() => typeInput.focus(), 50);
+    }
+    speak(s.full);
+  } else if (mode === "speak") {
+    // Output practice: user says the Spanish word aloud.
+    $("promptLabel").textContent = "Say it in Spanish:";
+    $("promptEmoji").textContent = word[2];
+    $("promptWord").textContent = word[1];
+    $("speakPanel").classList.remove("hidden");
+    $("micBtn").disabled = false;
+    setMic("idle", "Tap the mic and say it aloud 🎙️");
+  } else if (mode === "type") {
+    // Prompt = English (+emoji), user types Spanish
+    $("promptLabel").textContent = "Type the Spanish for:";
+    $("promptEmoji").textContent = word[2];
+    $("promptWord").textContent = word[1];
+    typeInput.classList.remove("hidden");
+    submitType.classList.remove("hidden");
+    typeInput.value = "";
+    typeInput.disabled = false;
+    submitType.disabled = false;
+    typeInput.placeholder = "Type the Spanish word…";
+    setTimeout(() => typeInput.focus(), 50);
+  } else if (mode === "listen") {
+    // Prompt = audio only, answers = Spanish words
+    $("promptLabel").textContent = "Listen, then choose:";
+    $("promptEmoji").textContent = "🔊";
+    $("promptWord").textContent = "Tap 🔊 to hear it";
+    answersWrap.classList.remove("hidden");
+    buildChoices("es");
+    speak(word[0]);
+  } else if (mode === "en2es") {
+    // Prompt = English, answers = Spanish
+    $("promptLabel").textContent = "English";
+    $("promptEmoji").textContent = word[2];
+    $("promptWord").textContent = word[1];
+    answersWrap.classList.remove("hidden");
+    buildChoices("es");
+  } else {
+    // es2en (default): Prompt = Spanish, answers = English
+    $("promptLabel").textContent = "Spanish";
+    $("promptEmoji").textContent = word[2];
+    $("promptWord").textContent = word[0];
+    answersWrap.classList.remove("hidden");
+    buildChoices("en");
+  }
+}
+
+function buildChoices(field) {
+  // field: "en" -> answers are English (index 1); "es" -> Spanish (index 0)
+  const idx = field === "en" ? 1 : 0;
+  const correct = state.current[idx];
+  const distractors = shuffle(state.pool.filter(w => w[idx] !== correct))
+    .slice(0, 3)
+    .map(w => w[idx]);
+  const options = shuffle([correct, ...distractors]);
+
+  const wrap = $("answers");
+  wrap.innerHTML = "";
+  options.forEach(opt => {
+    const b = document.createElement("button");
+    b.className = "btn answer-btn";
+    b.textContent = opt;
+    b.onclick = () => handleChoice(b, opt, correct, idx);
+    wrap.appendChild(b);
+  });
+}
+
+function buildClozeChoices(answer) {
+  // Distractors: other Spanish words from the pool (article stripped).
+  const pool = [...new Set(state.pool.map(w => stripArticle(w[0])))].filter(x => x !== answer);
+  const distractors = shuffle(pool).slice(0, 3);
+  const options = shuffle([answer, ...distractors]);
+
+  const wrap = $("answers");
+  wrap.innerHTML = "";
+  options.forEach(opt => {
+    const b = document.createElement("button");
+    b.className = "btn answer-btn";
+    b.textContent = opt;
+    b.onclick = () => handleChoice(b, opt, answer, 0);
+    wrap.appendChild(b);
+  });
+}
+
+function handleChoice(btn, chosen, correct, idx) {
+  if (state.answeredThis) return;
+  state.answeredThis = true;
+
+  const buttons = [...$("answers").querySelectorAll("button")];
+  buttons.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correct) b.classList.add("correct");
+  });
+
+  const isRight = chosen === correct;
+  if (!isRight) btn.classList.add("wrong");
+
+  // Speak the full sentence (cloze) or the word as reinforcement.
+  speak(state.sentence ? state.sentence.full : state.current[0]);
+
+  resolveAnswer(isRight, correct);
+}
+
+function checkTyped() {
+  if (state.answeredThis) return;
+  const input = $("typeInput");
+  const target = (state.mode === "clozetype") ? state.sentence.answer : state.current[0];
+  const guess = normalize(input.value);
+  const answer = normalize(target);
+  if (guess === "") return; // ignore empty
+
+  state.answeredThis = true;
+  input.disabled = true;
+  $("submitType").disabled = true;
+
+  const isRight = guess === answer;
+  speak(state.sentence ? state.sentence.full : state.current[0]);
+  resolveAnswer(isRight, target);
+}
+
+// Normalize for typing comparison: lowercase, trim, strip accents, drop leading article
+function normalize(s) {
+  s = (s || "").toLowerCase().trim();
+  s = s.normalize("NFD").replace(/[̀-ͯ]/g, ""); // strip accents
+  s = s.replace(/^(el|la|los|las)\s+/, ""); // optional article
+  return s;
+}
+
+function resolveAnswer(isRight, correctText) {
+  state.answered++;
+  if (state.mode === "speak") $("micBtn").disabled = true;
+  const fb = $("feedback");
+  const w = state.current; // [es, en, emoji]
+  let translation;
+  if (state.sentence) {
+    const s = state.sentence;
+    translation = `<div class="translation">${s.full}<br><span style="opacity:.8;font-weight:600;">${s.en}</span></div>`;
+    // Reveal the completed sentence with the answer highlighted.
+    $("promptWord").style.fontSize = "clamp(1.1rem, 4.2vw, 1.6rem)";
+    $("promptWord").innerHTML = s.full.replace(
+      s.answer, '<span style="color:var(--accent);font-weight:900;">' + s.answer + '</span>');
+    $("promptEmoji").textContent = w[2];
+  } else {
+    translation = `<div class="translation">${w[2]} ${w[0]} = ${w[1]}</div>`;
+    // Reveal the Spanish word on the prompt card (helps in Listen mode)
+    $("promptWord").textContent = w[0];
+    $("promptEmoji").textContent = w[2];
+  }
+
+  if (isRight) {
+    state.correct++;
+    state.streak++;
+    state.bestStreak = Math.max(state.bestStreak, state.streak);
+    const bonus = state.streak >= 3 ? 5 : 0;
+    const gained = 10 + bonus;
+    state.score += gained;
+    fb.style.color = "var(--good)";
+    fb.innerHTML = pickPraise() + ` +${gained}` + (bonus ? " 🔥" : "") + translation;
+  } else {
+    state.streak = 0;
+    if (!state.srs) {
+      state.lives--;
+      state.score = Math.max(0, state.score - 2);
+    }
+    fb.style.color = "var(--bad)";
+    fb.innerHTML = `✗ Not quite` + translation;
+    const card = $("promptCard");
+    card.classList.remove("shake"); void card.offsetWidth; card.classList.add("shake");
+  }
+
+  updateHUD();
+
+  const delay = isRight ? 1600 : 2200;
+  if (state.srs) {
+    gradeSrs(isRight);
+    setTimeout(nextSrsQuestion, delay);
+  } else {
+    state.index++;
+    setTimeout(nextQuestion, delay);
+  }
+}
+
+const PRAISE = ["¡Sí! ✓", "¡Correcto! ✓", "¡Muy bien! ✓", "¡Excelente! ✓", "¡Perfecto! ✓"];
+function pickPraise() { return PRAISE[Math.floor(Math.random() * PRAISE.length)]; }
+
+function updateHUD() {
+  if (state.srs) {
+    const left = Math.max(0, state.plannedTotal - state.doneDistinct);
+    $("hearts").textContent = "📚 " + left + " left";
+    $("streak").textContent = state.streak;
+    $("score").textContent = state.score;
+    const p = state.plannedTotal ? Math.min(100, (state.doneDistinct / state.plannedTotal) * 100) : 0;
+    $("progressFill").style.width = p + "%";
+    return;
+  }
+  $("hearts").textContent = "❤️".repeat(state.lives) + "🖤".repeat(START_LIVES - state.lives);
+  $("streak").textContent = state.streak;
+  $("score").textContent = state.score;
+  const total = state.deck.length;
+  const pct = Math.min(100, (state.index / total) * 100);
+  $("progressFill").style.width = pct + "%";
+}
+
+/* ============================================================
+   END / RESULTS
+   ============================================================ */
+function endGame() {
+  show("results");
+  // Restore quiz labels (memory mode repurposes them)
+  $("lblCorrect").textContent = "Correct";
+  $("lblBest").textContent = "Best streak 🔥";
+  $("lblAccuracy").textContent = "Accuracy";
+  $("lblHigh").textContent = "High score 🏆";
+
+  const total = state.answered || 1;
+  const accuracy = Math.round((state.correct / total) * 100);
+
+  const high = Math.max(getHigh(), state.score);
+  setHigh(high);
+
+  $("resultScore").textContent = state.score;
+  $("statCorrect").textContent = `${state.correct}/${state.answered}`;
+  $("statBest").textContent = state.bestStreak;
+  $("statAccuracy").textContent = accuracy + "%";
+  $("statHigh").textContent = high;
+
+  let title, msg;
+  if (state.lives <= 0) {
+    title = "💔 ¡Se acabó! (Out of hearts)";
+  } else {
+    title = "🎉 ¡Ronda completa! (Round complete)";
+  }
+  if (accuracy === 100) msg = "Flawless! ¡Eres un genio! 🌟";
+  else if (accuracy >= 80) msg = "Great job! ¡Muy bien hecho! 👏";
+  else if (accuracy >= 50) msg = "Nice effort — keep practicing! 💪";
+  else msg = "Every expert was once a beginner. ¡Otra vez! 🌱";
+
+  $("resultTitle").textContent = title;
+  $("resultMsg").textContent = msg;
+}
+
+/* ============================================================
+   MEMORY MATCH MODE
+   ============================================================ */
+const MEMORY_PAIRS = 6;
+let mem = {};
+
+function startMemory() {
+  const words = shuffle(VOCAB[selectedCategory]).slice(0, Math.min(MEMORY_PAIRS, VOCAB[selectedCategory].length));
+  // Build two cards per word: a Spanish card and an English card
+  const cards = [];
+  words.forEach((w, i) => {
+    cards.push({ pair: i, side: "es", text: w[0], emoji: w[2], speak: w[0] });
+    cards.push({ pair: i, side: "en", text: w[1], emoji: w[2], speak: w[0] });
+  });
+
+  mem = {
+    cards: shuffle(cards),
+    first: null,
+    lock: false,
+    matches: 0,
+    moves: 0,
+    pairs: words.length,
+    seconds: 0,
+    timer: null,
+  };
+  state = { mode: "memory" }; // so "Play again" knows what to replay
+
+  $("memMatches").textContent = "0";
+  $("memPairs").textContent = mem.pairs;
+  $("memMoves").textContent = "0";
+  $("memTime").textContent = "0:00";
+
+  renderMemGrid();
+  show("memory");
+
+  if (mem.timer) clearInterval(mem.timer);
+  mem.timer = setInterval(() => {
+    mem.seconds++;
+    const m = Math.floor(mem.seconds / 60);
+    const s = String(mem.seconds % 60).padStart(2, "0");
+    $("memTime").textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function renderMemGrid() {
+  const grid = $("memGrid");
+  grid.innerHTML = "";
+  mem.cards.forEach((card, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "mem-card";
+    btn.innerHTML = `
+      <div class="mem-inner">
+        <div class="mem-face mem-front">🃏</div>
+        <div class="mem-face mem-back">
+          <span class="mem-tag">${card.side === "es" ? "Español" : "English"}</span>
+          <span class="mem-emoji">${card.emoji}</span>
+          <span>${card.text}</span>
+        </div>
+      </div>`;
+    btn.onclick = () => flipCard(idx, btn);
+    card.el = btn;
+    grid.appendChild(btn);
+  });
+}
+
+function flipCard(idx, btn) {
+  const card = mem.cards[idx];
+  if (mem.lock || card.matched || card === mem.first) return;
+
+  btn.classList.add("flipped");
+  if (card.side === "es") speak(card.speak);
+
+  if (!mem.first) {
+    mem.first = card;
+    return;
+  }
+
+  // Second pick
+  mem.moves++;
+  $("memMoves").textContent = mem.moves;
+  const a = mem.first, b = card;
+
+  if (a.pair === b.pair) {
+    // Match!
+    a.matched = b.matched = true;
+    a.el.classList.add("matched");
+    b.el.classList.add("matched");
+    mem.first = null;
+    mem.matches++;
+    $("memMatches").textContent = mem.matches;
+    speak(b.speak);
+    if (mem.matches === mem.pairs) {
+      clearInterval(mem.timer);
+      setTimeout(endMemory, 700);
+    }
+  } else {
+    // No match — flip both back
+    mem.lock = true;
+    setTimeout(() => {
+      a.el.classList.remove("flipped");
+      b.el.classList.remove("flipped");
+      mem.first = null;
+      mem.lock = false;
+    }, 1000);
+  }
+}
+
+function endMemory() {
+  show("results");
+  // Repurpose the result stat boxes for memory
+  $("resultTitle").textContent = "🃏 ¡Todas emparejadas! (All matched!)";
+  $("resultScore").textContent = `⏱️ ${$("memTime").textContent}`;
+
+  const perfect = mem.moves === mem.pairs; // fewest possible
+  const efficiency = Math.round((mem.pairs / mem.moves) * 100);
+
+  $("statCorrect").textContent = mem.pairs;  $("lblCorrect").textContent = "Pairs";
+  $("statBest").textContent = mem.moves;     $("lblBest").textContent = "Moves 🔄";
+  $("statAccuracy").textContent = efficiency + "%"; $("lblAccuracy").textContent = "Efficiency";
+  $("statHigh").textContent = $("memTime").textContent; $("lblHigh").textContent = "Time ⏱️";
+
+  let msg;
+  if (perfect) msg = "Perfect memory — not one wasted flip! 🧠✨";
+  else if (efficiency >= 70) msg = "Sharp memory! ¡Excelente! 👏";
+  else if (efficiency >= 45) msg = "Well done — ¡muy bien! 💪";
+  else msg = "Matched them all! ¡Otra vez para mejorar! 🌱";
+  $("resultMsg").textContent = msg;
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+document.querySelectorAll("[data-mode]").forEach(btn => {
+  btn.onclick = () => {
+    const m = btn.dataset.mode;
+    if (m === "memory") startMemory(); else startGame(m);
+  };
+});
+
+$("speakBtn").onclick = () => { if (state.current) speak(state.current[0]); };
+$("micBtn").onclick = startListening;
+$("micSkip").onclick = speakGiveUp;
+
+/* Speaking needs the Web Speech API — soften the button where it's missing. */
+if (!SPEECH_OK) {
+  const b = $("speakModeBtn");
+  if (b) {
+    b.style.opacity = "0.55";
+    const small = b.querySelector("small");
+    if (small) small.textContent = "Not supported in this browser (try Chrome/Edge)";
+  }
+}
+
+function abortRecog() { if (state && state.recog) { try { state.recog.abort(); } catch (e) {} } }
+$("quitBtn").onclick = () => { abortRecog(); speechSynthesis && speechSynthesis.cancel(); show("home"); };
+$("memQuitBtn").onclick = () => {
+  if (mem.timer) clearInterval(mem.timer);
+  speechSynthesis && speechSynthesis.cancel();
+  show("home");
+};
+$("menuBtn").onclick = () => show("home");
+$("playAgainBtn").onclick = () => {
+  if (state.srs) startDaily();
+  else if (state.mode === "memory") startMemory();
+  else startGame(state.mode);
+};
+$("startDailyBtn").onclick = startDaily;
+$("openProgressBtn").onclick = () => show("progress");
+$("progQuitBtn").onclick = () => show("home");
+$("submitType").onclick = checkTyped;
+$("typeInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") checkTyped();
+});
+
+buildChips();
+show("home");
+
+/* Register the service worker for offline use (only works over http/https). */
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
