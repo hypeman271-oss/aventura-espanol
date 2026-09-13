@@ -1312,6 +1312,7 @@ function orderReveal() {
 
 function endListen() {
   $("listenPlay").classList.add("hidden");
+  logActivity(ord.total, ord.score * 10); // count toward streak, XP, activity chart
   const end = $("listenEnd");
   end.classList.remove("hidden");
   const pct = Math.round(ord.score / ord.total * 100);
@@ -1540,6 +1541,7 @@ function scAbort() { if (sc && sc.recog) { try { sc.recog.abort(); } catch (e) {
 function scEnd() {
   $("scPlay").classList.add("hidden");
   const total = sc.turns.filter(t => t.speaker === "you").length || 1;
+  logActivity(total, sc.score * 10); // count toward streak, XP, activity chart
   const end = $("scEnd");
   end.classList.remove("hidden");
   end.innerHTML =
@@ -1710,6 +1712,19 @@ function updateStreak() {
   store.meta.lastStudy = t;
 }
 
+/* Record an Activity round (Listening / Conversations) toward progress:
+   keeps the day streak alive, adds XP, and feeds the activity chart. */
+function logActivity(items, xp) {
+  updateStreak();
+  store.meta.totalXp = (store.meta.totalXp || 0) + (xp || 0);
+  const hist = store.meta.history || (store.meta.history = {});
+  const k = todayKey();
+  const day = hist[k] || (hist[k] = { new: 0, reviews: 0, xp: 0 });
+  day.activity = (day.activity || 0) + (items || 0);
+  day.xp += (xp || 0);
+  saveStore();
+}
+
 /* Friendly "when do I come back" message. */
 function nextDueMsg() {
   const now = Date.now();
@@ -1837,7 +1852,7 @@ function buildProgress() {
     '<div class="bar' + (val ? "" : " empty") + '" style="height:' + (val ? Math.max(6, height) : 4) + '%;"></div>' +
     '<div class="bar-lbl">' + lbl + '</div></div>';
   const act = [];
-  for (let i = 13; i >= 0; i--) { const ts = now - i * DAY; const d = hist[dateKey(ts)]; act.push({ ts, count: d ? ((d.new || 0) + (d.reviews || 0)) : 0 }); }
+  for (let i = 13; i >= 0; i--) { const ts = now - i * DAY; const d = hist[dateKey(ts)]; act.push({ ts, count: d ? ((d.new || 0) + (d.reviews || 0) + (d.activity || 0)) : 0 }); }
   const actMax = Math.max(1, ...act.map(d => d.count));
   const actChart = '<div class="chart">' +
     act.map(d => barCol(d.count, Math.round(d.count / actMax * 100), DOW[new Date(d.ts).getDay()])).join("") + '</div>';
