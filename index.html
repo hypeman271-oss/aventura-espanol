@@ -456,6 +456,31 @@
   .ai-suggestions .btn { margin-top: 10px; }
   .mc-divider { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 4px 0; }
   .mc-or { text-align: center; opacity: 0.6; font-size: 0.85rem; margin: 10px 0; }
+
+  /* ---- Listening: arrange the words ---- */
+  .order-instr { text-align: center; opacity: 0.9; margin-bottom: 14px; }
+  .order-replay { display: block; margin: 0 auto 18px; background: var(--bg2); color: #fff; border: none; width: 60px; height: 60px; border-radius: 50%; font-size: 1.6rem; cursor: pointer; box-shadow: 0 5px 0 rgba(0,0,0,0.25); }
+  .order-replay:active { transform: translateY(2px); box-shadow: 0 3px 0 rgba(0,0,0,0.25); }
+  .order-answer { min-height: 54px; border-bottom: 2px dashed rgba(255,255,255,0.35); padding: 8px 4px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; margin-bottom: 22px; }
+  .order-bank { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 8px; }
+  .wtile { background: var(--card-solid); color: var(--ink); border: none; border-radius: 10px; padding: 10px 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.2); }
+  .wtile:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
+  .order-end { text-align: center; }
+
+  /* ---- Scenario conversations ---- */
+  .sc-intro { opacity: 0.85; font-size: 0.9rem; text-align: center; margin-bottom: 14px; line-height: 1.5; }
+  .sc-scenarios { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px; }
+  .sc-chip { padding: 10px 14px; border-radius: 24px; border: 2px solid rgba(255,255,255,0.28); background: rgba(255,255,255,0.08); color: #fff; cursor: pointer; font-size: 0.95rem; font-weight: 600; }
+  .sc-chip.selected { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+  .sc-diff { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  .sc-line { border-radius: 14px; padding: 12px 14px; margin: 10px 0; max-width: 88%; line-height: 1.4; }
+  .sc-them { background: var(--card-solid); color: var(--ink); border-bottom-left-radius: 4px; margin-right: auto; }
+  .sc-you { background: var(--accent2); color: #fff; border-bottom-right-radius: 4px; margin-left: auto; }
+  .sc-line .sc-en { display: block; font-size: 0.82rem; opacity: 0.75; margin-top: 4px; }
+  .sc-turnlabel { text-align: center; font-size: 0.85rem; opacity: 0.7; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .sc-target { text-align: center; font-size: 1.2rem; font-weight: 800; margin: 8px 0; }
+  .sc-hint-eng { text-align: center; opacity: 0.85; margin-bottom: 8px; }
+  .sc-reveal { background: none; border: none; color: #fff; opacity: 0.8; text-decoration: underline; cursor: pointer; font-size: 0.9rem; display: block; margin: 6px auto; }
 </style>
 </head>
 <body>
@@ -475,6 +500,18 @@
         <button class="btn center" id="openMyCardsBtn" style="background:rgba(255,255,255,0.15);color:#fff;">✏️ My Cards</button>
       </div>
       <p class="dash-next" id="dashNext"></p>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <p class="section-title">🎧 Activities</p>
+      <button class="btn accent2" id="openListenBtn">
+        <span class="emoji">🎧</span>
+        <span>Listening<small>Hear a sentence, tap the words in order</small></span>
+      </button>
+      <button class="btn accent2" id="openScenarioBtn">
+        <span class="emoji">💬</span>
+        <span>Conversations<small>Roleplay a real situation (AI)</small></span>
+      </button>
     </div>
 
     <div class="panel" style="margin-top:16px;">
@@ -627,6 +664,45 @@
         <button id="mcPracticeBtn" class="mc-practice">▶️ Practice these</button>
       </div>
       <div id="mcList" class="mc-list"></div>
+    </div>
+  </div>
+
+  <!-- ============ LISTENING (arrange the words) ============ -->
+  <div id="listen" class="hidden">
+    <button class="back-link" id="listenQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <div class="hud">
+        <span class="pill">🎧 <span id="listenProg">0/0</span></span>
+        <span class="pill">⭐ <span id="listenScore">0</span></span>
+      </div>
+      <div id="listenPlay">
+        <p class="order-instr">Tap the words in the order you hear them.</p>
+        <button class="order-replay" id="listenReplay" title="Play again">🔊</button>
+        <div class="order-answer" id="orderAnswer"></div>
+        <div class="order-bank" id="orderBank"></div>
+        <div class="feedback" id="listenFeedback"></div>
+        <button class="btn primary center" id="orderCheck">Check</button>
+        <button class="back-link" id="orderSkip" style="display:block;margin:8px auto 0;">Skip / show answer</button>
+      </div>
+      <div id="listenEnd" class="order-end hidden"></div>
+    </div>
+  </div>
+
+  <!-- ============ SCENARIO CONVERSATIONS (AI) ============ -->
+  <div id="scenario" class="hidden">
+    <button class="back-link" id="scenarioQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <div id="scSetup">
+        <p class="section-title">💬 Conversations</p>
+        <p class="sc-intro">Pick a situation and roleplay it in Spanish. The other person talks; you reply by speaking or typing.</p>
+        <div class="sc-scenarios" id="scChips"></div>
+        <input id="scCustom" class="mc-input" placeholder="…or type your own situation" autocomplete="off" />
+        <div class="sc-diff" id="scDiff"></div>
+        <div id="scStatus" class="ai-status"></div>
+        <button class="btn primary center" id="scStartBtn">▶️ Start conversation</button>
+      </div>
+      <div id="scPlay" class="hidden"></div>
+      <div id="scEnd" class="order-end hidden"></div>
     </div>
   </div>
 
@@ -1144,6 +1220,338 @@ function aiAddSelected() {
   buildMyCards();
 }
 
+/* ============================================================
+   ACTIVITY: LISTENING — arrange the words (offline)
+   Hear a full sentence, then tap the word tiles in order.
+   ============================================================ */
+const LISTEN_ROUND = 8;
+let ord = {};
+
+function listenPool() {
+  return Object.keys(SENTENCES)
+    .map(k => { const [t, a, en] = SENTENCES[k]; return { full: t.replace("___", a), en }; })
+    .filter(s => s.full.split(/\s+/).length >= 2);
+}
+
+function startListen() {
+  const pool = shuffle(listenPool()).slice(0, LISTEN_ROUND);
+  if (!pool.length) return;
+  ord = { pool, i: 0, score: 0, total: pool.length };
+  $("listenEnd").classList.add("hidden");
+  $("listenPlay").classList.remove("hidden");
+  show("listen");
+  nextListen();
+}
+
+function nextListen() {
+  if (ord.i >= ord.pool.length) return endListen();
+  const s = ord.pool[ord.i];
+  const tokens = s.full.split(/\s+/);
+  ord.cur = { full: s.full, en: s.en, tokens, answerIds: [], bankOrder: shuffle(tokens.map((_, idx) => idx)), done: false };
+  $("listenProg").textContent = (ord.i + 1) + "/" + ord.total;
+  $("listenScore").textContent = ord.score;
+  $("listenFeedback").textContent = "";
+  $("orderCheck").classList.remove("hidden");
+  renderOrder();
+  speak(s.full);
+}
+
+function renderOrder() {
+  const c = ord.cur;
+  const ans = $("orderAnswer"), bank = $("orderBank");
+  ans.innerHTML = ""; bank.innerHTML = "";
+  c.answerIds.forEach(id => {
+    const b = document.createElement("button");
+    b.className = "wtile"; b.textContent = c.tokens[id];
+    b.onclick = () => { if (c.done) return; c.answerIds = c.answerIds.filter(x => x !== id); renderOrder(); };
+    ans.appendChild(b);
+  });
+  c.bankOrder.forEach(id => {
+    if (c.answerIds.indexOf(id) >= 0) return;
+    const b = document.createElement("button");
+    b.className = "wtile"; b.textContent = c.tokens[id];
+    b.onclick = () => { if (c.done) return; c.answerIds.push(id); renderOrder(); };
+    bank.appendChild(b);
+  });
+  $("orderCheck").disabled = c.answerIds.length !== c.tokens.length;
+}
+
+function checkOrder() {
+  const c = ord.cur;
+  if (!c || c.done || c.answerIds.length !== c.tokens.length) return;
+  c.done = true;
+  const guess = c.answerIds.map(id => c.tokens[id]).join(" ");
+  const correct = c.tokens.join(" ");
+  const fb = $("listenFeedback");
+  if (guess === correct) {
+    ord.score++; $("listenScore").textContent = ord.score;
+    fb.style.color = "var(--good)";
+    fb.innerHTML = "¡Correcto! ✓<div class='translation'>" + c.en + "</div>";
+  } else {
+    fb.style.color = "var(--bad)";
+    fb.innerHTML = "✗ It was: <b>" + c.full + "</b><div class='translation'>" + c.en + "</div>";
+  }
+  speak(c.full);
+  $("orderCheck").classList.add("hidden");
+  ord.i++;
+  setTimeout(nextListen, guess === correct ? 1600 : 2800);
+}
+
+function orderReveal() {
+  const c = ord.cur;
+  if (!c || c.done) return;
+  c.done = true;
+  const fb = $("listenFeedback");
+  fb.style.color = "var(--bad)";
+  fb.innerHTML = "Answer: <b>" + c.full + "</b><div class='translation'>" + c.en + "</div>";
+  speak(c.full);
+  $("orderCheck").classList.add("hidden");
+  ord.i++;
+  setTimeout(nextListen, 2800);
+}
+
+function endListen() {
+  $("listenPlay").classList.add("hidden");
+  const end = $("listenEnd");
+  end.classList.remove("hidden");
+  const pct = Math.round(ord.score / ord.total * 100);
+  const msg = pct >= 80 ? "¡Excelente! 👏" : pct >= 50 ? "Good work! 💪" : "Keep practicing! 🌱";
+  end.innerHTML =
+    "<p class='section-title'>🎧 Round complete</p>" +
+    "<div class='big-score'>" + ord.score + "/" + ord.total + "</div>" +
+    "<p class='result-msg'>" + msg + "</p>" +
+    "<button class='btn primary center' id='listenAgain'>🔁 Again</button>" +
+    "<button class='btn center' id='listenHome'>🏠 Menu</button>";
+  $("listenAgain").onclick = startListen;
+  $("listenHome").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+}
+
+/* ============================================================
+   ACTIVITY: SCENARIO CONVERSATIONS (AI roleplay)
+   Pick a situation → Claude writes a dialogue → you play one side,
+   responding by speech or typing, with show/hide hints.
+   ============================================================ */
+const SC_PRESETS = ["Order at a café", "Ask for directions", "At the market", "At the doctor",
+  "Hotel check-in", "Make small talk", "At the airport", "Ordering at a restaurant"];
+let scSelected = SC_PRESETS[0];
+let scDiff = "show";
+let sc = {};
+
+function openScenario() {
+  buildScSetup();
+  $("scSetup").classList.remove("hidden");
+  $("scPlay").classList.add("hidden");
+  $("scEnd").classList.add("hidden");
+  $("scStatus").textContent = getApiKey() ? "" : "Tip: add your API key in My Cards → ⚙️ to use this.";
+  show("scenario");
+}
+
+function buildScSetup() {
+  const chips = $("scChips");
+  chips.innerHTML = "";
+  SC_PRESETS.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "sc-chip" + (s === scSelected ? " selected" : "");
+    b.textContent = s;
+    b.onclick = () => { scSelected = s; $("scCustom").value = ""; buildScSetup(); };
+    chips.appendChild(b);
+  });
+  const diff = $("scDiff");
+  diff.innerHTML = "";
+  [["show", "Show hints"], ["hide", "Hide hints (harder)"]].forEach(([v, l]) => {
+    const b = document.createElement("button");
+    b.className = "sc-chip" + (v === scDiff ? " selected" : "");
+    b.textContent = l;
+    b.onclick = () => { scDiff = v; buildScSetup(); };
+    diff.appendChild(b);
+  });
+}
+
+function scOverlap(a, b) {
+  const A = a.split(/\s+/).filter(Boolean), B = new Set(b.split(/\s+/).filter(Boolean));
+  if (!A.length) return 0;
+  let hit = 0; A.forEach(w => { if (B.has(w)) hit++; });
+  return hit / Math.max(A.length, B.size);
+}
+
+async function scGenerate(scenario) {
+  const sys =
+    "Create a short, realistic Spanish conversation for a learner to practise a given situation. " +
+    "Alternate turns between 'them' (the other person) and 'you' (the learner), starting with 'them'. " +
+    "6-8 turns total, short and beginner-intermediate. For each turn: speaker ('them' or 'you'), " +
+    "es (Spanish), en (English translation). The 'you' turns are natural lines the learner would say. " +
+    "Return ONLY by calling the create_dialogue tool.";
+  const body = {
+    model: getApiModel(), max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "low" },
+    system: sys,
+    tools: [{
+      name: "create_dialogue", description: "Return the practice conversation.", strict: true,
+      input_schema: {
+        type: "object", additionalProperties: false, required: ["turns"],
+        properties: {
+          turns: {
+            type: "array",
+            items: {
+              type: "object", additionalProperties: false, required: ["speaker", "es", "en"],
+              properties: { speaker: { type: "string", enum: ["them", "you"] }, es: { type: "string" }, en: { type: "string" } }
+            }
+          }
+        }
+      }
+    }],
+    messages: [{ role: "user", content: "Situation: " + scenario }]
+  };
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json", "x-api-key": getApiKey(),
+      "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    let m = "API error " + res.status;
+    if (res.status === 401) m = "Invalid API key — check My Cards → ⚙️.";
+    else if (res.status === 429) m = "Rate limited — try again shortly.";
+    else { try { const j = await res.json(); if (j.error && j.error.message) m += ": " + j.error.message; } catch (e) {} }
+    throw new Error(m);
+  }
+  const data = await res.json();
+  const tool = (data.content || []).find(b => b.type === "tool_use" && b.name === "create_dialogue");
+  let turns = tool && tool.input && Array.isArray(tool.input.turns) ? tool.input.turns : null;
+  if (!turns) {
+    const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+    const m = txt.match(/\[[\s\S]*\]/);
+    if (m) { try { turns = JSON.parse(m[0]); } catch (e) {} }
+  }
+  if (!turns) throw new Error("No dialogue came back — try again.");
+  return turns.filter(t => t && t.speaker && t.es);
+}
+
+async function scStart() {
+  const custom = $("scCustom").value.trim();
+  const scenario = custom || scSelected;
+  const status = $("scStatus");
+  if (!scenario) { status.textContent = "Pick a situation or type one."; return; }
+  if (!getApiKey()) { status.textContent = "Add your Anthropic API key in My Cards → ⚙️ first."; return; }
+  status.textContent = "✨ Creating your conversation…";
+  $("scStartBtn").disabled = true;
+  try {
+    const turns = await scGenerate(scenario);
+    sc = { turns, i: 0, done: [], scenario, difficulty: scDiff, score: 0, recog: null };
+    $("scSetup").classList.add("hidden");
+    $("scEnd").classList.add("hidden");
+    $("scPlay").classList.remove("hidden");
+    status.textContent = "";
+    renderScenario();
+  } catch (e) {
+    status.textContent = e.message || "Something went wrong — check your connection.";
+  } finally {
+    $("scStartBtn").disabled = false;
+  }
+}
+
+function scBubble(t) {
+  const cls = t.speaker === "them" ? "sc-them" : "sc-you";
+  const mark = t.result === "ok" ? " ✓" : t.result === "miss" ? " ✗" : "";
+  return "<div class='sc-line " + cls + "'>" + escapeHtml(t.es) + mark +
+    "<span class='sc-en'>" + escapeHtml(t.en) + "</span></div>";
+}
+
+function renderScenario() {
+  const play = $("scPlay");
+  if (sc.i >= sc.turns.length) return scEnd();
+  let html = sc.done.map(scBubble).join("");
+  const cur = sc.turns[sc.i];
+
+  if (cur.speaker === "them") {
+    html += scBubble(cur) + "<button class='btn primary center' id='scContinue'>Continue →</button>";
+    play.innerHTML = html;
+    speak(cur.es);
+    $("scContinue").onclick = () => { sc.done.push(cur); sc.i++; renderScenario(); };
+    return;
+  }
+
+  // "you" turn
+  html += "<div class='sc-turnlabel'>Your turn — say this:</div>";
+  html += "<div class='sc-hint-eng'>“" + escapeHtml(cur.en) + "”</div>";
+  if (sc.difficulty === "show") {
+    html += "<div class='sc-target'>" + escapeHtml(cur.es) + "</div>";
+  } else {
+    html += "<button class='sc-reveal' id='scReveal'>👁 Show the Spanish</button>" +
+      "<div class='sc-target hidden' id='scTargetText'>" + escapeHtml(cur.es) + "</div>";
+  }
+  html += "<div style='text-align:center;margin-top:6px;'>";
+  if (SPEECH_OK) html += "<button class='mic-btn' id='scMic'>🎤</button><div class='mic-status' id='scMicStatus'>Tap the mic and say it</div>";
+  html += "<input class='mc-input' id='scTypeInput' placeholder='…or type your reply' autocomplete='off' style='margin-top:10px;'/>" +
+    "<button class='btn primary center' id='scSubmit'>Check</button>" +
+    "<button class='back-link' id='scSkip' style='display:block;margin:6px auto 0;'>Skip</button>" +
+    "</div>";
+  play.innerHTML = html;
+
+  if (sc.difficulty === "hide" && $("scReveal")) $("scReveal").onclick = () => $("scTargetText").classList.remove("hidden");
+  if (SPEECH_OK && $("scMic")) $("scMic").onclick = scListen;
+  $("scSubmit").onclick = () => scCheckResponse($("scTypeInput").value);
+  $("scSkip").onclick = () => scResolve(false);
+}
+
+function scCheckResponse(text) {
+  const cur = sc.turns[sc.i];
+  const said = normalize(text);
+  if (!said) return;
+  const target = normalize(cur.es);
+  scResolve(said === target || scOverlap(said, target) >= 0.6);
+}
+
+function scListen() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  const r = new SR();
+  r.lang = "es-ES"; r.interimResults = false; r.maxAlternatives = 5;
+  sc.recog = r;
+  const st = $("scMicStatus"), mic = $("scMic");
+  if (st) st.textContent = "🎧 Listening…";
+  if (mic) mic.classList.add("listening");
+  try { r.start(); } catch (e) {}
+  r.onresult = (e) => {
+    const alts = [];
+    for (let i = 0; i < e.results.length; i++) { const res = e.results[i]; for (let j = 0; j < res.length; j++) alts.push(res[j].transcript); }
+    const cur = sc.turns[sc.i], target = normalize(cur.es);
+    const ok = alts.some(a => { const n = normalize(a); return n === target || scOverlap(n, target) >= 0.6; });
+    scResolve(ok);
+  };
+  r.onerror = (e) => {
+    if (mic) mic.classList.remove("listening");
+    if (st) st.textContent = e.error === "not-allowed" ? "Mic blocked — type instead." : "Didn't catch that — try again.";
+  };
+}
+
+function scResolve(ok) {
+  const cur = sc.turns[sc.i];
+  if (ok) sc.score++;
+  sc.done.push({ speaker: "you", es: cur.es, en: cur.en, result: ok ? "ok" : "miss" });
+  sc.i++;
+  speak(cur.es);
+  setTimeout(renderScenario, 1000);
+}
+
+function scAbort() { if (sc && sc.recog) { try { sc.recog.abort(); } catch (e) {} } }
+
+function scEnd() {
+  $("scPlay").classList.add("hidden");
+  const total = sc.turns.filter(t => t.speaker === "you").length || 1;
+  const end = $("scEnd");
+  end.classList.remove("hidden");
+  end.innerHTML =
+    "<p class='section-title'>💬 ¡Conversación completa!</p>" +
+    "<div class='big-score'>" + sc.score + "/" + total + "</div>" +
+    "<p class='result-msg'>Lines you nailed 🎉</p>" +
+    "<button class='btn primary center' id='scAgain'>🔁 New conversation</button>" +
+    "<button class='btn center' id='scHome'>🏠 Menu</button>";
+  $("scAgain").onclick = () => { $("scEnd").classList.add("hidden"); $("scSetup").classList.remove("hidden"); };
+  $("scHome").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+}
+
 /* Date helpers (local time). */
 function dateKey(ts) {
   const d = new Date(ts);
@@ -1453,7 +1861,7 @@ function buildProgress() {
    SCREENS
    ============================================================ */
 function show(screen) {
-  ["home","game","memory","results","progress","mycards"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  ["home","game","memory","results","progress","mycards","listen","scenario"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
   if (screen === "home") buildDashboard();
   if (screen === "progress") buildProgress();
   if (screen === "mycards") buildMyCards();
@@ -2080,6 +2488,16 @@ $("aiSuggestBtn").onclick = aiSuggest;
 $("aiSettingsBtn").onclick = () => { $("aiSettings").classList.toggle("hidden"); refreshAiSettingsUI(); };
 $("aiSaveKey").onclick = saveAiSettings;
 $("aiClearKey").onclick = clearAiKey;
+
+/* Activities wiring */
+$("openListenBtn").onclick = startListen;
+$("listenReplay").onclick = () => { if (ord.cur) speak(ord.cur.full); };
+$("orderCheck").onclick = checkOrder;
+$("orderSkip").onclick = orderReveal;
+$("listenQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("openScenarioBtn").onclick = openScenario;
+$("scenarioQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); scAbort(); show("home"); };
+$("scStartBtn").onclick = scStart;
 ["mcEs", "mcEn", "mcEmoji", "mcSentence", "mcSentenceEn"].forEach(id => {
   $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") mcAdd(); });
 });
