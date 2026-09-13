@@ -432,6 +432,30 @@
   .mc-icon { background: rgba(255,255,255,0.12); border: none; border-radius: 8px; padding: 7px 9px; cursor: pointer; font-size: 0.95rem; }
   .mc-icon:hover { background: rgba(255,255,255,0.25); }
   .mc-empty { text-align: center; opacity: 0.8; padding: 16px 0; }
+
+  /* ---- AI card generator ---- */
+  .ai-panel { background: rgba(0,0,0,0.18); border-radius: 14px; padding: 14px; margin-bottom: 18px; }
+  .ai-title { font-weight: 800; margin-bottom: 10px; }
+  .ai-text { min-height: 96px; resize: vertical; font-family: inherit; line-height: 1.4; }
+  .ai-row { display: flex; gap: 8px; margin-top: 10px; align-items: stretch; }
+  .ai-row .btn { margin: 0; }
+  .ai-gear { flex: 0 0 auto; width: 52px; border: none; border-radius: 14px; background: rgba(255,255,255,0.15); color: #fff; font-size: 1.2rem; cursor: pointer; }
+  .ai-gear:hover { background: rgba(255,255,255,0.28); }
+  .ai-status { min-height: 18px; font-size: 0.85rem; text-align: center; margin-top: 8px; opacity: 0.95; }
+  .ai-settings { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .ai-hint { font-size: 0.78rem; opacity: 0.75; line-height: 1.45; }
+  .ai-suggestions { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .ai-found { font-weight: 700; margin: 6px 0; }
+  .ai-none { opacity: 0.8; text-align: center; padding: 8px 0; }
+  .ai-sugg { display: flex; align-items: flex-start; gap: 10px; background: rgba(255,255,255,0.07); border-radius: 10px; padding: 9px 11px; cursor: pointer; }
+  .ai-sugg.dup { opacity: 0.5; }
+  .ai-sugg input { margin-top: 3px; flex: 0 0 auto; width: 18px; height: 18px; }
+  .ai-sugg .ai-emoji { font-size: 1.3rem; flex: 0 0 auto; }
+  .ai-sugg .ai-txt { font-size: 0.92rem; line-height: 1.35; word-break: break-word; }
+  .ai-sugg .ai-sent { opacity: 0.7; font-size: 0.82rem; }
+  .ai-suggestions .btn { margin-top: 10px; }
+  .mc-divider { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 4px 0; }
+  .mc-or { text-align: center; opacity: 0.6; font-size: 0.85rem; margin: 10px 0; }
 </style>
 </head>
 <body>
@@ -561,6 +585,34 @@
     <div class="panel">
       <p class="section-title">✏️ My Cards</p>
       <p class="mc-intro">Add words &amp; phrases from your lessons or conversations. They join your daily spaced-repetition practice automatically.</p>
+
+      <div class="ai-panel">
+        <p class="ai-title">🤖 Generate from a conversation</p>
+        <textarea id="aiText" class="mc-input ai-text" placeholder="Paste a Spanish conversation, lesson, or subtitles here — AI will suggest flashcards."></textarea>
+        <div class="ai-row">
+          <button id="aiSuggestBtn" class="btn primary center" style="flex:1;">✨ Suggest flashcards</button>
+          <button id="aiSettingsBtn" class="ai-gear" title="AI settings">⚙️</button>
+        </div>
+        <div id="aiStatus" class="ai-status"></div>
+        <div id="aiSettings" class="ai-settings hidden">
+          <p class="ai-hint">Uses the Anthropic API. Your key is stored only in this browser and sent directly to Anthropic — never to anyone else. Get a key at console.anthropic.com; usage is billed to your account.</p>
+          <input id="aiKey" class="mc-input" type="password" placeholder="Anthropic API key (sk-ant-…)" autocomplete="off" />
+          <select id="aiModel" class="mc-input">
+            <option value="claude-opus-5">Claude Opus 5 — best quality</option>
+            <option value="claude-sonnet-5">Claude Sonnet 5 — cheaper</option>
+            <option value="claude-haiku-4-5">Claude Haiku 4.5 — cheapest</option>
+          </select>
+          <div class="ai-row">
+            <button id="aiSaveKey" class="btn primary center" style="flex:1;">Save</button>
+            <button id="aiClearKey" class="btn center" style="background:rgba(255,255,255,0.15);color:#fff;flex:0 0 auto;width:90px;">Clear key</button>
+          </div>
+        </div>
+        <div id="aiSuggestions" class="ai-suggestions"></div>
+      </div>
+
+      <hr class="mc-divider" />
+      <p class="mc-or">— or add one manually —</p>
+
       <div class="mc-form">
         <input id="mcEs" class="mc-input" placeholder="Spanish word or phrase *" autocomplete="off" />
         <input id="mcEn" class="mc-input" placeholder="English meaning *" autocomplete="off" />
@@ -861,6 +913,7 @@ function resetMcForm() {
 }
 
 function buildMyCards() {
+  refreshAiSettingsUI();
   const list = store.userCards || [];
   $("mcCount").textContent = list.length + (list.length === 1 ? " card" : " cards");
   $("mcPracticeBtn").style.display = list.length ? "" : "none";
@@ -928,6 +981,167 @@ function mcPractice() {
   if (!(store.userCards || []).length) return;
   selectedCategory = MY_CARDS_CAT;
   startGame("es2en");
+}
+
+function userCardExists(es) { return (store.userCards || []).some(c => sameEs(c.es, es)); }
+
+/* ---- AI card generation (Anthropic API, bring-your-own-key) ---- */
+const API_KEY_STORE = "aventura_api_key";
+const API_MODEL_STORE = "aventura_api_model";
+let aiSuggested = [];
+
+function getApiKey() { try { return localStorage.getItem(API_KEY_STORE) || ""; } catch (e) { return ""; } }
+function getApiModel() { try { return localStorage.getItem(API_MODEL_STORE) || "claude-opus-5"; } catch (e) { return "claude-opus-5"; } }
+
+function refreshAiSettingsUI() {
+  const has = !!getApiKey();
+  if ($("aiModel")) $("aiModel").value = getApiModel();
+  if ($("aiKey")) $("aiKey").placeholder = has ? "Key saved ✓ — paste a new one to replace" : "Anthropic API key (sk-ant-…)";
+}
+
+function saveAiSettings() {
+  const k = $("aiKey").value.trim(), m = $("aiModel").value;
+  try { if (k) localStorage.setItem(API_KEY_STORE, k); localStorage.setItem(API_MODEL_STORE, m); } catch (e) {}
+  $("aiKey").value = "";
+  $("aiStatus").textContent = (k || getApiKey()) ? "Settings saved ✓" : "Model saved — add a key to generate.";
+  $("aiSettings").classList.add("hidden");
+  refreshAiSettingsUI();
+}
+
+function clearAiKey() {
+  try { localStorage.removeItem(API_KEY_STORE); } catch (e) {}
+  $("aiKey").value = "";
+  $("aiStatus").textContent = "Key cleared from this browser.";
+  refreshAiSettingsUI();
+}
+
+const AI_SYSTEM =
+  "You help an English speaker learn Spanish by turning their pasted lesson or conversation into study flashcards. " +
+  "Identify the most useful Spanish words and short phrases to learn from the text. For each provide: " +
+  "es (Spanish, include the article for nouns, e.g. 'el perro'), en (short English meaning), emoji (one fitting emoji), " +
+  "sentence (a short natural Spanish example sentence using the word), sentenceEn (its English translation). " +
+  "Choose roughly 8-20 of the most useful items; skip words the learner surely knows unless they are the point. " +
+  "Do not duplicate. Return results ONLY by calling the save_flashcards tool — do not write a prose reply.";
+
+async function aiSuggestCards(text) {
+  const body = {
+    model: getApiModel(),
+    max_tokens: 8000,
+    thinking: { type: "adaptive" },
+    output_config: { effort: "low" },
+    system: AI_SYSTEM,
+    tools: [{
+      name: "save_flashcards",
+      description: "Save the flashcards extracted from the user's text.",
+      strict: true,
+      input_schema: {
+        type: "object", additionalProperties: false, required: ["cards"],
+        properties: {
+          cards: {
+            type: "array",
+            items: {
+              type: "object", additionalProperties: false,
+              required: ["es", "en", "emoji", "sentence", "sentenceEn"],
+              properties: {
+                es: { type: "string" }, en: { type: "string" }, emoji: { type: "string" },
+                sentence: { type: "string" }, sentenceEn: { type: "string" }
+              }
+            }
+          }
+        }
+      }
+    }],
+    messages: [{ role: "user", content: "Here is my Spanish lesson / conversation text:\n\n" + text }]
+  };
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": getApiKey(),
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    let msg = "API error " + res.status;
+    if (res.status === 401) msg = "Invalid API key — check it in ⚙️ settings.";
+    else if (res.status === 429) msg = "Rate limited — wait a moment and try again.";
+    else { try { const j = await res.json(); if (j.error && j.error.message) msg += ": " + j.error.message; } catch (e) {} }
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  const tool = (data.content || []).find(b => b.type === "tool_use" && b.name === "save_flashcards");
+  let cards = tool && tool.input && Array.isArray(tool.input.cards) ? tool.input.cards : null;
+  if (!cards) {
+    // Fallback: try to parse a JSON array from any text block.
+    const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+    const m = txt.match(/\[[\s\S]*\]/);
+    if (m) { try { cards = JSON.parse(m[0]); } catch (e) {} }
+  }
+  if (!cards) throw new Error("No cards came back — try different text.");
+  return cards.filter(c => c && c.es && c.en);
+}
+
+async function aiSuggest() {
+  const text = $("aiText").value.trim();
+  const status = $("aiStatus");
+  if (!text) { status.textContent = "Paste some text first."; return; }
+  if (!getApiKey()) { status.textContent = "Add your Anthropic API key in ⚙️ settings first."; $("aiSettings").classList.remove("hidden"); refreshAiSettingsUI(); return; }
+  status.textContent = "✨ Reading your text…";
+  $("aiSuggestBtn").disabled = true;
+  $("aiSuggestions").innerHTML = "";
+  try {
+    const cards = await aiSuggestCards(text);
+    status.textContent = "";
+    renderSuggestions(cards);
+  } catch (e) {
+    status.textContent = (e && e.message) ? e.message : "Something went wrong — check your connection.";
+  } finally {
+    $("aiSuggestBtn").disabled = false;
+  }
+}
+
+function renderSuggestions(cards) {
+  const wrap = $("aiSuggestions");
+  aiSuggested = cards;
+  if (!cards.length) { wrap.innerHTML = '<p class="ai-none">No suggestions found — try more text.</p>'; return; }
+  wrap.innerHTML =
+    '<p class="ai-found">Found ' + cards.length + ' — pick the ones to keep:</p>' +
+    cards.map((c, i) => {
+      const dup = userCardExists(c.es);
+      return '<label class="ai-sugg' + (dup ? ' dup' : '') + '">' +
+        '<input type="checkbox" data-ai="' + i + '"' + (dup ? ' disabled' : ' checked') + ' />' +
+        '<span class="ai-emoji">' + escapeHtml(c.emoji || "📝") + '</span>' +
+        '<span class="ai-txt"><b>' + escapeHtml(c.es) + '</b> — ' + escapeHtml(c.en) +
+        (dup ? ' <em>(already added)</em>' : '') +
+        (c.sentence ? '<br><span class="ai-sent">' + escapeHtml(c.sentence) + '</span>' : '') +
+        '</span></label>';
+    }).join("") +
+    '<button id="aiAddSelected" class="btn primary center">➕ Add selected</button>';
+  $("aiAddSelected").onclick = aiAddSelected;
+}
+
+function aiAddSelected() {
+  const boxes = [...document.querySelectorAll("#aiSuggestions input[data-ai]")];
+  let added = 0;
+  boxes.forEach(b => {
+    if (!b.checked || b.disabled) return;
+    const c = aiSuggested[+b.dataset.ai];
+    if (!c || userCardExists(c.es)) return;
+    const cloze = buildClozeFromSentence(c.es, c.sentence || "");
+    store.userCards.push({
+      es: (c.es || "").trim(), en: (c.en || "").trim(), emoji: (c.emoji || "").trim(),
+      sentence: (c.sentence || "").trim(), sentenceEn: (c.sentenceEn || "").trim(),
+      template: cloze ? cloze.template : "", answer: cloze ? cloze.answer : "", created: Date.now()
+    });
+    added++;
+  });
+  if (added) { applyUserCards(); saveStore(); }
+  aiSuggested = [];
+  $("aiText").value = "";
+  $("aiSuggestions").innerHTML = '<p class="ai-found">Added ' + added + ' card' + (added === 1 ? "" : "s") + '! 🎉</p>';
+  buildMyCards();
 }
 
 /* Date helpers (local time). */
@@ -1862,6 +2076,10 @@ $("openMyCardsBtn").onclick = openMyCards;
 $("myCardsQuitBtn").onclick = () => show("home");
 $("mcAddBtn").onclick = mcAdd;
 $("mcPracticeBtn").onclick = mcPractice;
+$("aiSuggestBtn").onclick = aiSuggest;
+$("aiSettingsBtn").onclick = () => { $("aiSettings").classList.toggle("hidden"); refreshAiSettingsUI(); };
+$("aiSaveKey").onclick = saveAiSettings;
+$("aiClearKey").onclick = clearAiKey;
 ["mcEs", "mcEn", "mcEmoji", "mcSentence", "mcSentenceEn"].forEach(id => {
   $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") mcAdd(); });
 });
