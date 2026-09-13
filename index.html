@@ -404,6 +404,34 @@
   .chart .bar-lbl { font-size: 0.6rem; opacity: 0.7; margin-top: 4px; }
   .chart .bar-val { font-size: 0.62rem; opacity: 0.85; margin-bottom: 2px; min-height: 13px; }
   .prog-empty { text-align: center; opacity: 0.85; padding: 20px 0; line-height: 1.6; }
+
+  /* ---- My Cards screen ---- */
+  .mc-intro { opacity: 0.85; font-size: 0.9rem; text-align: center; margin-bottom: 16px; line-height: 1.5; }
+  .mc-form { display: flex; flex-direction: column; gap: 10px; }
+  .mc-input {
+    width: 100%; padding: 13px 14px; font-size: 1rem; border-radius: 12px;
+    border: 2px solid rgba(255,255,255,0.25); background: #fff; color: var(--ink);
+  }
+  .mc-input:focus { outline: none; border-color: var(--accent); }
+  .mc-error { min-height: 18px; font-size: 0.85rem; color: var(--accent); text-align: center; }
+  .mc-listhead { display: flex; justify-content: space-between; align-items: center; margin: 22px 0 10px; font-weight: 700; }
+  .mc-practice {
+    background: var(--good); color: #fff; border: none; border-radius: 20px;
+    padding: 8px 16px; font-weight: 700; cursor: pointer; font-size: 0.9rem;
+  }
+  .mc-list { display: flex; flex-direction: column; gap: 8px; }
+  .mc-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px 12px;
+  }
+  .mc-item-main { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .mc-item .mc-emoji { font-size: 1.5rem; flex: 0 0 auto; }
+  .mc-item .mc-es { font-weight: 700; word-break: break-word; }
+  .mc-item .mc-en { font-size: 0.85rem; opacity: 0.8; word-break: break-word; }
+  .mc-actions { display: flex; gap: 4px; flex: 0 0 auto; }
+  .mc-icon { background: rgba(255,255,255,0.12); border: none; border-radius: 8px; padding: 7px 9px; cursor: pointer; font-size: 0.95rem; }
+  .mc-icon:hover { background: rgba(255,255,255,0.25); }
+  .mc-empty { text-align: center; opacity: 0.8; padding: 16px 0; }
 </style>
 </head>
 <body>
@@ -418,7 +446,10 @@
       <p class="section-title">📅 Today's practice</p>
       <div class="dash-stats" id="dashStats"></div>
       <button class="btn primary center" id="startDailyBtn">▶️ Start daily practice</button>
-      <button class="btn center" id="openProgressBtn" style="background:rgba(255,255,255,0.15);color:#fff;">📊 View progress</button>
+      <div class="btn-row">
+        <button class="btn center" id="openProgressBtn" style="background:rgba(255,255,255,0.15);color:#fff;">📊 Progress</button>
+        <button class="btn center" id="openMyCardsBtn" style="background:rgba(255,255,255,0.15);color:#fff;">✏️ My Cards</button>
+      </div>
       <p class="dash-next" id="dashNext"></p>
     </div>
 
@@ -521,6 +552,29 @@
       </div>
       <button class="btn primary center" id="playAgainBtn">🔁 Play again</button>
       <button class="btn center" id="menuBtn">🏠 Back to menu</button>
+    </div>
+  </div>
+
+  <!-- ============ MY CARDS ============ -->
+  <div id="mycards" class="hidden">
+    <button class="back-link" id="myCardsQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <p class="section-title">✏️ My Cards</p>
+      <p class="mc-intro">Add words &amp; phrases from your lessons or conversations. They join your daily spaced-repetition practice automatically.</p>
+      <div class="mc-form">
+        <input id="mcEs" class="mc-input" placeholder="Spanish word or phrase *" autocomplete="off" />
+        <input id="mcEn" class="mc-input" placeholder="English meaning *" autocomplete="off" />
+        <input id="mcEmoji" class="mc-input" placeholder="Emoji (optional, e.g. 🍽️)" autocomplete="off" maxlength="6" />
+        <input id="mcSentence" class="mc-input" placeholder="Example sentence in Spanish (optional)" autocomplete="off" />
+        <input id="mcSentenceEn" class="mc-input" placeholder="…its English translation (optional)" autocomplete="off" />
+        <div id="mcError" class="mc-error"></div>
+        <button id="mcAddBtn" class="btn primary center">➕ Add card</button>
+      </div>
+      <div class="mc-listhead">
+        <span id="mcCount">0 cards</span>
+        <button id="mcPracticeBtn" class="mc-practice">▶️ Practice these</button>
+      </div>
+      <div id="mcList" class="mc-list"></div>
     </div>
   </div>
 
@@ -715,11 +769,16 @@ function setHigh(v) { try { localStorage.setItem("aventura_high", v); } catch(e)
    better you know it.
    ============================================================ */
 
-/* Flatten VOCAB into a trackable card list with stable ids. */
+/* Flatten VOCAB into a trackable card list with stable ids.
+   Rebuilt whenever the user's own cards change (see applyUserCards). */
 const CARDS = [];
-Object.entries(VOCAB).forEach(([cat, list]) => {
-  list.forEach(([es, en, emoji]) => CARDS.push({ id: cat + "||" + es, es, en, emoji, cat }));
-});
+function rebuildCards() {
+  CARDS.length = 0;
+  Object.entries(VOCAB).forEach(([cat, list]) => {
+    list.forEach(([es, en, emoji]) => CARDS.push({ id: cat + "||" + es, es, en, emoji, cat }));
+  });
+}
+rebuildCards();
 
 /* Drop a leading Spanish article so cloze options/answers line up. */
 function stripArticle(s) { return (s || "").replace(/^(el|la|los|las)\s+/i, ""); }
@@ -739,7 +798,7 @@ const DAY = 86400000;
 const SRS_KEY = "aventura_srs_v1";
 
 function blankStore() {
-  return { cards: {}, meta: { streak: 0, lastStudy: null, newDate: null, newCount: 0, totalXp: 0, history: {} } };
+  return { cards: {}, userCards: [], meta: { streak: 0, lastStudy: null, newDate: null, newCount: 0, totalXp: 0, history: {} } };
 }
 let store = loadStore();
 function loadStore() {
@@ -747,11 +806,129 @@ function loadStore() {
     const s = JSON.parse(localStorage.getItem(SRS_KEY));
     if (!s || typeof s !== "object") return blankStore();
     s.cards = s.cards || {};
+    s.userCards = Array.isArray(s.userCards) ? s.userCards : [];
     s.meta = Object.assign({ streak: 0, lastStudy: null, newDate: null, newCount: 0, totalXp: 0, history: {} }, s.meta || {});
     return s;
   } catch (e) { return blankStore(); }
 }
 function saveStore() { try { localStorage.setItem(SRS_KEY, JSON.stringify(store)); } catch (e) {} }
+
+/* ============================================================
+   MY CARDS  (user-created flashcards from lessons / conversations)
+   These become a live "My Cards" topic that feeds daily practice,
+   the games, cloze sentences, and progress — just like built-ins.
+   ============================================================ */
+const MY_CARDS_CAT = "My Cards ✏️";
+
+function sameEs(a, b) { return (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase(); }
+
+/* Rebuild the "My Cards" topic + its sentences from saved user cards. */
+function applyUserCards() {
+  const list = store.userCards || [];
+  if (list.length) VOCAB[MY_CARDS_CAT] = list.map(c => [c.es, c.en, c.emoji || "📝"]);
+  else delete VOCAB[MY_CARDS_CAT];
+
+  // Refresh custom sentences (drop old, add current).
+  Object.keys(SENTENCES).forEach(k => { if (k.indexOf(MY_CARDS_CAT + "||") === 0) delete SENTENCES[k]; });
+  list.forEach(c => {
+    if (c.template && c.answer) SENTENCES[MY_CARDS_CAT + "||" + c.es] = [c.template, c.answer, c.sentenceEn || ""];
+  });
+  rebuildCards();
+}
+
+/* Turn "El gato es negro." + target "gato" into a cloze template. */
+function buildClozeFromSentence(es, sentence) {
+  if (!sentence || !sentence.trim()) return null;
+  const bare = stripArticle(es).trim();
+  if (!bare) return null;
+  const re = new RegExp("(" + bare.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "i");
+  const m = sentence.match(re);
+  if (!m) return null;
+  return { template: sentence.replace(re, "___"), answer: m[1] };
+}
+
+/* ---- My Cards screen ---- */
+let mcEditing = null;
+
+function escapeHtml(s) { return (s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function openMyCards() { mcEditing = null; resetMcForm(); show("mycards"); }
+
+function resetMcForm() {
+  ["mcEs", "mcEn", "mcEmoji", "mcSentence", "mcSentenceEn"].forEach(id => { const el = $(id); if (el) el.value = ""; });
+  $("mcError").textContent = "";
+  $("mcAddBtn").textContent = mcEditing != null ? "💾 Save changes" : "➕ Add card";
+}
+
+function buildMyCards() {
+  const list = store.userCards || [];
+  $("mcCount").textContent = list.length + (list.length === 1 ? " card" : " cards");
+  $("mcPracticeBtn").style.display = list.length ? "" : "none";
+  const wrap = $("mcList");
+  if (!list.length) { wrap.innerHTML = '<p class="mc-empty">No cards yet — add your first one above ☝️</p>'; return; }
+  wrap.innerHTML = list.map((c, i) =>
+    '<div class="mc-item"><div class="mc-item-main">' +
+      '<span class="mc-emoji">' + (c.emoji || "📝") + '</span>' +
+      '<div><div class="mc-es">' + escapeHtml(c.es) + '</div>' +
+      '<div class="mc-en">' + escapeHtml(c.en) + (c.template ? ' &middot; 📖' : '') + '</div></div>' +
+    '</div><div class="mc-actions">' +
+      '<button class="mc-icon" data-mc-edit="' + i + '" title="Edit">✏️</button>' +
+      '<button class="mc-icon" data-mc-del="' + i + '" title="Delete">🗑️</button>' +
+    '</div></div>'
+  ).join("");
+  wrap.querySelectorAll("[data-mc-edit]").forEach(b => b.onclick = () => mcEdit(+b.dataset.mcEdit));
+  wrap.querySelectorAll("[data-mc-del]").forEach(b => b.onclick = () => mcDelete(+b.dataset.mcDel));
+}
+
+function mcAdd() {
+  const es = $("mcEs").value.trim(), en = $("mcEn").value.trim();
+  const emoji = $("mcEmoji").value.trim(), sentence = $("mcSentence").value.trim(), sentenceEn = $("mcSentenceEn").value.trim();
+  const err = $("mcError");
+  if (!es || !en) { err.textContent = "Please fill in both the Spanish and the English."; return; }
+  if ((store.userCards || []).some((c, i) => sameEs(c.es, es) && i !== mcEditing)) {
+    err.textContent = "You already have a card for “" + es + "”."; return;
+  }
+  const cloze = buildClozeFromSentence(es, sentence);
+  const card = {
+    es, en, emoji: emoji || "", sentence: sentence || "", sentenceEn: sentenceEn || "",
+    template: cloze ? cloze.template : "", answer: cloze ? cloze.answer : "", created: Date.now()
+  };
+  if (mcEditing != null) store.userCards[mcEditing] = card; else store.userCards.push(card);
+  applyUserCards();
+  saveStore();
+  const note = (sentence && !cloze) ? "Saved — but that word wasn't found in the sentence, so no fill-the-blank for this one." : "";
+  mcEditing = null;
+  resetMcForm();
+  $("mcError").textContent = note;
+  buildMyCards();
+  $("mcEs").focus();
+}
+
+function mcEdit(i) {
+  const c = store.userCards[i]; if (!c) return;
+  mcEditing = i;
+  $("mcEs").value = c.es; $("mcEn").value = c.en; $("mcEmoji").value = c.emoji || "";
+  $("mcSentence").value = c.sentence || ""; $("mcSentenceEn").value = c.sentenceEn || "";
+  $("mcAddBtn").textContent = "💾 Save changes"; $("mcError").textContent = "";
+  $("mcEs").focus();
+}
+
+function mcDelete(i) {
+  const c = store.userCards[i]; if (!c) return;
+  if (!confirm("Delete “" + c.es + "”? This also removes its practice history.")) return;
+  delete store.cards[MY_CARDS_CAT + "||" + c.es];
+  store.userCards.splice(i, 1);
+  if (mcEditing === i) { mcEditing = null; resetMcForm(); }
+  applyUserCards();
+  saveStore();
+  buildMyCards();
+}
+
+function mcPractice() {
+  if (!(store.userCards || []).length) return;
+  selectedCategory = MY_CARDS_CAT;
+  startGame("es2en");
+}
 
 /* Date helpers (local time). */
 function dateKey(ts) {
@@ -799,7 +976,10 @@ function buildSession() {
     .slice(0, MAX_REVIEWS);
 
   const newAllowed = Math.max(0, NEW_PER_DAY - introducedToday());
-  const newCards = CARDS.filter(c => !store.cards[c.id]).slice(0, newAllowed);
+  // Introduce the user's own cards before built-ins — that's what they came to learn.
+  const newPool = CARDS.filter(c => !store.cards[c.id])
+    .sort((a, b) => (a.cat === MY_CARDS_CAT ? 0 : 1) - (b.cat === MY_CARDS_CAT ? 0 : 1));
+  const newCards = newPool.slice(0, newAllowed);
 
   return { due, newCards };
 }
@@ -1059,9 +1239,10 @@ function buildProgress() {
    SCREENS
    ============================================================ */
 function show(screen) {
-  ["home","game","memory","results","progress"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  ["home","game","memory","results","progress","mycards"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
   if (screen === "home") buildDashboard();
   if (screen === "progress") buildProgress();
+  if (screen === "mycards") buildMyCards();
 }
 
 /* ============================================================
@@ -1304,9 +1485,13 @@ function buildChoices(field) {
   // field: "en" -> answers are English (index 1); "es" -> Spanish (index 0)
   const idx = field === "en" ? 1 : 0;
   const correct = state.current[idx];
-  const distractors = shuffle(state.pool.filter(w => w[idx] !== correct))
-    .slice(0, 3)
-    .map(w => w[idx]);
+  let opts = state.pool.filter(w => w[idx] !== correct).map(w => w[idx]);
+  if (opts.length < 3) {
+    // Top up from all cards so small/custom decks still offer 4 choices.
+    const extra = CARDS.map(c => idx === 1 ? c.en : c.es).filter(v => v !== correct && opts.indexOf(v) < 0);
+    opts = opts.concat(shuffle(extra));
+  }
+  const distractors = shuffle([...new Set(opts)]).slice(0, 3);
   const options = shuffle([correct, ...distractors]);
 
   const wrap = $("answers");
@@ -1322,8 +1507,12 @@ function buildChoices(field) {
 
 function buildClozeChoices(answer) {
   // Distractors: other Spanish words from the pool (article stripped).
-  const pool = [...new Set(state.pool.map(w => stripArticle(w[0])))].filter(x => x !== answer);
-  const distractors = shuffle(pool).slice(0, 3);
+  let pool = [...new Set(state.pool.map(w => stripArticle(w[0])))].filter(x => x !== answer);
+  if (pool.length < 3) {
+    const extra = CARDS.map(c => stripArticle(c.es)).filter(v => v !== answer && pool.indexOf(v) < 0);
+    pool = pool.concat(shuffle(extra));
+  }
+  const distractors = shuffle([...new Set(pool)]).slice(0, 3);
   const options = shuffle([answer, ...distractors]);
 
   const wrap = $("answers");
@@ -1668,6 +1857,16 @@ $("typeInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") checkTyped();
 });
 
+/* My Cards wiring */
+$("openMyCardsBtn").onclick = openMyCards;
+$("myCardsQuitBtn").onclick = () => show("home");
+$("mcAddBtn").onclick = mcAdd;
+$("mcPracticeBtn").onclick = mcPractice;
+["mcEs", "mcEn", "mcEmoji", "mcSentence", "mcSentenceEn"].forEach(id => {
+  $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") mcAdd(); });
+});
+
+applyUserCards();   // fold any saved user cards into the decks before first render
 buildChips();
 show("home");
 
