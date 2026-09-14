@@ -474,6 +474,8 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.4); pointer-events: none;
   }
   #wordTip .wt-sent { opacity: 0.8; font-size: 0.82rem; font-style: italic; }
+  /* Long-pressable words inside a sentence (cloze prompt). */
+  .lw { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; border-bottom: 1px dotted rgba(0,0,0,0.28); }
 
   /* ---- Scenario conversations ---- */
   .sc-intro { opacity: 0.85; font-size: 0.9rem; text-align: center; margin-bottom: 14px; line-height: 1.5; }
@@ -695,7 +697,6 @@
       </div>
       <div id="listenEnd" class="order-end hidden"></div>
     </div>
-    <div id="wordTip" hidden></div>
   </div>
 
   <!-- ============ SCENARIO CONVERSATIONS (AI) ============ -->
@@ -726,6 +727,8 @@
   </div>
 
 </div>
+
+<div id="wordTip" hidden></div>
 
 <script>
 /* ============================================================
@@ -1326,24 +1329,63 @@ function makeWordTile(word, onTap) {
   b.className = "wtile";
   b.textContent = word;
   let timer = null, fired = false;
-  const startPress = () => { fired = false; timer = setTimeout(() => { fired = true; showWordTip(b, word); }, 450); };
+  const fallback = () => (ord && ord.cur) ? ord.cur.en : null;
+  const startPress = () => { fired = false; timer = setTimeout(() => { fired = true; showWordTip(b, word, fallback()); }, 450); };
   const cancelPress = () => { if (timer) { clearTimeout(timer); timer = null; } };
   b.addEventListener("pointerdown", startPress);
   b.addEventListener("pointerup", cancelPress);
   b.addEventListener("pointerleave", cancelPress);
   b.addEventListener("pointercancel", cancelPress);
   b.addEventListener("pointermove", cancelPress);
-  b.addEventListener("contextmenu", (e) => { e.preventDefault(); fired = true; showWordTip(b, word); });
+  b.addEventListener("contextmenu", (e) => { e.preventDefault(); fired = true; showWordTip(b, word, fallback()); });
   b.onclick = () => { if (fired) { fired = false; return; } onTap(); };
   return b;
 }
 
-function showWordTip(el, word) {
+/* An inline sentence word you can long-press (or right-click) for its meaning. */
+function makeLookupWord(word, fallbackEn) {
+  const span = document.createElement("span");
+  span.className = "lw";
+  span.textContent = word;
+  let timer = null, fired = false;
+  const start = () => { fired = false; timer = setTimeout(() => { fired = true; showWordTip(span, word, fallbackEn); }, 450); };
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  span.addEventListener("pointerdown", start);
+  span.addEventListener("pointerup", cancel);
+  span.addEventListener("pointerleave", cancel);
+  span.addEventListener("pointercancel", cancel);
+  span.addEventListener("pointermove", cancel);
+  span.addEventListener("contextmenu", (e) => { e.preventDefault(); fired = true; showWordTip(span, word, fallbackEn); });
+  return span;
+}
+
+/* Render a sentence into `el` with each word long-pressable. `blankMark`
+   (e.g. "___") is shown as a styled blank; `highlight` word is accented. */
+function renderLookupSentence(el, text, fallbackEn, opts) {
+  opts = opts || {};
+  el.innerHTML = "";
+  const hi = opts.highlight ? cleanWord(opts.highlight) : null;
+  text.split(/(\s+)/).forEach(part => {
+    if (part === "") return;
+    if (/^\s+$/.test(part)) { el.appendChild(document.createTextNode(part)); return; }
+    if (opts.blankMark && part.indexOf(opts.blankMark) >= 0) {
+      const span = document.createElement("span");
+      span.innerHTML = part.replace(opts.blankMark, "<span style='color:var(--accent2);font-weight:900;'>_____</span>");
+      el.appendChild(span);
+      return;
+    }
+    const w = makeLookupWord(part, fallbackEn);
+    if (hi && cleanWord(part) === hi) { w.style.color = "var(--accent)"; w.style.fontWeight = "900"; }
+    el.appendChild(w);
+  });
+}
+
+function showWordTip(el, word, fallbackEn) {
   const tip = $("wordTip");
   const g = glossFor(word);
   const clean = cleanWord(word) || word;
   let html = "<b>" + escapeHtml(clean) + "</b> — " + escapeHtml(g || "not in the dictionary");
-  if (!g && ord.cur) html += "<div class='wt-sent'>Sentence: " + escapeHtml(ord.cur.en) + "</div>";
+  if (!g && fallbackEn) html += "<div class='wt-sent'>Sentence: " + escapeHtml(fallbackEn) + "</div>";
   tip.innerHTML = html;
   tip.hidden = false;
   const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -1396,7 +1438,8 @@ function checkOrder() {
   speak(c.full);
   $("orderCheck").classList.add("hidden");
   ord.i++;
-  setTimeout(nextListen, guess === correct ? 1600 : 2800);
+  const dur = Math.max(guess === correct ? 1600 : 2800, c.tokens.length * 420 + 1200);
+  setTimeout(nextListen, dur);
 }
 
 function orderReveal() {
@@ -2241,11 +2284,10 @@ function renderQuestion() {
   if (mode === "cloze" || mode === "clozetype") {
     // Comprehensible input: show the sentence with a blank; hear it spoken.
     const s = state.sentence;
-    $("promptLabel").textContent = "Fill in the blank";
+    $("promptLabel").textContent = "Fill in the blank — long-press a word for its meaning";
     $("promptEmoji").textContent = word[2];
     $("promptWord").style.fontSize = "clamp(1.1rem, 4.2vw, 1.6rem)";
-    $("promptWord").innerHTML = s.template.replace(
-      "___", '<span style="color:var(--accent2);font-weight:900;">_____</span>');
+    renderLookupSentence($("promptWord"), s.template, s.en, { blankMark: "___" });
     if (mode === "cloze") {
       answersWrap.classList.remove("hidden");
       buildClozeChoices(s.answer);
@@ -2402,10 +2444,9 @@ function resolveAnswer(isRight, correctText) {
   if (state.sentence) {
     const s = state.sentence;
     translation = `<div class="translation">${s.full}<br><span style="opacity:.8;font-weight:600;">${s.en}</span></div>`;
-    // Reveal the completed sentence with the answer highlighted.
+    // Reveal the completed sentence with the answer highlighted (still long-pressable).
     $("promptWord").style.fontSize = "clamp(1.1rem, 4.2vw, 1.6rem)";
-    $("promptWord").innerHTML = s.full.replace(
-      s.answer, '<span style="color:var(--accent);font-weight:900;">' + s.answer + '</span>');
+    renderLookupSentence($("promptWord"), s.full, s.en, { highlight: s.answer });
     $("promptEmoji").textContent = w[2];
   } else {
     translation = `<div class="translation">${w[2]} ${w[0]} = ${w[1]}</div>`;
@@ -2437,7 +2478,12 @@ function resolveAnswer(isRight, correctText) {
 
   updateHUD();
 
-  const delay = isRight ? 1600 : 2200;
+  let delay = isRight ? 1600 : 2200;
+  if (state.sentence) {
+    // Give the spoken sentence time to finish before advancing.
+    const words = state.sentence.full.split(/\s+/).length;
+    delay = Math.max(delay, words * 420 + 1200);
+  }
   if (state.srs) {
     gradeSrs(isRight);
     setTimeout(nextSrsQuestion, delay);
