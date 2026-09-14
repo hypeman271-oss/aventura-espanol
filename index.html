@@ -694,6 +694,7 @@
         <div class="order-bank" id="orderBank"></div>
         <div class="feedback" id="listenFeedback"></div>
         <button class="btn primary center" id="orderCheck">Check</button>
+        <button class="btn primary center hidden" id="listenNext">Next →</button>
         <button class="back-link" id="orderSkip" style="display:block;margin:8px auto 0;">Skip / show answer</button>
       </div>
       <div id="listenEnd" class="order-end hidden"></div>
@@ -1319,6 +1320,8 @@ function nextListen() {
   $("listenScore").textContent = ord.score;
   $("listenFeedback").textContent = "";
   $("orderCheck").classList.remove("hidden");
+  $("listenNext").classList.add("hidden");
+  $("orderSkip").style.display = "block";
   renderOrder();
   speak(s.full);
 }
@@ -1437,10 +1440,8 @@ function checkOrder() {
     fb.innerHTML = "✗ It was: <b>" + c.full + "</b><div class='translation'>" + c.en + "</div>";
   }
   speak(c.full);
-  $("orderCheck").classList.add("hidden");
   ord.i++;
-  const dur = Math.max(guess === correct ? 1600 : 2800, c.tokens.length * 420 + 1200);
-  setTimeout(nextListen, dur);
+  showListenNext();
 }
 
 function orderReveal() {
@@ -1451,9 +1452,19 @@ function orderReveal() {
   fb.style.color = "var(--bad)";
   fb.innerHTML = "Answer: <b>" + c.full + "</b><div class='translation'>" + c.en + "</div>";
   speak(c.full);
-  $("orderCheck").classList.add("hidden");
   ord.i++;
-  setTimeout(nextListen, 2800);
+  showListenNext();
+}
+
+/* Reveal the Next button (tap to advance) after a Listening item is done. */
+function showListenNext() {
+  $("orderCheck").classList.add("hidden");
+  $("orderSkip").style.display = "none";
+  const nb = $("listenNext");
+  nb.textContent = ord.i >= ord.pool.length ? "See results →" : "Next →";
+  nb.classList.remove("hidden");
+  nb.onclick = nextListen;
+  setTimeout(() => nb.focus(), 30);
 }
 
 function endListen() {
