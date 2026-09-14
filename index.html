@@ -590,6 +590,7 @@
       </div>
 
       <div class="feedback" id="feedback"></div>
+      <button class="btn primary center hidden" id="nextBtn">Next →</button>
     </div>
   </div>
 
@@ -2278,6 +2279,7 @@ function renderQuestion() {
   typeInput.classList.add("hidden");
   submitType.classList.add("hidden");
   $("speakPanel").classList.add("hidden");
+  $("nextBtn").classList.add("hidden");
   answersWrap.innerHTML = "";
   $("promptWord").style.fontSize = ""; // reset (cloze sentences shrink it)
 
@@ -2478,19 +2480,18 @@ function resolveAnswer(isRight, correctText) {
 
   updateHUD();
 
-  let delay = isRight ? 1600 : 2200;
-  if (state.sentence) {
-    // Give the spoken sentence time to finish before advancing.
-    const words = state.sentence.full.split(/\s+/).length;
-    delay = Math.max(delay, words * 420 + 1200);
-  }
-  if (state.srs) {
-    gradeSrs(isRight);
-    setTimeout(nextSrsQuestion, delay);
-  } else {
-    state.index++;
-    setTimeout(nextQuestion, delay);
-  }
+  // Grade/advance the pointer now, but wait for the user to tap Next so they
+  // can read the translation and look up words at their own pace.
+  let advance;
+  if (state.srs) { gradeSrs(isRight); advance = nextSrsQuestion; }
+  else { state.index++; advance = nextQuestion; }
+
+  const last = state.srs ? (state.qi >= state.queue.length) : (state.index >= state.deck.length || state.lives <= 0);
+  const nb = $("nextBtn");
+  nb.textContent = last ? "See results →" : "Next →";
+  nb.classList.remove("hidden");
+  nb.onclick = advance;
+  setTimeout(() => nb.focus(), 30); // lets Enter/Space advance on desktop
 }
 
 const PRAISE = ["¡Sí! ✓", "¡Correcto! ✓", "¡Muy bien! ✓", "¡Excelente! ✓", "¡Perfecto! ✓"];
