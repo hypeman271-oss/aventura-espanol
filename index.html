@@ -1761,8 +1761,11 @@ async function scStart() {
 function scBubble(t) {
   const cls = t.speaker === "them" ? "sc-them" : "sc-you";
   const mark = t.result === "ok" ? " ✓" : t.result === "miss" ? " ✗" : "";
+  let sub;
+  if (t.expected) sub = "Expected: " + escapeHtml(t.expected) + (t.expectedEn ? " — " + escapeHtml(t.expectedEn) : "");
+  else sub = escapeHtml(t.en || "");
   return "<div class='sc-line " + cls + "'>" + escapeHtml(t.es) + mark +
-    "<span class='sc-en'>" + escapeHtml(t.en) + "</span></div>";
+    (sub ? "<span class='sc-en'>" + sub + "</span>" : "") + "</div>";
 }
 
 /* Make each chat bubble tap-to-replay its Spanish (order matches `lines`). */
@@ -1787,7 +1790,7 @@ function renderScenario() {
       "<button class='btn primary center' id='scContinue' style='flex:1;margin:0;'>Continue →</button>" +
       "</div>";
     play.innerHTML = html;
-    scWireBubbles([...sc.done.map(t => t.es), cur.es]);
+    scWireBubbles([...sc.done.map(t => t.sayEs || t.es), cur.es]);
     speak(cur.es);
     $("scReplayCur").onclick = () => speak(cur.es);
     $("scContinue").onclick = () => { sc.done.push(cur); sc.i++; renderScenario(); };
@@ -1812,20 +1815,21 @@ function renderScenario() {
     "</div>";
   play.innerHTML = html;
 
-  scWireBubbles(sc.done.map(t => t.es));
+  scWireBubbles(sc.done.map(t => t.sayEs || t.es));
   $("scReplayCur").onclick = () => speak(cur.es);
   if (sc.difficulty === "hide" && $("scReveal")) $("scReveal").onclick = () => $("scTargetText").classList.remove("hidden");
   if (SPEECH_OK && $("scMic")) $("scMic").onclick = scListen;
   $("scSubmit").onclick = () => scCheckResponse($("scTypeInput").value);
+  $("scTypeInput").addEventListener("keydown", (e) => { if (e.key === "Enter") scCheckResponse($("scTypeInput").value); });
   $("scSkip").onclick = () => scResolve(false);
 }
 
 function scCheckResponse(text) {
   const cur = sc.turns[sc.i];
   const said = normalize(text);
-  if (!said) return;
+  if (!said) { const el = $("scTypeInput"); if (el) el.focus(); return; }
   const target = normalize(cur.es);
-  scResolve(said === target || scOverlap(said, target) >= 0.6);
+  scResolve(said === target || scOverlap(said, target) >= 0.6, text);
 }
 
 function scListen() {
@@ -1844,7 +1848,7 @@ function scListen() {
     for (let i = 0; i < e.results.length; i++) { const res = e.results[i]; for (let j = 0; j < res.length; j++) alts.push(res[j].transcript); }
     const cur = sc.turns[sc.i], target = normalize(cur.es);
     const ok = alts.some(a => { const n = normalize(a); return n === target || scOverlap(n, target) >= 0.6; });
-    scResolve(ok);
+    scResolve(ok, alts[0] || "");
   };
   r.onerror = (e) => {
     if (mic) mic.classList.remove("listening");
@@ -1852,13 +1856,23 @@ function scListen() {
   };
 }
 
-function scResolve(ok) {
+function scResolve(ok, saidText) {
   const cur = sc.turns[sc.i];
   if (ok) sc.score++;
-  sc.done.push({ speaker: "you", es: cur.es, en: cur.en, result: ok ? "ok" : "miss" });
+  const said = (saidText || "").trim();
+  const differs = said && normalize(said) !== normalize(cur.es);
+  sc.done.push({
+    speaker: "you",
+    es: said || cur.es,                      // show what the user actually said
+    en: said ? "" : cur.en,
+    sayEs: cur.es,                            // the target, for audio replay
+    result: ok ? "ok" : "miss",
+    expected: differs ? cur.es : null,        // show the model line when it differs
+    expectedEn: cur.en
+  });
   sc.i++;
   speak(cur.es);
-  setTimeout(renderScenario, 1000);
+  setTimeout(renderScenario, 1300);
 }
 
 function scAbort() { if (sc && sc.recog) { try { sc.recog.abort(); } catch (e) {} } }
