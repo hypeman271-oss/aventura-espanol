@@ -513,6 +513,9 @@
   .sc-replay-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
   .sc-line { transition: filter 0.1s ease; }
   .sc-line:active { filter: brightness(0.94); }
+  .chat-corr { display: block; font-size: 0.8rem; margin-top: 5px; padding-top: 5px; border-top: 1px dashed rgba(0,0,0,0.15); color: #b8860b; }
+  .sc-them .chat-corr { color: #7a5c00; }
+  #scThinking { text-align: center; opacity: 0.7; font-style: italic; margin: 10px 0; }
 </style>
 </head>
 <body>
@@ -735,9 +738,10 @@
     <div class="panel">
       <div id="scSetup">
         <p class="section-title">💬 Conversations</p>
-        <p class="sc-intro">Pick a situation and roleplay it in Spanish. The buttons work offline; typing your own uses AI (needs internet).</p>
+        <p class="sc-intro"><b>Guided</b> = a scripted roleplay (works offline). <b>Live chat</b> = a real back-and-forth where the AI replies to whatever you say (needs internet + your API key).</p>
+        <div class="sc-diff" id="scMode"></div>
         <div class="sc-scenarios" id="scChips"></div>
-        <input id="scCustom" class="mc-input" placeholder="…or type your own situation (AI, needs internet)" autocomplete="off" />
+        <input id="scCustom" class="mc-input" placeholder="…or type your own situation" autocomplete="off" />
         <div class="sc-diff" id="scDiff"></div>
         <div id="scStatus" class="ai-status"></div>
         <button class="btn primary center" id="scStartBtn">▶️ Start conversation</button>
@@ -1630,7 +1634,9 @@ const SC_DIALOGUES = {
 
 let scSelected = SC_PRESETS[0];
 let scDiff = "show";
+let scMode = "guided";
 let sc = {};
+let chat = {};
 
 function openScenario() {
   buildScSetup();
@@ -1642,6 +1648,16 @@ function openScenario() {
 }
 
 function buildScSetup() {
+  const mode = $("scMode");
+  mode.innerHTML = "";
+  [["guided", "📋 Guided"], ["live", "💬 Live chat (AI)"]].forEach(([v, l]) => {
+    const b = document.createElement("button");
+    b.className = "sc-chip" + (v === scMode ? " selected" : "");
+    b.textContent = l;
+    b.onclick = () => { scMode = v; buildScSetup(); };
+    mode.appendChild(b);
+  });
+
   const chips = $("scChips");
   chips.innerHTML = "";
   SC_PRESETS.forEach(s => {
@@ -1651,7 +1667,9 @@ function buildScSetup() {
     b.onclick = () => { scSelected = s; $("scCustom").value = ""; buildScSetup(); };
     chips.appendChild(b);
   });
+
   const diff = $("scDiff");
+  diff.style.display = scMode === "live" ? "none" : "flex";   // hints only apply to guided
   diff.innerHTML = "";
   [["show", "Show hints"], ["hide", "Hide hints (harder)"]].forEach(([v, l]) => {
     const b = document.createElement("button");
@@ -1660,6 +1678,8 @@ function buildScSetup() {
     b.onclick = () => { scDiff = v; buildScSetup(); };
     diff.appendChild(b);
   });
+
+  $("scStartBtn").textContent = scMode === "live" ? "💬 Start live chat" : "▶️ Start conversation";
 }
 
 function scOverlap(a, b) {
@@ -1737,6 +1757,14 @@ async function scStart() {
   const scenario = custom || scSelected;
   const status = $("scStatus");
   if (!scenario) { status.textContent = "Pick a situation or type one."; return; }
+
+  // Live chat: an interactive AI conversation (online + key).
+  if (scMode === "live") {
+    if (!navigator.onLine) { status.textContent = "Live chat needs an internet connection. Switch to Guided to play offline."; return; }
+    if (!getApiKey()) { status.textContent = "Live chat uses AI — add your API key in My Cards → ⚙️ first."; return; }
+    chatStart(scenario);
+    return;
+  }
 
   // Preset buttons play from built-in dialogues — fully offline, no key.
   if (!custom && SC_DIALOGUES[scenario]) {
@@ -1875,7 +1903,169 @@ function scResolve(ok, saidText) {
   setTimeout(renderScenario, 1300);
 }
 
-function scAbort() { if (sc && sc.recog) { try { sc.recog.abort(); } catch (e) {} } }
+function scAbort() {
+  if (sc && sc.recog) { try { sc.recog.abort(); } catch (e) {} }
+  if (chat && chat.recog) { try { chat.recog.abort(); } catch (e) {} }
+}
+
+/* ============================================================
+   LIVE AI CHAT — a real back-and-forth conversation
+   The AI stays in character and replies to whatever you say.
+   ============================================================ */
+function CHAT_SYSTEM(topic) {
+  return "You are a friendly native Spanish speaker having a real back-and-forth conversation with an English-speaking learner, " +
+    "roleplaying this situation: \"" + topic + "\". Stay in character as the other person in that situation. " +
+    "Speak only simple, natural Spanish suited to a beginner–intermediate learner — 1 to 2 short sentences per reply, and usually end with a question to keep the chat going. " +
+    "React naturally to what the learner actually says. If their last message had a notable Spanish mistake, add a short, kind correction tip (else leave it empty). " +
+    "Respond with ONLY a JSON object and nothing else, exactly: {\"es\": \"<your Spanish reply>\", \"en\": \"<English translation>\", \"correction\": \"<short tip or empty>\"}.";
+}
+
+function parseChatJSON(text) {
+  let obj = null;
+  try { obj = JSON.parse(text); } catch (e) {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} }
+  }
+  if (!obj || !obj.es) obj = { es: (text || "").trim() || "…", en: "", correction: "" };
+  return { es: obj.es, en: obj.en || "", correction: obj.correction || "" };
+}
+
+async function chatApiTurn() {
+  const body = {
+    model: getApiModel(), max_tokens: 1000,
+    thinking: { type: "disabled" }, output_config: { effort: "low" },
+    system: CHAT_SYSTEM(chat.topic),
+    messages: chat.history
+  };
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json", "x-api-key": getApiKey(),
+      "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    let m = "API error " + res.status;
+    if (res.status === 401) m = "Invalid API key — check My Cards → ⚙️.";
+    else if (res.status === 429) m = "Rate limited — wait a moment.";
+    else { try { const j = await res.json(); if (j.error && j.error.message) m += ": " + j.error.message; } catch (e) {} }
+    throw new Error(m);
+  }
+  const data = await res.json();
+  const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  chat.history.push({ role: "assistant", content: text }); // replay verbatim next turn
+  return parseChatJSON(text);
+}
+
+function chatStart(topic) {
+  chat = {
+    topic, turns: [], thinking: true, ended: false, recog: null,
+    history: [{ role: "user", content: "Empecemos. Salúdame en español para iniciar el juego de rol." }]
+  };
+  $("scSetup").classList.add("hidden");
+  $("scEnd").classList.add("hidden");
+  $("scPlay").classList.remove("hidden");
+  chatRender();
+  chatApiTurn().then(reply => {
+    chat.thinking = false;
+    chat.turns.push({ speaker: "them", es: reply.es, en: reply.en });
+    speak(reply.es);
+    chatRender();
+  }).catch(e => {
+    chat.thinking = false;
+    $("scPlay").classList.add("hidden");
+    $("scSetup").classList.remove("hidden");
+    $("scStatus").textContent = e.message || "Couldn't start the chat — try again.";
+  });
+}
+
+function chatSend(text) {
+  const t = (text || "").trim();
+  if (!t || chat.thinking || chat.ended) return;
+  chat.turns.push({ speaker: "you", es: t });
+  chat.history.push({ role: "user", content: t });
+  chat.thinking = true;
+  chatRender();
+  chatApiTurn().then(reply => {
+    chat.thinking = false;
+    if (reply.correction) {
+      const lastYou = [...chat.turns].reverse().find(x => x.speaker === "you");
+      if (lastYou) lastYou.correction = reply.correction;
+    }
+    chat.turns.push({ speaker: "them", es: reply.es, en: reply.en });
+    speak(reply.es);
+    chatRender();
+  }).catch(e => {
+    chat.thinking = false;
+    chat.turns.push({ speaker: "them", es: "…", en: "[" + (e.message || "Something went wrong") + "]" });
+    chatRender();
+  });
+}
+
+function chatBubble(t) {
+  const cls = t.speaker === "them" ? "sc-them" : "sc-you";
+  let inner = escapeHtml(t.es);
+  if (t.en) inner += "<span class='sc-en'>" + escapeHtml(t.en) + "</span>";
+  if (t.correction) inner += "<span class='chat-corr'>💡 " + escapeHtml(t.correction) + "</span>";
+  return "<div class='sc-line " + cls + "'>" + inner + "</div>";
+}
+
+function chatRender() {
+  const play = $("scPlay");
+  let html = chat.turns.map(chatBubble).join("");
+  if (chat.thinking) html += "<div id='scThinking'>… escribiendo …</div>";
+  if (!chat.ended && !chat.thinking) {
+    html += "<div style='text-align:center;margin-top:10px;'>";
+    if (SPEECH_OK) html += "<button class='mic-btn' id='chatMic'>🎤</button><div class='mic-status' id='chatMicStatus'>Tap to speak, or type below</div>";
+    html += "<input class='mc-input' id='chatInput' placeholder='Type your reply in Spanish…' autocomplete='off' style='margin-top:10px;'/>" +
+      "<button class='btn primary center' id='chatSendBtn'>Send</button>" +
+      "<button class='back-link' id='chatEndBtn' style='display:block;margin:6px auto 0;'>End chat</button>" +
+      "</div>";
+  }
+  play.innerHTML = html;
+  scWireBubbles(chat.turns.map(t => t.es));
+  if (!chat.ended && !chat.thinking) {
+    $("chatSendBtn").onclick = () => chatSend($("chatInput").value);
+    $("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") chatSend($("chatInput").value); });
+    if (SPEECH_OK && $("chatMic")) $("chatMic").onclick = chatListen;
+    $("chatEndBtn").onclick = chatEnd;
+    setTimeout(() => { const el = $("chatInput"); if (el) el.scrollIntoView({ block: "nearest" }); }, 40);
+  }
+}
+
+function chatListen() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  if (!navigator.onLine) { const st = $("chatMicStatus"); if (st) st.textContent = "The mic needs a connection — type instead."; return; }
+  const r = new SR();
+  r.lang = "es-ES"; r.interimResults = false; r.maxAlternatives = 3;
+  chat.recog = r;
+  const st = $("chatMicStatus"), mic = $("chatMic");
+  if (st) st.textContent = "🎧 Listening…";
+  if (mic) mic.classList.add("listening");
+  try { r.start(); } catch (e) {}
+  r.onresult = (e) => { chatSend(e.results[0][0].transcript || ""); };
+  r.onerror = () => { if (mic) mic.classList.remove("listening"); if (st) st.textContent = "Didn't catch that — try again or type."; };
+}
+
+function chatEnd() {
+  chat.ended = true;
+  scAbort();
+  const userTurns = chat.turns.filter(t => t.speaker === "you").length;
+  logActivity(userTurns, userTurns * 10);
+  $("scPlay").classList.add("hidden");
+  const end = $("scEnd");
+  end.classList.remove("hidden");
+  end.innerHTML =
+    "<p class='section-title'>💬 ¡Buena charla!</p>" +
+    "<div class='big-score'>" + userTurns + "</div>" +
+    "<p class='result-msg'>things you said in Spanish 🎉</p>" +
+    "<button class='btn primary center' id='scAgain'>🔁 New conversation</button>" +
+    "<button class='btn center' id='scHome'>🏠 Menu</button>";
+  $("scAgain").onclick = () => { $("scEnd").classList.add("hidden"); $("scSetup").classList.remove("hidden"); };
+  $("scHome").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+}
 
 function scEnd() {
   $("scPlay").classList.add("hidden");
