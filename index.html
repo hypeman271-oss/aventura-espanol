@@ -477,6 +477,17 @@
   /* Long-pressable words inside a sentence (cloze prompt). */
   .lw { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; border-bottom: 1px dotted rgba(0,0,0,0.28); }
 
+  /* Cloze replay + hint row */
+  #clozeTools { text-align: center; margin: 12px 0 2px; }
+  .replay-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg2); color: #fff; border: none; border-radius: 22px;
+    padding: 9px 18px; font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+  }
+  .replay-pill:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+  .cloze-hint { opacity: 0.6; font-size: 0.78rem; margin-top: 8px; }
+
   /* ---- Scenario conversations ---- */
   .sc-intro { opacity: 0.85; font-size: 0.9rem; text-align: center; margin-bottom: 14px; line-height: 1.5; }
   .sc-scenarios { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px; }
@@ -577,6 +588,11 @@
         <div class="prompt-label" id="promptLabel">Spanish</div>
         <div class="prompt-emoji" id="promptEmoji"></div>
         <div class="prompt-word" id="promptWord"></div>
+      </div>
+
+      <div id="clozeTools" class="hidden">
+        <button id="replayBtn" class="replay-pill">🔊 Hear the sentence</button>
+        <p class="cloze-hint">💡 Long-press a word for its meaning</p>
       </div>
 
       <div class="answers" id="answers"></div>
@@ -2291,16 +2307,19 @@ function renderQuestion() {
   submitType.classList.add("hidden");
   $("speakPanel").classList.add("hidden");
   $("nextBtn").classList.add("hidden");
+  $("clozeTools").classList.add("hidden");
   answersWrap.innerHTML = "";
   $("promptWord").style.fontSize = ""; // reset (cloze sentences shrink it)
 
   if (mode === "cloze" || mode === "clozetype") {
     // Comprehensible input: show the sentence with a blank; hear it spoken.
     const s = state.sentence;
-    $("promptLabel").textContent = "Fill in the blank — long-press a word for its meaning";
+    $("promptLabel").textContent = "Fill in the blank";
     $("promptEmoji").textContent = word[2];
     $("promptWord").style.fontSize = "clamp(1.1rem, 4.2vw, 1.6rem)";
     renderLookupSentence($("promptWord"), s.template, s.en, { blankMark: "___" });
+    $("clozeTools").classList.remove("hidden");
+    $("replayBtn").onclick = () => speak(s.full);
     if (mode === "cloze") {
       answersWrap.classList.remove("hidden");
       buildClozeChoices(s.answer);
@@ -2703,7 +2722,10 @@ document.querySelectorAll("[data-mode]").forEach(btn => {
   };
 });
 
-$("speakBtn").onclick = () => { if (state.current) speak(state.current[0]); };
+$("speakBtn").onclick = () => {
+  if (state.sentence) speak(state.sentence.full);        // re-read the whole sentence in cloze mode
+  else if (state.current) speak(state.current[0]);        // otherwise just the word
+};
 $("micBtn").onclick = startListening;
 $("micSkip").onclick = speakGiveUp;
 
