@@ -471,9 +471,15 @@
     position: fixed; z-index: 50; max-width: 240px;
     background: var(--ink); color: #fff; border: 1px solid rgba(255,255,255,0.2);
     border-radius: 10px; padding: 8px 12px; font-size: 0.95rem; line-height: 1.35;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4); pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   }
-  #wordTip .wt-sent { opacity: 0.8; font-size: 0.82rem; font-style: italic; }
+  #wordTip .wt-sent { opacity: 0.8; font-size: 0.82rem; font-style: italic; margin-top: 3px; }
+  #wordTip .wt-add {
+    display: block; width: 100%; margin-top: 8px; border: none; border-radius: 8px;
+    padding: 7px; font-weight: 800; font-size: 0.82rem; cursor: pointer;
+    background: var(--accent); color: var(--ink);
+  }
+  #wordTip .wt-add:disabled { background: var(--good); color: #fff; cursor: default; }
   /* Long-pressable words inside a sentence (cloze prompt). */
   .lw { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; border-bottom: 1px dotted rgba(0,0,0,0.28); }
 
@@ -611,6 +617,7 @@
       </div>
 
       <div class="feedback" id="feedback"></div>
+      <button class="btn center hidden" id="addCardBtn" style="background:rgba(255,255,255,0.15);color:#fff;">➕ Add to My Cards</button>
       <button class="btn primary center hidden" id="nextBtn">Next →</button>
     </div>
   </div>
@@ -1354,39 +1361,39 @@ function makeWordTile(word, onTap) {
   b.className = "wtile";
   b.textContent = word;
   let timer = null, fired = false;
-  const fallback = () => (ord && ord.cur) ? ord.cur.en : null;
-  const startPress = () => { fired = false; timer = setTimeout(() => { fired = true; showWordTip(b, word, fallback()); }, 450); };
+  const ctx = () => (ord && ord.cur) ? { es: ord.cur.full, en: ord.cur.en } : null;
+  const startPress = () => { fired = false; timer = setTimeout(() => { fired = true; showWordTip(b, word, ctx()); }, 450); };
   const cancelPress = () => { if (timer) { clearTimeout(timer); timer = null; } };
   b.addEventListener("pointerdown", startPress);
   b.addEventListener("pointerup", cancelPress);
   b.addEventListener("pointerleave", cancelPress);
   b.addEventListener("pointercancel", cancelPress);
   b.addEventListener("pointermove", cancelPress);
-  b.addEventListener("contextmenu", (e) => { e.preventDefault(); fired = true; showWordTip(b, word, fallback()); });
+  b.addEventListener("contextmenu", (e) => { e.preventDefault(); fired = true; showWordTip(b, word, ctx()); });
   b.onclick = () => { if (fired) { fired = false; return; } onTap(); };
   return b;
 }
 
 /* An inline sentence word you can long-press (or right-click) for its meaning. */
-function makeLookupWord(word, fallbackEn) {
+function makeLookupWord(word, ctx) {
   const span = document.createElement("span");
   span.className = "lw";
   span.textContent = word;
   let timer = null, fired = false;
-  const start = () => { fired = false; timer = setTimeout(() => { fired = true; showWordTip(span, word, fallbackEn); }, 450); };
+  const start = () => { fired = false; timer = setTimeout(() => { fired = true; showWordTip(span, word, ctx); }, 450); };
   const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
   span.addEventListener("pointerdown", start);
   span.addEventListener("pointerup", cancel);
   span.addEventListener("pointerleave", cancel);
   span.addEventListener("pointercancel", cancel);
   span.addEventListener("pointermove", cancel);
-  span.addEventListener("contextmenu", (e) => { e.preventDefault(); fired = true; showWordTip(span, word, fallbackEn); });
+  span.addEventListener("contextmenu", (e) => { e.preventDefault(); fired = true; showWordTip(span, word, ctx); });
   return span;
 }
 
-/* Render a sentence into `el` with each word long-pressable. `blankMark`
-   (e.g. "___") is shown as a styled blank; `highlight` word is accented. */
-function renderLookupSentence(el, text, fallbackEn, opts) {
+/* Render a sentence into `el` with each word long-pressable. `ctx` = the whole
+   sentence {es,en}. `blankMark` is shown as a styled blank; `highlight` accented. */
+function renderLookupSentence(el, text, ctx, opts) {
   opts = opts || {};
   el.innerHTML = "";
   const hi = opts.highlight ? cleanWord(opts.highlight) : null;
@@ -1399,18 +1406,45 @@ function renderLookupSentence(el, text, fallbackEn, opts) {
       el.appendChild(span);
       return;
     }
-    const w = makeLookupWord(part, fallbackEn);
+    const w = makeLookupWord(part, ctx);
     if (hi && cleanWord(part) === hi) { w.style.color = "var(--accent)"; w.style.fontWeight = "900"; }
     el.appendChild(w);
   });
 }
 
-function showWordTip(el, word, fallbackEn) {
+/* Pick an emoji for a word if it matches a known card, else a default. */
+function emojiFor(word) {
+  const w = cleanWord(word);
+  const c = CARDS.find(c => cleanWord(stripArticle(c.es)) === w);
+  return c ? c.emoji : "📝";
+}
+
+/* Create a My Card (used by "mark unknown" everywhere). Returns false if a
+   card for this Spanish already exists. */
+function addWordCard(es, en, emoji, sentenceEs, sentenceEn) {
+  es = (es || "").trim();
+  if (!es || userCardExists(es)) return false;
+  const cloze = buildClozeFromSentence(es, sentenceEs || "");
+  store.userCards.push({
+    es, en: (en || "").trim(), emoji: (emoji || "").trim() || "📝",
+    sentence: (sentenceEs || "").trim(), sentenceEn: (sentenceEn || "").trim(),
+    template: cloze ? cloze.template : "", answer: cloze ? cloze.answer : "",
+    created: Date.now(), fromUnknown: true
+  });
+  applyUserCards();
+  saveStore();
+  return true;
+}
+
+function showWordTip(el, word, ctx) {
   const tip = $("wordTip");
   const g = glossFor(word);
   const clean = cleanWord(word) || word;
-  let html = "<b>" + escapeHtml(clean) + "</b> — " + escapeHtml(g || "not in the dictionary");
-  if (!g && fallbackEn) html += "<div class='wt-sent'>Sentence: " + escapeHtml(fallbackEn) + "</div>";
+  let html = "<div><b>" + escapeHtml(clean) + "</b> — " + escapeHtml(g || "not in the dictionary") + "</div>";
+  if (!g && ctx && ctx.en) html += "<div class='wt-sent'>Sentence: " + escapeHtml(ctx.en) + "</div>";
+  const already = userCardExists(clean);
+  html += "<button class='wt-add' " + (already ? "disabled" : "") + ">" +
+    (already ? "✓ In My Cards" : "➕ Add to My Cards") + "</button>";
   tip.innerHTML = html;
   tip.hidden = false;
   const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -1419,8 +1453,20 @@ function showWordTip(el, word, fallbackEn) {
   if (top < 8) top = r.bottom + 8;
   tip.style.left = left + "px";
   tip.style.top = top + "px";
+
+  const addBtn = tip.querySelector(".wt-add");
+  if (addBtn && !already) addBtn.onclick = () => {
+    if (addWordCard(clean, g || "", emojiFor(clean), ctx && ctx.es, ctx && ctx.en)) {
+      addBtn.textContent = "✓ Added to My Cards"; addBtn.disabled = true;
+    }
+  };
+  // Dismiss on an outside tap; interactive so keep it up longer.
   clearTimeout(showWordTip._t);
-  showWordTip._t = setTimeout(() => { tip.hidden = true; }, 2800);
+  showWordTip._t = setTimeout(() => { tip.hidden = true; }, 6000);
+  setTimeout(() => {
+    const off = (e) => { if (!tip.contains(e.target)) { tip.hidden = true; document.removeEventListener("pointerdown", off, true); } };
+    document.addEventListener("pointerdown", off, true);
+  }, 0);
 }
 
 function renderOrder() {
@@ -2330,6 +2376,7 @@ function renderQuestion() {
   submitType.classList.add("hidden");
   $("speakPanel").classList.add("hidden");
   $("nextBtn").classList.add("hidden");
+  $("addCardBtn").classList.add("hidden");
   $("clozeTools").classList.add("hidden");
   answersWrap.innerHTML = "";
   $("promptWord").style.fontSize = ""; // reset (cloze sentences shrink it)
@@ -2340,7 +2387,7 @@ function renderQuestion() {
     $("promptLabel").textContent = "Fill in the blank";
     $("promptEmoji").textContent = word[2];
     $("promptWord").style.fontSize = "clamp(1.1rem, 4.2vw, 1.6rem)";
-    renderLookupSentence($("promptWord"), s.template, s.en, { blankMark: "___" });
+    renderLookupSentence($("promptWord"), s.template, { es: s.full, en: s.en }, { blankMark: "___" });
     $("clozeTools").classList.remove("hidden");
     $("replayBtn").onclick = () => speak(s.full);
     if (mode === "cloze") {
@@ -2501,7 +2548,7 @@ function resolveAnswer(isRight, correctText) {
     translation = `<div class="translation">${s.full}<br><span style="opacity:.8;font-weight:600;">${s.en}</span></div>`;
     // Reveal the completed sentence with the answer highlighted (still long-pressable).
     $("promptWord").style.fontSize = "clamp(1.1rem, 4.2vw, 1.6rem)";
-    renderLookupSentence($("promptWord"), s.full, s.en, { highlight: s.answer });
+    renderLookupSentence($("promptWord"), s.full, { es: s.full, en: s.en }, { highlight: s.answer });
     $("promptEmoji").textContent = w[2];
   } else {
     translation = `<div class="translation">${w[2]} ${w[0]} = ${w[1]}</div>`;
@@ -2538,6 +2585,19 @@ function resolveAnswer(isRight, correctText) {
   let advance;
   if (state.srs) { gradeSrs(isRight); advance = nextSrsQuestion; }
   else { state.index++; advance = nextQuestion; }
+
+  // Offer to save this word to My Cards (translation is already shown now).
+  const acb = $("addCardBtn");
+  if (userCardExists(w[0])) {
+    acb.textContent = "✓ In My Cards"; acb.disabled = true; acb.classList.remove("hidden");
+  } else {
+    acb.textContent = "➕ Add to My Cards"; acb.disabled = false; acb.classList.remove("hidden");
+    acb.onclick = () => {
+      const se = state.sentence ? state.sentence.full : "";
+      const sen = state.sentence ? state.sentence.en : "";
+      if (addWordCard(w[0], w[1], w[2], se, sen)) { acb.textContent = "✓ Added to My Cards"; acb.disabled = true; }
+    };
+  }
 
   const last = state.srs ? (state.qi >= state.queue.length) : (state.index >= state.deck.length || state.lives <= 0);
   const nb = $("nextBtn");
