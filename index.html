@@ -463,9 +463,17 @@
   .order-replay:active { transform: translateY(2px); box-shadow: 0 3px 0 rgba(0,0,0,0.25); }
   .order-answer { min-height: 54px; border-bottom: 2px dashed rgba(255,255,255,0.35); padding: 8px 4px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; margin-bottom: 22px; }
   .order-bank { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 8px; }
-  .wtile { background: var(--card-solid); color: var(--ink); border: none; border-radius: 10px; padding: 10px 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.2); }
+  .wtile { background: var(--card-solid); color: var(--ink); border: none; border-radius: 10px; padding: 10px 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.2); -webkit-user-select: none; user-select: none; }
   .wtile:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
+  .order-hint { text-align: center; opacity: 0.6; font-size: 0.8rem; margin-top: -6px; margin-bottom: 14px; }
   .order-end { text-align: center; }
+  #wordTip {
+    position: fixed; z-index: 50; max-width: 240px;
+    background: var(--ink); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px; padding: 8px 12px; font-size: 0.95rem; line-height: 1.35;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); pointer-events: none;
+  }
+  #wordTip .wt-sent { opacity: 0.8; font-size: 0.82rem; font-style: italic; }
 
   /* ---- Scenario conversations ---- */
   .sc-intro { opacity: 0.85; font-size: 0.9rem; text-align: center; margin-bottom: 14px; line-height: 1.5; }
@@ -677,6 +685,7 @@
       </div>
       <div id="listenPlay">
         <p class="order-instr">Tap the words in the order you hear them.</p>
+        <p class="order-hint">💡 Long-press a word to see its meaning.</p>
         <button class="order-replay" id="listenReplay" title="Play again">🔊</button>
         <div class="order-answer" id="orderAnswer"></div>
         <div class="order-bank" id="orderBank"></div>
@@ -686,6 +695,7 @@
       </div>
       <div id="listenEnd" class="order-end hidden"></div>
     </div>
+    <div id="wordTip" hidden></div>
   </div>
 
   <!-- ============ SCENARIO CONVERSATIONS (AI) ============ -->
@@ -900,16 +910,68 @@ function setHigh(v) { try { localStorage.setItem("aventura_high", v); } catch(e)
 /* Flatten VOCAB into a trackable card list with stable ids.
    Rebuilt whenever the user's own cards change (see applyUserCards). */
 const CARDS = [];
+const VOCAB_WORD_EN = {}; // bare Spanish word -> English meaning, for word lookups
 function rebuildCards() {
   CARDS.length = 0;
   Object.entries(VOCAB).forEach(([cat, list]) => {
     list.forEach(([es, en, emoji]) => CARDS.push({ id: cat + "||" + es, es, en, emoji, cat }));
   });
+  for (const k in VOCAB_WORD_EN) delete VOCAB_WORD_EN[k];
+  CARDS.forEach(c => { VOCAB_WORD_EN[cleanWord(stripArticle(c.es))] = c.en; });
 }
 rebuildCards();
 
+/* Common non-vocabulary words that appear across the example sentences, so
+   long-press word lookup works offline for function words and verbs too. */
+const WORD_GLOSS = {
+  el: "the", la: "the", los: "the", las: "the", un: "a/an", una: "a/an",
+  de: "of / from", del: "of the", en: "in / on", con: "with", por: "for / by",
+  para: "for / in order to", y: "and", o: "or", a: "to / at", que: "that / which",
+  es: "is", son: "are", está: "is (located)", están: "are (located)", hay: "there is / there are",
+  muy: "very", más: "more", mucho: "a lot", mucha: "a lot of", muchas: "many",
+  no: "no / not", sí: "yes", cuando: "when", cómo: "how", hoy: "today",
+  mi: "my", mis: "my", tu: "your", su: "his / her / their", se: "oneself",
+  me: "me / myself", ella: "she", él: "he", contigo: "with you",
+  bien: "well", solo: "only / alone", queda: "is left / remains", tiene: "has", tengo: "I have",
+  como: "I eat / like", come: "eats", corre: "runs", canta: "sings", nada: "swims",
+  duerme: "sleeps", vive: "lives", vuela: "flies", llega: "arrives", cruza: "crosses",
+  bebo: "I drink", compro: "I buy", cenamos: "we have dinner", tomo: "I have / drink",
+  escribo: "I write", levanto: "I raise", miro: "I look at", abre: "open (it)",
+  voy: "I go", vamos: "we go", quiero: "I want", ir: "to go", hace: "makes / does",
+  cocina: "cooks", lee: "reads", juega: "plays", estudia: "studies", cuenta: "tells / counts",
+  toca: "plays (an instrument)", duele: "hurts", late: "beats", dormimos: "we sleep",
+  estás: "you are", duermas: "you sleep", fue: "was", perderme: "to get lost",
+  rápido: "fast", grande: "big", pequeño: "small", gris: "grey", gordo: "fat",
+  roja: "red", caliente: "hot", larga: "long", largo: "long", viejas: "old",
+  derecha: "right", izquierdo: "left", pesada: "heavy", llena: "full", alto: "high",
+  bonito: "nice / pretty", mejor: "best / better", rey: "king",
+  parque: "park", sofá: "sofa", campo: "field", bosque: "forest", selva: "jungle",
+  hierba: "grass", zanahoria: "carrot", panadería: "bakery", mesa: "table",
+  desayuno: "breakfast", sartén: "pan", vitamina: "vitamin", mono: "monkey",
+  sed: "thirst", cumpleaños: "birthday", chocolate: "chocolate", tomate: "tomato",
+  mar: "sea", árbol: "tree", sol: "sun", papel: "paper", balón: "ball", vestido: "dress",
+  caja: "box", casa: "house / home", tarde: "afternoon", días: "days", semana: "week",
+  pulpo: "octopus", primo: "cousin", años: "years", dedos: "fingers", patas: "legs",
+  manos: "hands", pies: "feet", cena: "dinner", periódico: "newspaper", fútbol: "soccer",
+  universidad: "university", historias: "stories", piano: "piano", clase: "class",
+  payaso: "clown", trabajo: "work", gente: "people", verano: "summer",
+  hasta: "until", mañana: "morning / tomorrow", ayuda: "help", tiempo: "time",
+  señora: "Mrs. / ma'am", intención: "intention", algo: "something", agua: "water"
+};
+
 /* Drop a leading Spanish article so cloze options/answers line up. */
 function stripArticle(s) { return (s || "").replace(/^(el|la|los|las)\s+/i, ""); }
+
+/* Lowercase a word and strip surrounding punctuation for dictionary lookups. */
+function cleanWord(w) { return (w || "").toLowerCase().replace(/^[¿¡"'(«]+|[.,!?;:"')»]+$/g, ""); }
+
+/* Best-effort English gloss for a single Spanish word (offline). */
+function glossFor(word) {
+  const w = cleanWord(word);
+  if (!w) return null;
+  const na = w.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return VOCAB_WORD_EN[w] || WORD_GLOSS[w] || VOCAB_WORD_EN[na] || WORD_GLOSS[na] || null;
+}
 
 /* Build the sentence object for a card (or null if it has none). */
 function getSentence(cat, es) {
@@ -1256,22 +1318,61 @@ function nextListen() {
   speak(s.full);
 }
 
+/* A word tile that taps to place/remove, and long-press (or right-click)
+   shows the word's meaning without counting as a tap. */
+function makeWordTile(word, onTap) {
+  const b = document.createElement("button");
+  b.className = "wtile";
+  b.textContent = word;
+  let timer = null, fired = false;
+  const startPress = () => { fired = false; timer = setTimeout(() => { fired = true; showWordTip(b, word); }, 450); };
+  const cancelPress = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  b.addEventListener("pointerdown", startPress);
+  b.addEventListener("pointerup", cancelPress);
+  b.addEventListener("pointerleave", cancelPress);
+  b.addEventListener("pointercancel", cancelPress);
+  b.addEventListener("pointermove", cancelPress);
+  b.addEventListener("contextmenu", (e) => { e.preventDefault(); fired = true; showWordTip(b, word); });
+  b.onclick = () => { if (fired) { fired = false; return; } onTap(); };
+  return b;
+}
+
+function showWordTip(el, word) {
+  const tip = $("wordTip");
+  const g = glossFor(word);
+  const clean = cleanWord(word) || word;
+  let html = "<b>" + escapeHtml(clean) + "</b> — " + escapeHtml(g || "not in the dictionary");
+  if (!g && ord.cur) html += "<div class='wt-sent'>Sentence: " + escapeHtml(ord.cur.en) + "</div>";
+  tip.innerHTML = html;
+  tip.hidden = false;
+  const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = Math.max(8, Math.min(r.left + r.width / 2 - tw / 2, window.innerWidth - tw - 8));
+  let top = r.top - th - 8;
+  if (top < 8) top = r.bottom + 8;
+  tip.style.left = left + "px";
+  tip.style.top = top + "px";
+  clearTimeout(showWordTip._t);
+  showWordTip._t = setTimeout(() => { tip.hidden = true; }, 2800);
+}
+
 function renderOrder() {
   const c = ord.cur;
   const ans = $("orderAnswer"), bank = $("orderBank");
   ans.innerHTML = ""; bank.innerHTML = "";
   c.answerIds.forEach(id => {
-    const b = document.createElement("button");
-    b.className = "wtile"; b.textContent = c.tokens[id];
-    b.onclick = () => { if (c.done) return; c.answerIds = c.answerIds.filter(x => x !== id); renderOrder(); };
-    ans.appendChild(b);
+    ans.appendChild(makeWordTile(c.tokens[id], () => {
+      if (c.done) return;
+      c.answerIds = c.answerIds.filter(x => x !== id);
+      renderOrder();
+    }));
   });
   c.bankOrder.forEach(id => {
     if (c.answerIds.indexOf(id) >= 0) return;
-    const b = document.createElement("button");
-    b.className = "wtile"; b.textContent = c.tokens[id];
-    b.onclick = () => { if (c.done) return; c.answerIds.push(id); renderOrder(); };
-    bank.appendChild(b);
+    bank.appendChild(makeWordTile(c.tokens[id], () => {
+      if (c.done) return;
+      c.answerIds.push(id);
+      renderOrder();
+    }));
   });
   $("orderCheck").disabled = c.answerIds.length !== c.tokens.length;
 }
