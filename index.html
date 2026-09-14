@@ -502,6 +502,11 @@
   .sc-target { text-align: center; font-size: 1.2rem; font-weight: 800; margin: 8px 0; }
   .sc-hint-eng { text-align: center; opacity: 0.85; margin-bottom: 8px; }
   .sc-reveal { background: none; border: none; color: #fff; opacity: 0.8; text-decoration: underline; cursor: pointer; font-size: 0.9rem; display: block; margin: 6px auto; }
+  .sc-ctrl { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
+  .sc-replay-btn { background: var(--bg2); color: #fff; border: none; border-radius: 22px; padding: 9px 16px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.25); }
+  .sc-replay-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+  .sc-line { transition: filter 0.1s ease; }
+  .sc-line:active { filter: brightness(0.94); }
 </style>
 </head>
 <body>
@@ -1714,6 +1719,15 @@ function scBubble(t) {
     "<span class='sc-en'>" + escapeHtml(t.en) + "</span></div>";
 }
 
+/* Make each chat bubble tap-to-replay its Spanish (order matches `lines`). */
+function scWireBubbles(lines) {
+  $("scPlay").querySelectorAll(".sc-line").forEach((el, idx) => {
+    el.style.cursor = "pointer";
+    el.title = "Tap to hear again";
+    el.onclick = () => { if (lines[idx] != null) speak(lines[idx]); };
+  });
+}
+
 function renderScenario() {
   const play = $("scPlay");
   if (sc.i >= sc.turns.length) return scEnd();
@@ -1721,9 +1735,15 @@ function renderScenario() {
   const cur = sc.turns[sc.i];
 
   if (cur.speaker === "them") {
-    html += scBubble(cur) + "<button class='btn primary center' id='scContinue'>Continue →</button>";
+    html += scBubble(cur) +
+      "<div class='sc-ctrl'>" +
+      "<button class='sc-replay-btn' id='scReplayCur' title='Hear it again'>🔊 Again</button>" +
+      "<button class='btn primary center' id='scContinue' style='flex:1;margin:0;'>Continue →</button>" +
+      "</div>";
     play.innerHTML = html;
+    scWireBubbles([...sc.done.map(t => t.es), cur.es]);
     speak(cur.es);
+    $("scReplayCur").onclick = () => speak(cur.es);
     $("scContinue").onclick = () => { sc.done.push(cur); sc.i++; renderScenario(); };
     return;
   }
@@ -1738,13 +1758,16 @@ function renderScenario() {
       "<div class='sc-target hidden' id='scTargetText'>" + escapeHtml(cur.es) + "</div>";
   }
   html += "<div style='text-align:center;margin-top:6px;'>";
-  if (SPEECH_OK) html += "<button class='mic-btn' id='scMic'>🎤</button><div class='mic-status' id='scMicStatus'>Tap the mic and say it</div>";
+  html += "<button class='sc-replay-btn' id='scReplayCur' title='Hear the Spanish'>🔊 Hear it</button>";
+  if (SPEECH_OK) html += "<div style='margin-top:12px;'><button class='mic-btn' id='scMic'>🎤</button><div class='mic-status' id='scMicStatus'>Tap the mic and say it</div></div>";
   html += "<input class='mc-input' id='scTypeInput' placeholder='…or type your reply' autocomplete='off' style='margin-top:10px;'/>" +
     "<button class='btn primary center' id='scSubmit'>Check</button>" +
     "<button class='back-link' id='scSkip' style='display:block;margin:6px auto 0;'>Skip</button>" +
     "</div>";
   play.innerHTML = html;
 
+  scWireBubbles(sc.done.map(t => t.es));
+  $("scReplayCur").onclick = () => speak(cur.es);
   if (sc.difficulty === "hide" && $("scReveal")) $("scReveal").onclick = () => $("scTargetText").classList.remove("hidden");
   if (SPEECH_OK && $("scMic")) $("scMic").onclick = scListen;
   $("scSubmit").onclick = () => scCheckResponse($("scTypeInput").value);
