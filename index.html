@@ -31,6 +31,11 @@
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html { overscroll-behavior: none; }
 
+  /* App-like UI: long-press should trigger our word lookup, never the native
+     copy/paste selection menu. Text inputs stay fully selectable. */
+  #app, #wordTip { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  input, textarea, select { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+
   /* Removes the 300ms tap delay / double-tap-zoom on interactive controls. */
   .btn, .chip, .answer-btn, .mem-card, .mic-btn, .speak-btn, .back-link { touch-action: manipulation; }
 
