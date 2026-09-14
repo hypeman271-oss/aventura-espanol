@@ -1,7 +1,7 @@
 /* Offline support for ¡Aventura Español!
    Network-first so updates show whenever you're online, with a cached
    fallback so the app still opens with no connection. */
-const CACHE = "aventura-v1";
+const CACHE = "aventura-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {

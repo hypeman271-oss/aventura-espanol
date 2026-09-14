@@ -518,7 +518,7 @@
       </button>
       <button class="btn accent2" id="openScenarioBtn">
         <span class="emoji">💬</span>
-        <span>Conversations<small>Roleplay a real situation (AI)</small></span>
+        <span>Conversations<small>Roleplay real situations — offline, or AI for custom</small></span>
       </button>
     </div>
 
@@ -704,9 +704,9 @@
     <div class="panel">
       <div id="scSetup">
         <p class="section-title">💬 Conversations</p>
-        <p class="sc-intro">Pick a situation and roleplay it in Spanish. The other person talks; you reply by speaking or typing.</p>
+        <p class="sc-intro">Pick a situation and roleplay it in Spanish. The buttons work offline; typing your own uses AI (needs internet).</p>
         <div class="sc-scenarios" id="scChips"></div>
-        <input id="scCustom" class="mc-input" placeholder="…or type your own situation" autocomplete="off" />
+        <input id="scCustom" class="mc-input" placeholder="…or type your own situation (AI, needs internet)" autocomplete="off" />
         <div class="sc-diff" id="scDiff"></div>
         <div id="scStatus" class="ai-status"></div>
         <button class="btn primary center" id="scStartBtn">▶️ Start conversation</button>
@@ -1225,6 +1225,7 @@ async function aiSuggest() {
   const text = $("aiText").value.trim();
   const status = $("aiStatus");
   if (!text) { status.textContent = "Paste some text first."; return; }
+  if (!navigator.onLine) { status.textContent = "Generating cards needs an internet connection. You can still add cards by hand below."; return; }
   if (!getApiKey()) { status.textContent = "Add your Anthropic API key in ⚙️ settings first."; $("aiSettings").classList.remove("hidden"); refreshAiSettingsUI(); return; }
   status.textContent = "✨ Reading your text…";
   $("aiSuggestBtn").disabled = true;
@@ -1435,6 +1436,76 @@ function endListen() {
    ============================================================ */
 const SC_PRESETS = ["Order at a café", "Ask for directions", "At the market", "At the doctor",
   "Hotel check-in", "Make small talk", "At the airport", "Ordering at a restaurant"];
+
+/* Built-in dialogues so the preset conversations work fully OFFLINE.
+   (Typing a custom situation still uses AI, which needs a connection.) */
+const SC_DIALOGUES = {
+  "Order at a café": [
+    { speaker: "them", es: "¡Hola! ¿Qué le pongo?", en: "Hi! What can I get you?" },
+    { speaker: "you", es: "Un café con leche, por favor.", en: "A coffee with milk, please." },
+    { speaker: "them", es: "¿Algo de comer?", en: "Anything to eat?" },
+    { speaker: "you", es: "Sí, un croissant.", en: "Yes, a croissant." },
+    { speaker: "them", es: "Son cuatro euros.", en: "That's four euros." },
+    { speaker: "you", es: "Aquí tiene. Gracias.", en: "Here you go. Thank you." }
+  ],
+  "Ask for directions": [
+    { speaker: "them", es: "¿Necesitas ayuda?", en: "Do you need help?" },
+    { speaker: "you", es: "Sí, ¿dónde está el baño?", en: "Yes, where is the bathroom?" },
+    { speaker: "them", es: "Está al fondo a la derecha.", en: "It's at the back on the right." },
+    { speaker: "you", es: "¿Está lejos?", en: "Is it far?" },
+    { speaker: "them", es: "No, está muy cerca.", en: "No, it's very close." },
+    { speaker: "you", es: "Muchas gracias.", en: "Thank you very much." }
+  ],
+  "At the market": [
+    { speaker: "them", es: "Buenos días, ¿qué desea?", en: "Good morning, what would you like?" },
+    { speaker: "you", es: "Un kilo de manzanas, por favor.", en: "A kilo of apples, please." },
+    { speaker: "them", es: "¿Algo más?", en: "Anything else?" },
+    { speaker: "you", es: "¿Cuánto cuestan las naranjas?", en: "How much are the oranges?" },
+    { speaker: "them", es: "Dos euros el kilo.", en: "Two euros a kilo." },
+    { speaker: "you", es: "Vale, un kilo también.", en: "Okay, a kilo too." }
+  ],
+  "At the doctor": [
+    { speaker: "them", es: "¿Qué le pasa?", en: "What's wrong?" },
+    { speaker: "you", es: "Me duele la cabeza.", en: "My head hurts." },
+    { speaker: "them", es: "¿Desde cuándo?", en: "Since when?" },
+    { speaker: "you", es: "Desde ayer.", en: "Since yesterday." },
+    { speaker: "them", es: "Tome esta medicina.", en: "Take this medicine." },
+    { speaker: "you", es: "Gracias, doctor.", en: "Thank you, doctor." }
+  ],
+  "Hotel check-in": [
+    { speaker: "them", es: "Buenas noches, ¿tiene una reserva?", en: "Good evening, do you have a reservation?" },
+    { speaker: "you", es: "Sí, a nombre de García.", en: "Yes, under the name García." },
+    { speaker: "them", es: "Aquí está. Habitación doce.", en: "Here it is. Room twelve." },
+    { speaker: "you", es: "¿A qué hora es el desayuno?", en: "What time is breakfast?" },
+    { speaker: "them", es: "A las ocho de la mañana.", en: "At eight in the morning." },
+    { speaker: "you", es: "Perfecto, gracias.", en: "Perfect, thank you." }
+  ],
+  "Make small talk": [
+    { speaker: "them", es: "Hola, ¿cómo estás?", en: "Hi, how are you?" },
+    { speaker: "you", es: "Muy bien, ¿y tú?", en: "Very well, and you?" },
+    { speaker: "them", es: "Bien, gracias. ¿De dónde eres?", en: "Good, thanks. Where are you from?" },
+    { speaker: "you", es: "Soy de Estados Unidos.", en: "I'm from the United States." },
+    { speaker: "them", es: "¡Qué bien! ¿Hablas español?", en: "How nice! Do you speak Spanish?" },
+    { speaker: "you", es: "Un poco, estoy aprendiendo.", en: "A little, I'm learning." }
+  ],
+  "At the airport": [
+    { speaker: "them", es: "¿Puedo ver su pasaporte?", en: "May I see your passport?" },
+    { speaker: "you", es: "Sí, aquí tiene.", en: "Yes, here you go." },
+    { speaker: "them", es: "¿Cuál es el motivo de su viaje?", en: "What's the purpose of your trip?" },
+    { speaker: "you", es: "Estoy de vacaciones.", en: "I'm on vacation." },
+    { speaker: "them", es: "¿Cuántos días se queda?", en: "How many days are you staying?" },
+    { speaker: "you", es: "Una semana.", en: "One week." }
+  ],
+  "Ordering at a restaurant": [
+    { speaker: "them", es: "¿Están listos para pedir?", en: "Are you ready to order?" },
+    { speaker: "you", es: "Sí, quiero el pollo con arroz.", en: "Yes, I want the chicken with rice." },
+    { speaker: "them", es: "¿Y para beber?", en: "And to drink?" },
+    { speaker: "you", es: "Agua, por favor.", en: "Water, please." },
+    { speaker: "them", es: "¿Desea postre?", en: "Would you like dessert?" },
+    { speaker: "you", es: "Sí, un pastel de chocolate.", en: "Yes, a chocolate cake." }
+  ]
+};
+
 let scSelected = SC_PRESETS[0];
 let scDiff = "show";
 let sc = {};
@@ -1444,7 +1515,7 @@ function openScenario() {
   $("scSetup").classList.remove("hidden");
   $("scPlay").classList.add("hidden");
   $("scEnd").classList.add("hidden");
-  $("scStatus").textContent = getApiKey() ? "" : "Tip: add your API key in My Cards → ⚙️ to use this.";
+  $("scStatus").textContent = "";
   show("scenario");
 }
 
@@ -1530,22 +1601,34 @@ async function scGenerate(scenario) {
   return turns.filter(t => t && t.speaker && t.es);
 }
 
+function scLaunch(turns, scenario) {
+  sc = { turns, i: 0, done: [], scenario, difficulty: scDiff, score: 0, recog: null };
+  $("scSetup").classList.add("hidden");
+  $("scEnd").classList.add("hidden");
+  $("scPlay").classList.remove("hidden");
+  $("scStatus").textContent = "";
+  renderScenario();
+}
+
 async function scStart() {
   const custom = $("scCustom").value.trim();
   const scenario = custom || scSelected;
   const status = $("scStatus");
   if (!scenario) { status.textContent = "Pick a situation or type one."; return; }
-  if (!getApiKey()) { status.textContent = "Add your Anthropic API key in My Cards → ⚙️ first."; return; }
+
+  // Preset buttons play from built-in dialogues — fully offline, no key.
+  if (!custom && SC_DIALOGUES[scenario]) {
+    scLaunch(SC_DIALOGUES[scenario].map(t => ({ speaker: t.speaker, es: t.es, en: t.en })), scenario);
+    return;
+  }
+
+  // A custom situation is AI-generated, which needs a connection + key.
+  if (!navigator.onLine) { status.textContent = "Custom conversations need an internet connection — pick one of the buttons above to play offline."; return; }
+  if (!getApiKey()) { status.textContent = "Custom conversations use AI — add your API key in My Cards → ⚙️, or pick a button above to play offline."; return; }
   status.textContent = "✨ Creating your conversation…";
   $("scStartBtn").disabled = true;
   try {
-    const turns = await scGenerate(scenario);
-    sc = { turns, i: 0, done: [], scenario, difficulty: scDiff, score: 0, recog: null };
-    $("scSetup").classList.add("hidden");
-    $("scEnd").classList.add("hidden");
-    $("scPlay").classList.remove("hidden");
-    status.textContent = "";
-    renderScenario();
+    scLaunch(await scGenerate(scenario), scenario);
   } catch (e) {
     status.textContent = e.message || "Something went wrong — check your connection.";
   } finally {
@@ -1608,6 +1691,7 @@ function scCheckResponse(text) {
 function scListen() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
+  if (!navigator.onLine) { const st = $("scMicStatus"); if (st) st.textContent = "The mic needs a connection — type your reply instead."; return; }
   const r = new SR();
   r.lang = "es-ES"; r.interimResults = false; r.maxAlternatives = 5;
   sc.recog = r;
@@ -2046,6 +2130,7 @@ function startListening() {
   if (state.answeredThis) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { setMic("idle", "Speech recognition isn't available in this browser."); return; }
+  if (!navigator.onLine) { setMic("idle", "The mic needs a connection — use “show answer” while offline."); return; }
   const target = state.current[0];
   const r = new SR();
   r.lang = "es-ES";
