@@ -911,6 +911,18 @@ const VOCAB = {
     ["el empleo","job","🧑‍💼"],["el sueldo","salary","💵"],["la reunión","meeting","📅"],
     ["el trabajador","worker","👷"],["la empresa","company","🏬"],["el horario","schedule","⏰"],
     ["la entrevista","interview","🗣️"],["el descanso","break","☕"],["contratar","to hire","🤝"]
+  ],
+  "Weather & Seasons 🌤️": [
+    ["el clima","weather","🌤️"],["el sol","sun","☀️"],["la lluvia","rain","🌧️"],
+    ["la nieve","snow","❄️"],["el viento","wind","💨"],["la nube","cloud","☁️"],
+    ["el calor","heat","🥵"],["el frío","cold","🥶"],["la primavera","spring","🌸"],
+    ["el verano","summer","🏖️"],["el otoño","autumn","🍂"],["el invierno","winter","⛄"]
+  ],
+  "Crime & Safety 🚔": [
+    ["el crimen","crime","🚔"],["la policía","police","👮"],["el ladrón","thief","🦹"],
+    ["robar","to steal","🚨"],["el robo","robbery","💰"],["la cárcel","jail","🔒"],
+    ["la ley","law","⚖️"],["la pandilla","gang","👥"],["la víctima","victim","😰"],
+    ["el testigo","witness","👁️"],["peligroso","dangerous","⚠️"],["detener","to arrest","🚓"]
   ]
 };
 
@@ -1117,7 +1129,33 @@ const SENTENCES = {
   "Work & Jobs 💼||el horario": ["Mi ___ es de nueve a cinco.", "horario", "My schedule is nine to five."],
   "Work & Jobs 💼||la entrevista": ["Tengo una ___ de trabajo mañana.", "entrevista", "I have a job interview tomorrow."],
   "Work & Jobs 💼||el descanso": ["Tomamos un ___ para el café.", "descanso", "We take a break for coffee."],
-  "Work & Jobs 💼||contratar": ["Van a ___ a más gente.", "contratar", "They are going to hire more people."]
+  "Work & Jobs 💼||contratar": ["Van a ___ a más gente.", "contratar", "They are going to hire more people."],
+
+  "Weather & Seasons 🌤️||el clima": ["El ___ hoy está agradable.", "clima", "The weather is pleasant today."],
+  "Weather & Seasons 🌤️||el sol": ["Hace ___ y calor.", "sol", "It's sunny and hot."],
+  "Weather & Seasons 🌤️||la lluvia": ["La ___ no para de caer.", "lluvia", "The rain won't stop falling."],
+  "Weather & Seasons 🌤️||la nieve": ["Los niños juegan en la ___.", "nieve", "The children play in the snow."],
+  "Weather & Seasons 🌤️||el viento": ["Hace mucho ___ hoy.", "viento", "It's very windy today."],
+  "Weather & Seasons 🌤️||la nube": ["Hay una ___ gris en el cielo.", "nube", "There's a grey cloud in the sky."],
+  "Weather & Seasons 🌤️||el calor": ["En agosto hace mucho ___.", "calor", "In August it's very hot."],
+  "Weather & Seasons 🌤️||el frío": ["Tengo ___ sin abrigo.", "frío", "I'm cold without a coat."],
+  "Weather & Seasons 🌤️||la primavera": ["En ___ florecen las flores.", "primavera", "In spring the flowers bloom."],
+  "Weather & Seasons 🌤️||el verano": ["En ___ vamos a la playa.", "verano", "In summer we go to the beach."],
+  "Weather & Seasons 🌤️||el otoño": ["En ___ caen las hojas.", "otoño", "In autumn the leaves fall."],
+  "Weather & Seasons 🌤️||el invierno": ["En ___ nieva mucho.", "invierno", "In winter it snows a lot."],
+
+  "Crime & Safety 🚔||el crimen": ["La policía investiga el ___.", "crimen", "The police are investigating the crime."],
+  "Crime & Safety 🚔||la policía": ["La ___ llegó muy rápido.", "policía", "The police arrived very quickly."],
+  "Crime & Safety 🚔||el ladrón": ["El ___ entró por la ventana.", "ladrón", "The thief came in through the window."],
+  "Crime & Safety 🚔||robar": ["Intentaron ___ mi coche.", "robar", "They tried to steal my car."],
+  "Crime & Safety 🚔||el robo": ["Hubo un ___ en el banco.", "robo", "There was a robbery at the bank."],
+  "Crime & Safety 🚔||la cárcel": ["El criminal está en la ___.", "cárcel", "The criminal is in jail."],
+  "Crime & Safety 🚔||la ley": ["Hay que respetar la ___.", "ley", "You must respect the law."],
+  "Crime & Safety 🚔||la pandilla": ["Una ___ controla ese barrio.", "pandilla", "A gang controls that neighborhood."],
+  "Crime & Safety 🚔||la víctima": ["La ___ llamó a la policía.", "víctima", "The victim called the police."],
+  "Crime & Safety 🚔||el testigo": ["El ___ vio todo lo que pasó.", "testigo", "The witness saw everything that happened."],
+  "Crime & Safety 🚔||peligroso": ["Ese barrio es muy ___.", "peligroso", "That neighborhood is very dangerous."],
+  "Crime & Safety 🚔||detener": ["La policía logró ___ al ladrón.", "detener", "The police managed to arrest the thief."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1938,7 +1976,8 @@ function updatePlayerOpts() {
    responding by speech or typing, with show/hide hints.
    ============================================================ */
 const SC_PRESETS = ["Order at a café", "Ask for directions", "At the market", "At the doctor",
-  "Hotel check-in", "Make small talk", "At the airport", "Ordering at a restaurant"];
+  "Hotel check-in", "Make small talk", "At the airport", "Ordering at a restaurant",
+  "Report a crime to police"];
 
 /* Built-in dialogues so the preset conversations work fully OFFLINE.
    (Typing a custom situation still uses AI, which needs a connection.) */
@@ -2006,6 +2045,18 @@ const SC_DIALOGUES = {
     { speaker: "you", es: "Agua, por favor.", en: "Water, please." },
     { speaker: "them", es: "¿Desea postre?", en: "Would you like dessert?" },
     { speaker: "you", es: "Sí, un pastel de chocolate.", en: "Yes, a chocolate cake." }
+  ],
+  "Report a crime to police": [
+    { speaker: "them", es: "Buenas tardes. ¿En qué puedo ayudarle?", en: "Good afternoon. How can I help you?" },
+    { speaker: "you", es: "Quiero denunciar un robo.", en: "I want to report a robbery." },
+    { speaker: "them", es: "¿Qué pasó exactamente?", en: "What happened exactly?" },
+    { speaker: "you", es: "Conocí a una mujer por internet.", en: "I met a woman online." },
+    { speaker: "them", es: "¿Y luego qué ocurrió?", en: "And then what happened?" },
+    { speaker: "you", es: "Me drogó y me robó la cartera.", en: "She drugged me and stole my wallet." },
+    { speaker: "them", es: "¿Puede describir a la persona?", en: "Can you describe the person?" },
+    { speaker: "you", es: "Era alta, con el pelo negro.", en: "She was tall, with black hair." },
+    { speaker: "them", es: "Vamos a investigar. Firme aquí, por favor.", en: "We'll investigate. Sign here, please." },
+    { speaker: "you", es: "Gracias por su ayuda.", en: "Thank you for your help." }
   ]
 };
 
