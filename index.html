@@ -977,10 +977,10 @@ const VOCAB = {
     ["el corazón","heart","❤️"]
   ],
   "Travel ✈️": [
-    ["el coche","car","🚗"],["el avión","airplane","✈️"],["el tren","train","🚆"],
+    ["el carro","car","🚗"],["el avión","airplane","✈️"],["el tren","train","🚆"],
     ["el barco","boat","⛵"],["la calle","street","🛣️"],["el hotel","hotel","🏨"],
     ["la playa","beach","🏖️"],["el mapa","map","🗺️"],["la maleta","suitcase","🧳"],
-    ["el billete","ticket","🎫"]
+    ["el tiquete","ticket","🎫"]
   ],
   "Greetings 👋": [
     ["hola","hello","👋"],["adiós","goodbye","🫡"],["gracias","thank you","🙏"],
@@ -1135,7 +1135,7 @@ const SENTENCES = {
   "Body 🧍||el brazo": ["Levanto el ___ en clase.", "brazo", "I raise my arm in class."],
   "Body 🧍||el corazón": ["El ___ late muy rápido.", "corazón", "The heart beats very fast."],
 
-  "Travel ✈️||el coche": ["Voy al trabajo en ___.", "coche", "I go to work by car."],
+  "Travel ✈️||el carro": ["Voy al trabajo en ___.", "carro", "I go to work by car."],
   "Travel ✈️||el avión": ["El ___ vuela muy alto.", "avión", "The airplane flies very high."],
   "Travel ✈️||el tren": ["El ___ llega a las ocho.", "tren", "The train arrives at eight."],
   "Travel ✈️||el barco": ["El ___ cruza el mar.", "barco", "The boat crosses the sea."],
@@ -1144,7 +1144,7 @@ const SENTENCES = {
   "Travel ✈️||la playa": ["En verano vamos a la ___.", "playa", "In summer we go to the beach."],
   "Travel ✈️||el mapa": ["Miro el ___ para no perderme.", "mapa", "I look at the map so I don't get lost."],
   "Travel ✈️||la maleta": ["Mi ___ es muy pesada.", "maleta", "My suitcase is very heavy."],
-  "Travel ✈️||el billete": ["Compro un ___ de tren.", "billete", "I buy a train ticket."],
+  "Travel ✈️||el tiquete": ["Compro un ___ de tren.", "tiquete", "I buy a train ticket."],
 
   "Greetings 👋||hola": ["___, ¿cómo estás?", "hola", "Hello, how are you?"],
   "Greetings 👋||adiós": ["___, hasta mañana.", "adiós", "Goodbye, see you tomorrow."],
@@ -1277,7 +1277,7 @@ const SENTENCES = {
   "Crime & Safety 🚔||el crimen": ["La policía investiga el ___.", "crimen", "The police are investigating the crime."],
   "Crime & Safety 🚔||la policía": ["La ___ llegó muy rápido.", "policía", "The police arrived very quickly."],
   "Crime & Safety 🚔||el ladrón": ["El ___ entró por la ventana.", "ladrón", "The thief came in through the window."],
-  "Crime & Safety 🚔||robar": ["Intentaron ___ mi coche.", "robar", "They tried to steal my car."],
+  "Crime & Safety 🚔||robar": ["Intentaron ___ mi carro.", "robar", "They tried to steal my car."],
   "Crime & Safety 🚔||el robo": ["Hubo un ___ en el banco.", "robo", "There was a robbery at the bank."],
   "Crime & Safety 🚔||la cárcel": ["El criminal está en la ___.", "cárcel", "The criminal is in jail."],
   "Crime & Safety 🚔||la ley": ["Hay que respetar la ___.", "ley", "You must respect the law."],
@@ -1617,7 +1617,7 @@ async function aiSuggestCards(text) {
     max_tokens: 8000,
     thinking: { type: "adaptive" },
     output_config: { effort: "low" },
-    system: AI_SYSTEM,
+    system: AI_SYSTEM + " " + regionAi(),
     tools: [{
       name: "save_flashcards",
       description: "Save the flashcards extracted from the user's text.",
@@ -2034,7 +2034,7 @@ function playerRunStep() {
   playerRender();
   const step = PLAYER_STEPS[player.step];
   const text = step === "en" ? ph.en : ph.es;
-  const lang = step === "en" ? "en-US" : "es-ES";
+  const lang = step === "en" ? "en-US" : speakLang();
   const rate = step === "en" ? (player.slow ? 0.85 : 1.0) : (player.slow ? 0.65 : 0.9);
   playerSpeak(text, lang, rate, () => {
     if (!player.playing) return;
@@ -2136,7 +2136,7 @@ async function tutorApiTurn() {
     "Keep it practical and encouraging; use short lines, not long essays.";
   const body = {
     model: getApiModel(), max_tokens: 1000, thinking: { type: "disabled" }, output_config: { effort: "low" },
-    system: sys, messages: tutor.history.map(m => ({ role: m.role, content: m.content }))
+    system: sys + " " + regionAi(), messages: tutor.history.map(m => ({ role: m.role, content: m.content }))
   };
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -2176,7 +2176,7 @@ function explainCard() {
   const sys = "You are a concise Spanish tutor. In 1–3 short sentences, explain the key grammar or usage point of the given item to a beginner (gender, verb form, ser/estar, por/para, word order, etc.), in English. No preamble, no restating the translation.";
   const body = {
     model: getApiModel(), max_tokens: 400, thinking: { type: "disabled" }, output_config: { effort: "low" },
-    system: sys, messages: [{ role: "user", content: "Explain " + item + "." }]
+    system: sys + " " + regionAi(), messages: [{ role: "user", content: "Explain " + item + "." }]
   };
   fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -2290,9 +2290,11 @@ const CONJ_ROUND = 10;
 const TENSE_LABEL = { present: "present", preterite: "past", subjunctive: "subjunctive" };
 function startConjug() {
   const q = [];
+  // Skip vosotros (index 4) for regions that don't use it (e.g. Colombia).
+  const persons = (REGIONS[getRegion()] || REGIONS.co).vosotros ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 5];
   for (let i = 0; i < CONJ_ROUND; i++) {
     const t = conjTense === "mix" ? ["present", "preterite", "subjunctive"][Math.floor(Math.random() * 3)] : conjTense;
-    q.push({ v: Math.floor(Math.random() * CONJUG.length), p: Math.floor(Math.random() * 6), t });
+    q.push({ v: Math.floor(Math.random() * CONJUG.length), p: persons[Math.floor(Math.random() * persons.length)], t });
   }
   conj = { q, i: 0, score: 0 };
   $("grammarHome").classList.add("hidden");
@@ -2360,6 +2362,8 @@ function buildCoach() {
   const body = $("coachBody");
   if (learned.length < 3) {
     body.innerHTML = "<p class='prog-empty'>Do a bit of daily practice first, then your coach will spot your weak words and topics and tell you what to focus on. 🌱</p>";
+    renderRegionTile();
+    renderReminderTile();
     return;
   }
   // Weakest words: lowest accuracy among cards seen a few times, then most lapses.
@@ -2405,7 +2409,27 @@ function buildCoach() {
     saveStore();
     startDaily();
   };
+  renderRegionTile();
   renderReminderTile();
+}
+
+/* Spanish variety selector (default Colombia). Controls AI language, the
+   text-to-speech / microphone voice, and whether vosotros is practised. */
+function renderRegionTile() {
+  const cur = getRegion();
+  const tile = document.createElement("div");
+  tile.className = "coach-tile";
+  tile.innerHTML = "<h3>🌎 Spanish variety</h3><div class='sc-diff' id='regionSel'></div>" +
+    "<p style='opacity:.7;font-size:.8rem;margin-top:8px;line-height:1.4;'>Sets the accent (voice), the AI's dialect (conversations, stories, tutor…), and skips vosotros for Latin American varieties.</p>";
+  $("coachBody").appendChild(tile);
+  const sel = tile.querySelector("#regionSel");
+  Object.keys(REGIONS).forEach(k => {
+    const b = document.createElement("button");
+    b.className = "sc-chip" + (k === cur ? " selected" : "");
+    b.textContent = REGIONS[k].name;
+    b.onclick = () => { setRegion(k); buildCoach(); };
+    sel.appendChild(b);
+  });
 }
 
 /* ============================================================
@@ -2492,7 +2516,7 @@ function writeCheck() {
     "Reply in this format:\nCorrected:\n<the corrected Spanish>\n\nNotes:\n- <each key fix: original → correction, with a brief reason in English>\nKeep it concise and encouraging.";
   const body = {
     model: getApiModel(), max_tokens: 1200, thinking: { type: "disabled" }, output_config: { effort: "low" },
-    system: sys, messages: [{ role: "user", content: text }]
+    system: sys + " " + regionAi(), messages: [{ role: "user", content: text }]
   };
   fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -2541,7 +2565,7 @@ function storyGenerate() {
     "Then give a natural English translation. Return ONLY a JSON object: {\"es\": \"<story in Spanish>\", \"en\": \"<English translation>\"}.";
   const body = {
     model: getApiModel(), max_tokens: 1500, thinking: { type: "disabled" }, output_config: { effort: "low" },
-    system: sys, messages: [{ role: "user", content: "Topic: " + topic }]
+    system: sys + " " + regionAi(), messages: [{ role: "user", content: "Topic: " + topic }]
   };
   fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -2721,7 +2745,7 @@ async function scGenerate(scenario) {
     "Return ONLY by calling the create_dialogue tool.";
   const body = {
     model: getApiModel(), max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "low" },
-    system: sys,
+    system: sys + " " + regionAi(),
     tools: [{
       name: "create_dialogue", description: "Return the practice conversation.", strict: true,
       input_schema: {
@@ -2888,7 +2912,7 @@ function scListen() {
   if (!SR) return;
   if (!navigator.onLine) { const st = $("scMicStatus"); if (st) st.textContent = "The mic needs a connection — type your reply instead."; return; }
   const r = new SR();
-  r.lang = "es-ES"; r.interimResults = false; r.maxAlternatives = 5;
+  r.lang = speakLang(); r.interimResults = false; r.maxAlternatives = 5;
   sc.recog = r;
   const st = $("scMicStatus"), mic = $("scMic");
   if (st) st.textContent = "🎧 Listening…";
@@ -2957,7 +2981,7 @@ async function chatApiTurn() {
   const body = {
     model: getApiModel(), max_tokens: 1000,
     thinking: { type: "disabled" }, output_config: { effort: "low" },
-    system: CHAT_SYSTEM(chat.topic),
+    system: CHAT_SYSTEM(chat.topic) + " " + regionAi(),
     messages: chat.history
   };
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -3062,7 +3086,7 @@ function chatListen() {
   if (!SR) return;
   if (!navigator.onLine) { const st = $("chatMicStatus"); if (st) st.textContent = "The mic needs a connection — type instead."; return; }
   const r = new SR();
-  r.lang = "es-ES"; r.interimResults = false; r.maxAlternatives = 3;
+  r.lang = speakLang(); r.interimResults = false; r.maxAlternatives = 3;
   chat.recog = r;
   const st = $("chatMicStatus"), mic = $("chatMic");
   if (st) st.textContent = "🎧 Listening…";
@@ -3472,15 +3496,35 @@ function buildChips() {
 /* ============================================================
    SPEECH (pronounce Spanish)
    ============================================================ */
-function speak(text) {
+/* ---- Spanish variety / region (default Colombia) ---- */
+const REGIONS = {
+  co: { name: "Colombia 🇨🇴", tts: "es-CO", vosotros: false,
+        ai: "Use natural Colombian Spanish — Colombian vocabulary and everyday expressions/slang (e.g. parcero, chévere, bacano, tinto for black coffee, carro not coche). Use tú/usted and ustedes; never use vosotros." },
+  mx: { name: "Mexico 🇲🇽", tts: "es-MX", vosotros: false,
+        ai: "Use natural Mexican Spanish. Use tú/usted and ustedes; never use vosotros." },
+  es: { name: "Spain 🇪🇸", tts: "es-ES", vosotros: true,
+        ai: "Use natural Castilian Spanish from Spain, including vosotros where appropriate." },
+  la: { name: "Latin America 🌎", tts: "es-419", vosotros: false,
+        ai: "Use neutral Latin American Spanish. Use ustedes, never vosotros." }
+};
+function getRegion() { try { return REGIONS[localStorage.getItem("aventura_region")] ? localStorage.getItem("aventura_region") : "co"; } catch (e) { return "co"; } }
+function setRegion(r) { try { localStorage.setItem("aventura_region", r); } catch (e) {} }
+function speakLang() { return (REGIONS[getRegion()] || REGIONS.co).tts; }
+function regionAi() { return (REGIONS[getRegion()] || REGIONS.co).ai; }
+
+function speak(text, langOverride, rateOverride) {
   if (!("speechSynthesis" in window)) return;
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = "es-ES";
-    u.rate = 0.9;
-    // Prefer a Spanish voice if available
-    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith("es"));
+    const lang = langOverride || speakLang();
+    u.lang = lang;
+    u.rate = rateOverride || 0.9;
+    // Prefer an exact regional voice, then any voice for that language, then any Spanish voice.
+    const voices = speechSynthesis.getVoices();
+    const base = lang.slice(0, 2).toLowerCase();
+    const v = voices.find(x => x.lang && x.lang.toLowerCase() === lang.toLowerCase())
+      || voices.find(x => x.lang && x.lang.toLowerCase().startsWith(base));
     if (v) u.voice = v;
     speechSynthesis.speak(u);
   } catch(e) {}
@@ -3515,7 +3559,7 @@ function startListening() {
   if (!navigator.onLine) { setMic("idle", "The mic needs a connection — use “show answer” while offline."); return; }
   const target = state.current[0];
   const r = new SR();
-  r.lang = "es-ES";
+  r.lang = speakLang();
   r.interimResults = false;
   r.maxAlternatives = 5;
   state.recog = r;
