@@ -869,6 +869,12 @@ const VOCAB = {
     ["la novia","girlfriend","👧"],["el beso","kiss","💋"],["el abrazo","hug","🤗"],
     ["la pareja","couple / partner","💑"],["la flor","flower","🌹"],["el cariño","affection","🥰"],
     ["la boda","wedding","💒"],["el anillo","ring","💍"],["enamorarse","to fall in love","😍"]
+  ],
+  "Restaurant 🍽️": [
+    ["el menú","menu","📋"],["el camarero","waiter","🤵"],["la mesa","table","🍽️"],
+    ["la cuenta","the bill","🧾"],["el plato","dish / plate","🍛"],["el tenedor","fork","🍴"],
+    ["la cuchara","spoon","🥄"],["el cuchillo","knife","🔪"],["el vaso","glass","🥛"],
+    ["el postre","dessert","🍰"],["la propina","tip","💵"],["la bebida","drink","🥤"]
   ]
 };
 
@@ -984,7 +990,20 @@ const SENTENCES = {
   "Dating & Romance 💕||el cariño": ["Te tengo mucho ___.", "cariño", "I have a lot of affection for you."],
   "Dating & Romance 💕||la boda": ["La ___ es en junio.", "boda", "The wedding is in June."],
   "Dating & Romance 💕||el anillo": ["Le compró un ___ de diamantes.", "anillo", "He bought her a diamond ring."],
-  "Dating & Romance 💕||enamorarse": ["Es fácil ___ de ti.", "enamorarse", "It's easy to fall in love with you."]
+  "Dating & Romance 💕||enamorarse": ["Es fácil ___ de ti.", "enamorarse", "It's easy to fall in love with you."],
+
+  "Restaurant 🍽️||el menú": ["¿Me trae el ___, por favor?", "menú", "Could you bring me the menu, please?"],
+  "Restaurant 🍽️||el camarero": ["El ___ nos atendió muy bien.", "camarero", "The waiter served us very well."],
+  "Restaurant 🍽️||la mesa": ["Reservé una ___ para dos.", "mesa", "I reserved a table for two."],
+  "Restaurant 🍽️||la cuenta": ["¿Nos trae la ___, por favor?", "cuenta", "Could you bring us the bill, please?"],
+  "Restaurant 🍽️||el plato": ["Este ___ está delicioso.", "plato", "This dish is delicious."],
+  "Restaurant 🍽️||el tenedor": ["Necesito un ___ limpio.", "tenedor", "I need a clean fork."],
+  "Restaurant 🍽️||la cuchara": ["Como la sopa con una ___.", "cuchara", "I eat the soup with a spoon."],
+  "Restaurant 🍽️||el cuchillo": ["El ___ está muy afilado.", "cuchillo", "The knife is very sharp."],
+  "Restaurant 🍽️||el vaso": ["¿Me pone un ___ de agua?", "vaso", "Can I have a glass of water?"],
+  "Restaurant 🍽️||el postre": ["De ___ quiero un helado.", "postre", "For dessert I want ice cream."],
+  "Restaurant 🍽️||la propina": ["Dejamos una buena ___.", "propina", "We left a good tip."],
+  "Restaurant 🍽️||la bebida": ["¿Qué ___ desea tomar?", "bebida", "What would you like to drink?"]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1710,16 +1729,36 @@ function playerRunStep() {
   });
 }
 
+/* Screen Wake Lock — keep the phone screen on while phrases play. */
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ("wakeLock" in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    }
+  } catch (e) { /* denied or unsupported — harmless */ }
+}
+async function releaseWakeLock() {
+  try { if (wakeLock) { await wakeLock.release(); wakeLock = null; } } catch (e) {}
+}
+// The OS drops the lock when the tab is hidden; re-acquire when it returns.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && player && player.playing) requestWakeLock();
+});
+
 function playerPlay() {
   if (!player.pool.length) return;
   player.playing = true;
   $("plPlay").textContent = "⏸";
+  requestWakeLock();
   playerRunStep();
 }
 function playerPause() {
   player.playing = false;
   if (window.speechSynthesis) speechSynthesis.cancel();
   clearTimeout(player.timer);
+  releaseWakeLock();
   $("plPlay").textContent = "▶️";
   playerRender();
 }
@@ -2608,7 +2647,7 @@ function buildProgress() {
    ============================================================ */
 function show(screen) {
   ["home","game","memory","results","progress","mycards","listen","scenario","player"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
-  if (screen !== "player" && player && player.playing) { player.playing = false; if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); }
+  if (screen !== "player" && player && player.playing) { player.playing = false; if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); if (typeof releaseWakeLock === "function") releaseWakeLock(); }
   if (screen === "home") buildDashboard();
   if (screen === "progress") buildProgress();
   if (screen === "mycards") buildMyCards();
