@@ -535,6 +535,19 @@
   .pl-play { background: var(--accent); color: var(--ink); width: 76px; height: 76px; font-size: 1.9rem; }
   .pl-opts { display: flex; gap: 8px; justify-content: center; }
   .pl-opts .sc-chip.selected { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+
+  /* ---- Ask a Tutor ---- */
+  .tutor-log { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; max-height: 52vh; overflow-y: auto; }
+  .tutor-msg { white-space: pre-wrap; }
+  .explain-box { margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; line-height: 1.4; text-align: left; }
+
+  /* ---- Grammar & Verbs ---- */
+  .lesson { background: rgba(0,0,0,0.18); border-radius: 12px; margin: 8px 0; overflow: hidden; }
+  .lesson-q { width: 100%; text-align: left; background: none; border: none; color: #fff; font-weight: 700; font-size: 1rem; padding: 13px 14px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+  .lesson-a { padding: 0 14px 13px; font-size: 0.92rem; line-height: 1.5; opacity: 0.92; white-space: pre-wrap; }
+  .coach-tile { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 14px; margin: 10px 0; }
+  .coach-tile h3 { font-size: 0.95rem; margin-bottom: 8px; opacity: 0.9; }
+  .coach-word { display: inline-block; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 5px 10px; margin: 3px; font-size: 0.9rem; }
 </style>
 </head>
 <body>
@@ -553,6 +566,10 @@
         <button class="btn center" id="openProgressBtn" style="background:rgba(255,255,255,0.15);color:#fff;">📊 Progress</button>
         <button class="btn center" id="openMyCardsBtn" style="background:rgba(255,255,255,0.15);color:#fff;">✏️ My Cards</button>
       </div>
+      <div class="btn-row">
+        <button class="btn center" id="openTutorBtn" style="background:rgba(255,255,255,0.15);color:#fff;">🎓 Ask a Tutor</button>
+        <button class="btn center" id="openCoachBtn" style="background:rgba(255,255,255,0.15);color:#fff;">🎯 Coach</button>
+      </div>
       <p class="dash-next" id="dashNext"></p>
     </div>
 
@@ -569,6 +586,10 @@
       <button class="btn accent2" id="openPlayerBtn">
         <span class="emoji">🔁</span>
         <span>Listen &amp; Repeat<small>Hear phrases English → Spanish, hands-free</small></span>
+      </button>
+      <button class="btn accent2" id="openGrammarBtn">
+        <span class="emoji">🔤</span>
+        <span>Grammar &amp; Verbs<small>Mini-lessons + verb conjugation practice</small></span>
       </button>
     </div>
 
@@ -643,7 +664,10 @@
       </div>
 
       <div class="feedback" id="feedback"></div>
-      <button class="btn center hidden" id="addCardBtn" style="background:rgba(255,255,255,0.15);color:#fff;">➕ Add to My Cards</button>
+      <div class="btn-row">
+        <button class="btn center hidden" id="explainBtn" style="background:rgba(255,255,255,0.15);color:#fff;">🤔 Explain</button>
+        <button class="btn center hidden" id="addCardBtn" style="background:rgba(255,255,255,0.15);color:#fff;">➕ Add to My Cards</button>
+      </div>
       <button class="btn primary center hidden" id="nextBtn">Next →</button>
     </div>
   </div>
@@ -795,6 +819,60 @@
       </div>
       <div id="scPlay" class="hidden"></div>
       <div id="scEnd" class="order-end hidden"></div>
+    </div>
+  </div>
+
+  <!-- ============ ASK A TUTOR ============ -->
+  <div id="tutor" class="hidden">
+    <button class="back-link" id="tutorQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <p class="section-title">🎓 Ask a Tutor</p>
+      <p class="sc-intro">Ask anything about Spanish — grammar, word choice, "how do I say…". Answers come in English with examples. (Needs internet + your API key.)</p>
+      <div id="tutorLog" class="tutor-log"></div>
+      <div class="ai-row">
+        <input id="tutorInput" class="mc-input" placeholder="e.g. When do I use ser vs estar?" autocomplete="off" style="flex:1;" />
+        <button id="tutorSendBtn" class="btn primary center" style="flex:0 0 auto;width:84px;">Ask</button>
+      </div>
+      <div id="tutorStatus" class="ai-status"></div>
+    </div>
+  </div>
+
+  <!-- ============ GRAMMAR & VERBS ============ -->
+  <div id="grammar" class="hidden">
+    <button class="back-link" id="grammarQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <p class="section-title">🔤 Grammar &amp; Verbs</p>
+      <div id="grammarHome">
+        <p class="sc-intro">Quick grammar lessons, then practise conjugating verbs.</p>
+        <div id="grammarLessons"></div>
+        <button class="btn primary center" id="startConjugBtn" style="margin-top:16px;">▶️ Practise conjugation</button>
+      </div>
+      <div id="conjugPlay" class="hidden">
+        <div class="hud">
+          <span class="pill">🔤 <span id="conjProg">0/0</span></span>
+          <span class="pill">⭐ <span id="conjScore">0</span></span>
+        </div>
+        <div class="prompt-card">
+          <div class="prompt-label" id="conjLabel">Conjugate</div>
+          <div class="prompt-word" id="conjPrompt"></div>
+          <div class="sc-en" id="conjMeaning" style="opacity:.7;"></div>
+        </div>
+        <input class="type-input" id="conjInput" placeholder="Type the verb form…" autocomplete="off" />
+        <button class="btn primary center" id="conjSubmit">Check</button>
+        <div class="feedback" id="conjFeedback"></div>
+        <button class="btn primary center hidden" id="conjNext">Next →</button>
+        <button class="back-link" id="conjQuit" style="display:block;margin:8px auto 0;">← Back to lessons</button>
+      </div>
+      <div id="conjEnd" class="order-end hidden"></div>
+    </div>
+  </div>
+
+  <!-- ============ STUDY COACH ============ -->
+  <div id="coach" class="hidden">
+    <button class="back-link" id="coachQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <p class="section-title">🎯 Study Coach</p>
+      <div id="coachBody"></div>
     </div>
   </div>
 
@@ -1971,6 +2049,248 @@ function updatePlayerOpts() {
 }
 
 /* ============================================================
+   ASK A TUTOR — free-form Q&A with an AI Spanish tutor
+   ============================================================ */
+let tutor = { history: [], busy: false };
+
+function openTutor() {
+  tutor = { history: [], busy: false };
+  $("tutorLog").innerHTML = "";
+  $("tutorStatus").textContent = getApiKey() ? "" : "Add your API key in My Cards → ⚙️ to use this.";
+  show("tutor");
+}
+function tutorRender() {
+  $("tutorLog").innerHTML = tutor.history.map(m =>
+    "<div class='sc-line " + (m.role === "user" ? "sc-you" : "sc-them") + " tutor-msg'>" + escapeHtml(m.content) + "</div>"
+  ).join("") + (tutor.busy ? "<div id='scThinking'>… thinking …</div>" : "");
+  const log = $("tutorLog"); log.scrollTop = log.scrollHeight;
+}
+async function tutorApiTurn() {
+  const sys = "You are a friendly, patient Spanish tutor for an English speaker (beginner–intermediate). " +
+    "Answer the learner's question clearly and CONCISELY in English, with 1–3 short Spanish examples (each with its English translation). " +
+    "Keep it practical and encouraging; use short lines, not long essays.";
+  const body = {
+    model: getApiModel(), max_tokens: 1000, thinking: { type: "disabled" }, output_config: { effort: "low" },
+    system: sys, messages: tutor.history.map(m => ({ role: m.role, content: m.content }))
+  };
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { let m = "API error " + res.status; if (res.status === 401) m = "Invalid API key — check My Cards → ⚙️."; else if (res.status === 429) m = "Rate limited — try again shortly."; throw new Error(m); }
+  const data = await res.json();
+  return (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim() || "(no answer)";
+}
+function tutorAsk(text) {
+  const t = (text || "").trim();
+  if (!t || tutor.busy) return;
+  if (!navigator.onLine) { $("tutorStatus").textContent = "Ask-a-Tutor needs an internet connection."; return; }
+  if (!getApiKey()) { $("tutorStatus").textContent = "Add your API key in My Cards → ⚙️ first."; return; }
+  $("tutorStatus").textContent = "";
+  tutor.history.push({ role: "user", content: t });
+  $("tutorInput").value = "";
+  tutor.busy = true; tutorRender();
+  tutorApiTurn().then(ans => { tutor.history.push({ role: "assistant", content: ans }); })
+    .catch(e => { tutor.history.push({ role: "assistant", content: "⚠️ " + (e.message || "Something went wrong.") }); })
+    .finally(() => { tutor.busy = false; tutorRender(); });
+}
+
+/* ============================================================
+   EXPLAIN WHY — on-demand grammar explanation for a card
+   ============================================================ */
+function explainCard() {
+  const btn = $("explainBtn");
+  if (!navigator.onLine) { btn.textContent = "🤔 Needs internet"; return; }
+  if (!getApiKey()) { btn.textContent = "🤔 Add API key in ⚙️"; return; }
+  const w = state.current;
+  const item = state.sentence
+    ? 'the sentence "' + state.sentence.full + '" (' + state.sentence.en + ')'
+    : 'the Spanish "' + w[0] + '" meaning "' + w[1] + '"';
+  btn.disabled = true; btn.textContent = "🤔 Thinking…";
+  const sys = "You are a concise Spanish tutor. In 1–3 short sentences, explain the key grammar or usage point of the given item to a beginner (gender, verb form, ser/estar, por/para, word order, etc.), in English. No preamble, no restating the translation.";
+  const body = {
+    model: getApiModel(), max_tokens: 400, thinking: { type: "disabled" }, output_config: { effort: "low" },
+    system: sys, messages: [{ role: "user", content: "Explain " + item + "." }]
+  };
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body)
+  }).then(r => r.ok ? r.json() : Promise.reject(new Error("API error " + r.status)))
+    .then(data => {
+      const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
+      $("feedback").innerHTML += "<div class='explain-box'>💡 " + escapeHtml(txt || "(no explanation)") + "</div>";
+      btn.classList.add("hidden");
+    })
+    .catch(e => { btn.disabled = false; btn.textContent = "🤔 Explain"; $("feedback").innerHTML += "<div class='explain-box'>⚠️ " + escapeHtml(e.message || "Try again") + "</div>"; });
+}
+
+/* ============================================================
+   GRAMMAR & VERBS — mini-lessons + conjugation practice
+   ============================================================ */
+const GRAMMAR_LESSONS = [
+  ["ser vs estar (to be)", "Both mean \"to be\".\n• ser = permanent things: identity, origin, time. Soy médico. Es de México.\n• estar = states & location: feelings, where things are. Estoy cansado. Está en casa."],
+  ["Present tense endings", "Drop the ending and add:\n• -ar (hablar): -o, -as, -a, -amos, -áis, -an\n• -er (comer): -o, -es, -e, -emos, -éis, -en\n• -ir (vivir): -o, -es, -e, -imos, -ís, -en"],
+  ["Noun gender (el / la)", "Every noun is masculine (el) or feminine (la).\n• Usually -o = el (el libro), -a = la (la mesa).\n• Adjectives match: el libro rojo, la casa roja.\n• Exceptions exist: el día, la mano."],
+  ["por vs para", "Both often become \"for\".\n• por = reason/cause, exchange, duration. Gracias por todo. Por dos horas.\n• para = purpose/destination/deadline. Es para ti. Salgo para Madrid."],
+  ["Making things plural", "• +s after a vowel: gato → gatos.\n• +es after a consonant: ciudad → ciudades.\n• The article changes too: el/los, la/las."],
+  ["Asking questions", "Flip or just raise your tone; add opening ¿.\n• ¿Hablas español? Do you speak Spanish?\n• Question words: qué (what), quién (who), dónde (where), cuándo (when), por qué (why), cómo (how)."]
+];
+
+const CONJUG = [
+  { inf: "hablar", en: "to speak", f: ["hablo", "hablas", "habla", "hablamos", "habláis", "hablan"] },
+  { inf: "comer", en: "to eat", f: ["como", "comes", "come", "comemos", "coméis", "comen"] },
+  { inf: "vivir", en: "to live", f: ["vivo", "vives", "vive", "vivimos", "vivís", "viven"] },
+  { inf: "ser", en: "to be", f: ["soy", "eres", "es", "somos", "sois", "son"] },
+  { inf: "estar", en: "to be", f: ["estoy", "estás", "está", "estamos", "estáis", "están"] },
+  { inf: "tener", en: "to have", f: ["tengo", "tienes", "tiene", "tenemos", "tenéis", "tienen"] },
+  { inf: "ir", en: "to go", f: ["voy", "vas", "va", "vamos", "vais", "van"] },
+  { inf: "hacer", en: "to do / make", f: ["hago", "haces", "hace", "hacemos", "hacéis", "hacen"] },
+  { inf: "querer", en: "to want", f: ["quiero", "quieres", "quiere", "queremos", "queréis", "quieren"] },
+  { inf: "poder", en: "can / to be able", f: ["puedo", "puedes", "puede", "podemos", "podéis", "pueden"] },
+  { inf: "decir", en: "to say", f: ["digo", "dices", "dice", "decimos", "decís", "dicen"] },
+  { inf: "ver", en: "to see", f: ["veo", "ves", "ve", "vemos", "veis", "ven"] }
+];
+const CONJ_PRON = ["yo", "tú", "él / ella", "nosotros", "vosotros", "ellos / ellas"];
+let conj = {};
+
+function openGrammar() {
+  $("grammarHome").classList.remove("hidden");
+  $("conjugPlay").classList.add("hidden");
+  $("conjEnd").classList.add("hidden");
+  renderLessons();
+  show("grammar");
+}
+function renderLessons() {
+  $("grammarLessons").innerHTML = GRAMMAR_LESSONS.map((l, i) =>
+    "<div class='lesson'><button class='lesson-q' data-lsn='" + i + "'>" + escapeHtml(l[0]) + " <span>▾</span></button>" +
+    "<div class='lesson-a hidden' id='lsn" + i + "'>" + escapeHtml(l[1]) + "</div></div>"
+  ).join("");
+  $("grammarLessons").querySelectorAll("[data-lsn]").forEach(b => {
+    b.onclick = () => $("lsn" + b.dataset.lsn).classList.toggle("hidden");
+  });
+}
+const CONJ_ROUND = 10;
+function startConjug() {
+  const q = [];
+  for (let i = 0; i < CONJ_ROUND; i++) {
+    q.push({ v: Math.floor(Math.random() * CONJUG.length), p: Math.floor(Math.random() * 6) });
+  }
+  conj = { q, i: 0, score: 0 };
+  $("grammarHome").classList.add("hidden");
+  $("conjEnd").classList.add("hidden");
+  $("conjugPlay").classList.remove("hidden");
+  nextConjug();
+}
+function nextConjug() {
+  if (conj.i >= conj.q.length) return endConjug();
+  const it = conj.q[conj.i];
+  const verb = CONJUG[it.v];
+  conj.cur = { answer: verb.f[it.p], done: false };
+  $("conjProg").textContent = (conj.i + 1) + "/" + conj.q.length;
+  $("conjScore").textContent = conj.score;
+  $("conjLabel").textContent = "Conjugate — " + CONJ_PRON[it.p];
+  $("conjPrompt").textContent = verb.inf;
+  $("conjMeaning").textContent = verb.en;
+  $("conjFeedback").textContent = "";
+  const inp = $("conjInput");
+  inp.value = ""; inp.disabled = false; inp.classList.remove("hidden");
+  $("conjSubmit").classList.remove("hidden");
+  $("conjNext").classList.add("hidden");
+  setTimeout(() => inp.focus(), 40);
+}
+function checkConjug() {
+  const c = conj.cur;
+  if (!c || c.done) return;
+  const guess = normalize($("conjInput").value);
+  if (!guess) return;
+  c.done = true;
+  const ok = guess === normalize(c.answer);
+  const fb = $("conjFeedback");
+  if (ok) { conj.score++; $("conjScore").textContent = conj.score; fb.style.color = "var(--good)"; fb.textContent = "¡Correcto! ✓ " + c.answer; }
+  else { fb.style.color = "var(--bad)"; fb.textContent = "✗ It's: " + c.answer; }
+  speak(c.answer);
+  $("conjInput").disabled = true;
+  $("conjSubmit").classList.add("hidden");
+  conj.i++;
+  const nb = $("conjNext");
+  nb.textContent = conj.i >= conj.q.length ? "See results →" : "Next →";
+  nb.classList.remove("hidden");
+  setTimeout(() => nb.focus(), 30);
+}
+function endConjug() {
+  $("conjugPlay").classList.add("hidden");
+  logActivity(conj.q.length, conj.score * 10);
+  const end = $("conjEnd");
+  end.classList.remove("hidden");
+  end.innerHTML =
+    "<p class='section-title'>🔤 Round complete</p>" +
+    "<div class='big-score'>" + conj.score + "/" + conj.q.length + "</div>" +
+    "<button class='btn primary center' id='conjAgain'>🔁 Again</button>" +
+    "<button class='btn center' id='conjBackLessons'>📖 Lessons</button>";
+  $("conjAgain").onclick = startConjug;
+  $("conjBackLessons").onclick = openGrammar;
+}
+
+/* ============================================================
+   STUDY COACH — what to work on, from your own data
+   ============================================================ */
+function openCoach() { buildCoach(); show("coach"); }
+function buildCoach() {
+  const now = Date.now();
+  const learned = CARDS.filter(c => store.cards[c.id]);
+  const body = $("coachBody");
+  if (learned.length < 3) {
+    body.innerHTML = "<p class='prog-empty'>Do a bit of daily practice first, then your coach will spot your weak words and topics and tell you what to focus on. 🌱</p>";
+    return;
+  }
+  // Weakest words: lowest accuracy among cards seen a few times, then most lapses.
+  const seenCards = learned.filter(c => (store.cards[c.id].seen || 0) >= 2);
+  const weak = seenCards
+    .map(c => { const s = store.cards[c.id]; return { c, acc: (s.correct || 0) / (s.seen || 1), lapses: s.lapses || 0 }; })
+    .filter(x => x.acc < 0.8)
+    .sort((a, b) => a.acc - b.acc || b.lapses - a.lapses)
+    .slice(0, 8);
+  // Weakest topics by average accuracy.
+  const byCat = {};
+  learned.forEach(c => { const s = store.cards[c.id]; const t = byCat[c.cat] || (byCat[c.cat] = { seen: 0, correct: 0 }); t.seen += s.seen || 0; t.correct += s.correct || 0; });
+  const topics = Object.keys(byCat).filter(k => byCat[k].seen >= 4)
+    .map(k => ({ cat: k, acc: byCat[k].correct / byCat[k].seen }))
+    .sort((a, b) => a.acc - b.acc).slice(0, 3);
+  const now2 = Date.now();
+  const dueNow = CARDS.filter(c => { const s = store.cards[c.id]; return s && s.due <= now2; }).length;
+
+  let html = "";
+  html += "<div class='coach-tile'><h3>Today's focus</h3><p style='line-height:1.5;'>";
+  if (dueNow > 0) html += "You have <b>" + dueNow + "</b> word" + (dueNow > 1 ? "s" : "") + " due for review. Start with daily practice.";
+  else html += "You're caught up on reviews! Learn some new words or drill your weak ones below.";
+  html += "</p><button class='btn primary center' id='coachDaily' style='margin-top:10px;'>▶️ Start daily practice</button></div>";
+
+  if (weak.length) {
+    html += "<div class='coach-tile'><h3>Your weakest words</h3><div>" +
+      weak.map(x => "<span class='coach-word'>" + escapeHtml(x.c.emoji + " " + x.c.es) + "</span>").join("") + "</div>" +
+      "<button class='btn primary center' id='coachDrill' style='margin-top:10px;'>🎯 Drill these now</button></div>";
+  }
+  if (topics.length) {
+    html += "<div class='coach-tile'><h3>Topics to review</h3><p style='line-height:1.6;'>" +
+      topics.map(t => escapeHtml(t.cat) + " — " + Math.round(t.acc * 100) + "%").join("<br>") + "</p></div>";
+  }
+  body.innerHTML = html;
+  $("coachDaily").onclick = startDaily;
+  const drill = $("coachDrill");
+  if (drill) drill.onclick = () => {
+    const nowT = Date.now();
+    weak.forEach(x => {
+      const s = store.cards[x.c.id] || {};
+      store.cards[x.c.id] = Object.assign({ ef: 2.5, interval: 1, reps: 1, lapses: 0, seen: 0, correct: 0 }, s, { due: nowT });
+    });
+    saveStore();
+    startDaily();
+  };
+}
+
+/* ============================================================
    ACTIVITY: SCENARIO CONVERSATIONS (AI roleplay)
    Pick a situation → Claude writes a dialogue → you play one side,
    responding by speech or typing, with show/hide hints.
@@ -2847,7 +3167,7 @@ function buildProgress() {
    SCREENS
    ============================================================ */
 function show(screen) {
-  ["home","game","memory","results","progress","mycards","listen","scenario","player"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
   if (screen !== "player" && player && player.playing) { player.playing = false; if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); if (typeof releaseWakeLock === "function") releaseWakeLock(); }
   if (screen === "home") buildDashboard();
   if (screen === "progress") buildProgress();
@@ -3024,6 +3344,7 @@ function renderQuestion() {
   $("speakPanel").classList.add("hidden");
   $("nextBtn").classList.add("hidden");
   $("addCardBtn").classList.add("hidden");
+  $("explainBtn").classList.add("hidden");
   $("clozeTools").classList.add("hidden");
   answersWrap.innerHTML = "";
   $("promptWord").style.fontSize = ""; // reset (cloze sentences shrink it)
@@ -3250,6 +3571,11 @@ function resolveAnswer(isRight, correctText) {
       if (addWordCard(w[0], w[1], w[2], se, sen)) { acb.textContent = "✓ Added to My Cards"; acb.disabled = true; }
     };
   }
+
+  // Offer an on-demand grammar explanation for this card.
+  const eb = $("explainBtn");
+  eb.textContent = "🤔 Explain"; eb.disabled = false; eb.classList.remove("hidden");
+  eb.onclick = explainCard;
 
   const last = state.srs ? (state.qi >= state.queue.length) : (state.index >= state.deck.length || state.lives <= 0);
   const nb = $("nextBtn");
@@ -3508,6 +3834,21 @@ $("aiClearKey").onclick = clearAiKey;
 /* Activities wiring */
 $("openListenBtn").onclick = startListen;
 $("openPlayerBtn").onclick = openPlayer;
+
+/* Tutor / Grammar / Coach wiring */
+$("openTutorBtn").onclick = openTutor;
+$("tutorSendBtn").onclick = () => tutorAsk($("tutorInput").value);
+$("tutorInput").addEventListener("keydown", (e) => { if (e.key === "Enter") tutorAsk($("tutorInput").value); });
+$("tutorQuitBtn").onclick = () => show("home");
+$("openGrammarBtn").onclick = openGrammar;
+$("grammarQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("startConjugBtn").onclick = startConjug;
+$("conjSubmit").onclick = checkConjug;
+$("conjInput").addEventListener("keydown", (e) => { if (e.key === "Enter") checkConjug(); });
+$("conjNext").onclick = nextConjug;
+$("conjQuit").onclick = openGrammar;
+$("openCoachBtn").onclick = openCoach;
+$("coachQuitBtn").onclick = () => show("home");
 $("plPlay").onclick = playerToggle;
 $("plNext").onclick = () => playerGoto(player.i + 1);
 $("plPrev").onclick = () => playerGoto(player.i - 1);
