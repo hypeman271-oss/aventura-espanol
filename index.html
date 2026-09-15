@@ -1095,6 +1095,39 @@ function glossFor(word) {
   return VOCAB_WORD_EN[w] || WORD_GLOSS[w] || VOCAB_WORD_EN[na] || WORD_GLOSS[na] || null;
 }
 
+/* Emoji "pictures" for common Spanish words not in the built-in decks, so
+   words the user adds still get a helpful image (falls back to 📝). */
+const WORD_EMOJI = {
+  // nature / places
+  parque: "🌳", sofá: "🛋️", campo: "🌾", bosque: "🌲", selva: "🌴", hierba: "🌿", árbol: "🌳",
+  mar: "🌊", playa: "🏖️", montaña: "⛰️", río: "🏞️", lago: "🏞️", cielo: "☁️", sol: "☀️",
+  luna: "🌙", estrella: "⭐", nube: "☁️", lluvia: "🌧️", nieve: "❄️", viento: "💨", fuego: "🔥",
+  casa: "🏠", hogar: "🏠", jardín: "🌳", ciudad: "🏙️", pueblo: "🏘️", país: "🗺️", mundo: "🌍",
+  escuela: "🏫", clase: "🏫", universidad: "🎓", oficina: "🏢", iglesia: "⛪", tienda: "🏪",
+  // food & drink
+  desayuno: "🍳", almuerzo: "🍽️", cena: "🍽️", comida: "🍽️", sopa: "🍲", ensalada: "🥗",
+  fruta: "🍎", verdura: "🥦", carne: "🥩", pescado: "🐟", azúcar: "🍬", sal: "🧂", miel: "🍯",
+  sartén: "🍳", zanahoria: "🥕", panadería: "🥖", chocolate: "🍫", tomate: "🍅", helado: "🍦",
+  té: "🍵", vino: "🍷", cerveza: "🍺", jugo: "🧃", zumo: "🧃", sed: "🥵", hambre: "🍽️",
+  // people / body / time
+  mono: "🐒", primo: "👦", prima: "👧", gente: "👥", niño: "🧒", niña: "👧", hombre: "👨", mujer: "👩",
+  dedo: "☝️", diente: "🦷", pierna: "🦵", espalda: "🧍", rodilla: "🦵",
+  cumpleaños: "🎂", verano: "☀️", invierno: "❄️", primavera: "🌸", otoño: "🍂",
+  semana: "📅", mes: "📆", año: "📅", hora: "🕐", tiempo: "⏰", reloj: "⏰", día: "📆", noche: "🌙",
+  // objects / things
+  papel: "📄", libro: "📚", periódico: "📰", carta: "✉️", historia: "📖", piano: "🎹", guitarra: "🎸",
+  música: "🎵", pelota: "⚽", balón: "⚽", juego: "🎮", dinero: "💰", trabajo: "💼", teléfono: "📱",
+  ordenador: "💻", computadora: "💻", llave: "🔑", puerta: "🚪", ventana: "🪟", cama: "🛏️", silla: "🪑",
+  baño: "🚽", cocina: "🍳", ropa: "👕", camisa: "👕", zapato: "👟", zapatos: "👟", sombrero: "🎩",
+  gafas: "👓", bolso: "👜", mochila: "🎒", regalo: "🎁", flor: "🌸", pelo: "💇", payaso: "🤡",
+  // travel / transport
+  autobús: "🚌", bicicleta: "🚲", moto: "🏍️", camión: "🚚", metro: "🚇", aeropuerto: "🛫",
+  estación: "🚉", ciudad2: "🏙️", vacaciones: "🏖️", viaje: "🧳",
+  // feelings / abstract (best-effort)
+  amor: "❤️", felicidad: "😄", tristeza: "😢", miedo: "😨", risa: "😂", sueño: "😴", suerte: "🍀",
+  fiesta: "🎉", idea: "💡", pregunta: "❓", problema: "⚠️", verdad: "✅", mentira: "🤥"
+};
+
 /* Build the sentence object for a card (or null if it has none). */
 function getSentence(cat, es) {
   const raw = SENTENCES[cat + "||" + es];
@@ -1203,7 +1236,7 @@ function mcAdd() {
   }
   const cloze = buildClozeFromSentence(es, sentence);
   const card = {
-    es, en, emoji: emoji || "", sentence: sentence || "", sentenceEn: sentenceEn || "",
+    es, en, emoji: emoji || emojiFor(es), sentence: sentence || "", sentenceEn: sentenceEn || "",
     template: cloze ? cloze.template : "", answer: cloze ? cloze.answer : "", created: Date.now()
   };
   if (mcEditing != null) store.userCards[mcEditing] = card; else store.userCards.push(card);
@@ -1501,11 +1534,14 @@ function renderLookupSentence(el, text, ctx, opts) {
   });
 }
 
-/* Pick an emoji for a word if it matches a known card, else a default. */
+/* Pick an emoji "picture" for a word: a matching built-in card's emoji, then
+   the common-word picture dictionary, else a default note icon. */
 function emojiFor(word) {
-  const w = cleanWord(word);
+  const w = cleanWord(stripArticle(word));
   const c = CARDS.find(c => cleanWord(stripArticle(c.es)) === w);
-  return c ? c.emoji : "📝";
+  if (c) return c.emoji;
+  const na = w.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return WORD_EMOJI[w] || WORD_EMOJI[na] || "📝";
 }
 
 /* Create a My Card (used by "mark unknown" everywhere). Returns false if a
