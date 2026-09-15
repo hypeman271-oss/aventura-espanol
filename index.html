@@ -875,6 +875,24 @@ const VOCAB = {
     ["la cuenta","the bill","🧾"],["el plato","dish / plate","🍛"],["el tenedor","fork","🍴"],
     ["la cuchara","spoon","🥄"],["el cuchillo","knife","🔪"],["el vaso","glass","🥛"],
     ["el postre","dessert","🍰"],["la propina","tip","💵"],["la bebida","drink","🥤"]
+  ],
+  "Directions 🧭": [
+    ["la izquierda","left","⬅️"],["la derecha","right","➡️"],["recto","straight ahead","⬆️"],
+    ["cerca","near","📍"],["lejos","far","🔭"],["la esquina","corner","📐"],
+    ["girar","to turn","🔄"],["el semáforo","traffic light","🚦"],["el cruce","intersection","🚸"],
+    ["el norte","north","🧭"],["parar","to stop","🛑"],["el puente","bridge","🌉"]
+  ],
+  "Earthquake 🌎": [
+    ["el terremoto","earthquake","🌍"],["el temblor","tremor","🫨"],["temblar","to shake","📳"],
+    ["la emergencia","emergency","🚨"],["el peligro","danger","⚠️"],["seguro","safe","🛡️"],
+    ["protegerse","to take cover","🙇"],["la réplica","aftershock","🔁"],["los escombros","rubble","🧱"],
+    ["evacuar","to evacuate","🏃"],["el refugio","shelter","⛺"],["la ayuda","help","🆘"]
+  ],
+  "Dance 💃": [
+    ["bailar","to dance","💃"],["el baile","the dance","🕺"],["la música","music","🎵"],
+    ["el ritmo","rhythm","🥁"],["la canción","song","🎶"],["el paso","step","👣"],
+    ["la pareja","partner","👯"],["el escenario","stage","🎭"],["aplaudir","to clap","👏"],
+    ["el cantante","singer","🎤"],["la fiesta","party","🥳"],["la banda","band","🎸"]
   ]
 };
 
@@ -1003,7 +1021,46 @@ const SENTENCES = {
   "Restaurant 🍽️||el vaso": ["¿Me pone un ___ de agua?", "vaso", "Can I have a glass of water?"],
   "Restaurant 🍽️||el postre": ["De ___ quiero un helado.", "postre", "For dessert I want ice cream."],
   "Restaurant 🍽️||la propina": ["Dejamos una buena ___.", "propina", "We left a good tip."],
-  "Restaurant 🍽️||la bebida": ["¿Qué ___ desea tomar?", "bebida", "What would you like to drink?"]
+  "Restaurant 🍽️||la bebida": ["¿Qué ___ desea tomar?", "bebida", "What would you like to drink?"],
+
+  "Directions 🧭||la izquierda": ["Gira a la ___ en la esquina.", "izquierda", "Turn left at the corner."],
+  "Directions 🧭||la derecha": ["El banco está a la ___.", "derecha", "The bank is on the right."],
+  "Directions 🧭||recto": ["Sigue ___ hasta el semáforo.", "recto", "Keep going straight to the traffic light."],
+  "Directions 🧭||cerca": ["El museo está muy ___.", "cerca", "The museum is very near."],
+  "Directions 🧭||lejos": ["La estación está ___ de aquí.", "lejos", "The station is far from here."],
+  "Directions 🧭||la esquina": ["Te espero en la ___.", "esquina", "I'll wait for you on the corner."],
+  "Directions 🧭||girar": ["Debes ___ a la derecha.", "girar", "You must turn right."],
+  "Directions 🧭||el semáforo": ["Para en el ___ rojo.", "semáforo", "Stop at the red light."],
+  "Directions 🧭||el cruce": ["Cruza con cuidado en el ___.", "cruce", "Cross carefully at the intersection."],
+  "Directions 🧭||el norte": ["Vamos hacia el ___.", "norte", "We're heading north."],
+  "Directions 🧭||parar": ["Tienes que ___ aquí.", "parar", "You have to stop here."],
+  "Directions 🧭||el puente": ["Cruzamos el ___ del río.", "puente", "We cross the river bridge."],
+
+  "Earthquake 🌎||el terremoto": ["El ___ destruyó muchas casas.", "terremoto", "The earthquake destroyed many houses."],
+  "Earthquake 🌎||el temblor": ["Sentí un ___ muy fuerte.", "temblor", "I felt a very strong tremor."],
+  "Earthquake 🌎||temblar": ["La tierra empezó a ___.", "temblar", "The ground began to shake."],
+  "Earthquake 🌎||la emergencia": ["Llama al número de ___.", "emergencia", "Call the emergency number."],
+  "Earthquake 🌎||el peligro": ["Aléjate del ___.", "peligro", "Move away from the danger."],
+  "Earthquake 🌎||seguro": ["Busca un lugar ___.", "seguro", "Find a safe place."],
+  "Earthquake 🌎||protegerse": ["Hay que ___ bajo la mesa.", "protegerse", "You must take cover under the table."],
+  "Earthquake 🌎||la réplica": ["Hubo una ___ una hora después.", "réplica", "There was an aftershock an hour later."],
+  "Earthquake 🌎||los escombros": ["Rescataron a un perro entre los ___.", "escombros", "They rescued a dog from the rubble."],
+  "Earthquake 🌎||evacuar": ["Tenemos que ___ el edificio.", "evacuar", "We have to evacuate the building."],
+  "Earthquake 🌎||el refugio": ["Fuimos a un ___ seguro.", "refugio", "We went to a safe shelter."],
+  "Earthquake 🌎||la ayuda": ["Necesitamos ___ urgente.", "ayuda", "We need urgent help."],
+
+  "Dance 💃||bailar": ["Me encanta ___ salsa.", "bailar", "I love to dance salsa."],
+  "Dance 💃||el baile": ["El ___ empieza a las nueve.", "baile", "The dance starts at nine."],
+  "Dance 💃||la música": ["La ___ está muy alta.", "música", "The music is very loud."],
+  "Dance 💃||el ritmo": ["Sigue el ___ con los pies.", "ritmo", "Follow the rhythm with your feet."],
+  "Dance 💃||la canción": ["Esta ___ es mi favorita.", "canción", "This song is my favorite."],
+  "Dance 💃||el paso": ["Aprende el primer ___.", "paso", "Learn the first step."],
+  "Dance 💃||la pareja": ["Baila con tu ___.", "pareja", "Dance with your partner."],
+  "Dance 💃||el escenario": ["Los bailarines suben al ___.", "escenario", "The dancers go up on stage."],
+  "Dance 💃||aplaudir": ["El público empezó a ___.", "aplaudir", "The audience began to clap."],
+  "Dance 💃||el cantante": ["El ___ tiene una voz increíble.", "cantante", "The singer has an amazing voice."],
+  "Dance 💃||la fiesta": ["Hay una ___ esta noche.", "fiesta", "There's a party tonight."],
+  "Dance 💃||la banda": ["La ___ toca música en vivo.", "banda", "The band plays live music."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
