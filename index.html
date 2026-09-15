@@ -591,6 +591,14 @@
         <span class="emoji">🔤</span>
         <span>Grammar &amp; Verbs<small>Mini-lessons + verb conjugation practice</small></span>
       </button>
+      <button class="btn accent2" id="openWriteBtn">
+        <span class="emoji">✍️</span>
+        <span>Writing<small>Write in Spanish, get it corrected (AI)</small></span>
+      </button>
+      <button class="btn accent2" id="openStoryBtn">
+        <span class="emoji">📖</span>
+        <span>Reading<small>A short story at your level (AI)</small></span>
+      </button>
     </div>
 
     <div class="panel" style="margin-top:16px;">
@@ -845,7 +853,9 @@
       <div id="grammarHome">
         <p class="sc-intro">Quick grammar lessons, then practise conjugating verbs.</p>
         <div id="grammarLessons"></div>
-        <button class="btn primary center" id="startConjugBtn" style="margin-top:16px;">▶️ Practise conjugation</button>
+        <p class="sc-intro" style="margin:14px 0 6px;">Conjugation practice — choose a tense:</p>
+        <div class="sc-diff" id="conjTenseSel"></div>
+        <button class="btn primary center" id="startConjugBtn" style="margin-top:12px;">▶️ Practise conjugation</button>
       </div>
       <div id="conjugPlay" class="hidden">
         <div class="hud">
@@ -864,6 +874,42 @@
         <button class="back-link" id="conjQuit" style="display:block;margin:8px auto 0;">← Back to lessons</button>
       </div>
       <div id="conjEnd" class="order-end hidden"></div>
+    </div>
+  </div>
+
+  <!-- ============ WRITING CORRECTION ============ -->
+  <div id="write" class="hidden">
+    <button class="back-link" id="writeQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <p class="section-title">✍️ Writing</p>
+      <p class="sc-intro">Write a few sentences in Spanish and get them corrected, with notes. (Needs internet + your API key.)</p>
+      <textarea id="writeText" class="mc-input" placeholder="Escribe algo en español…" style="min-height:120px;resize:vertical;"></textarea>
+      <button id="writeCheckBtn" class="btn primary center" style="margin-top:10px;">✅ Check my writing</button>
+      <div id="writeStatus" class="ai-status"></div>
+      <div id="writeResult"></div>
+    </div>
+  </div>
+
+  <!-- ============ READING STORIES ============ -->
+  <div id="story" class="hidden">
+    <button class="back-link" id="storyQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <div id="storySetup">
+        <p class="section-title">📖 Reading</p>
+        <p class="sc-intro">Get a short Spanish story at your level. Long-press any word for its meaning. (Needs internet + your API key.)</p>
+        <div class="sc-diff" id="storyLevel"></div>
+        <input id="storyTopic" class="mc-input" placeholder="Topic (optional) — e.g. a trip to the beach" autocomplete="off" />
+        <div id="storyStatus" class="ai-status"></div>
+        <button id="storyGenBtn" class="btn primary center">✨ Generate a story</button>
+      </div>
+      <div id="storyRead" class="hidden">
+        <div class="pl-card" style="text-align:left;">
+          <button class="replay-pill" id="storyPlay" style="align-self:center;margin-bottom:12px;">🔊 Read aloud</button>
+          <div id="storyEs" style="font-size:1.15rem;line-height:1.7;"></div>
+          <div id="storyEn" style="opacity:0.7;font-size:0.92rem;line-height:1.5;margin-top:14px;border-top:1px dashed rgba(0,0,0,0.15);padding-top:12px;"></div>
+        </div>
+        <button class="btn primary center" id="storyNewBtn" style="margin-top:14px;">🔁 New story</button>
+      </div>
     </div>
   </div>
 
@@ -2139,20 +2185,58 @@ const GRAMMAR_LESSONS = [
 ];
 
 const CONJUG = [
-  { inf: "hablar", en: "to speak", f: ["hablo", "hablas", "habla", "hablamos", "habláis", "hablan"] },
-  { inf: "comer", en: "to eat", f: ["como", "comes", "come", "comemos", "coméis", "comen"] },
-  { inf: "vivir", en: "to live", f: ["vivo", "vives", "vive", "vivimos", "vivís", "viven"] },
-  { inf: "ser", en: "to be", f: ["soy", "eres", "es", "somos", "sois", "son"] },
-  { inf: "estar", en: "to be", f: ["estoy", "estás", "está", "estamos", "estáis", "están"] },
-  { inf: "tener", en: "to have", f: ["tengo", "tienes", "tiene", "tenemos", "tenéis", "tienen"] },
-  { inf: "ir", en: "to go", f: ["voy", "vas", "va", "vamos", "vais", "van"] },
-  { inf: "hacer", en: "to do / make", f: ["hago", "haces", "hace", "hacemos", "hacéis", "hacen"] },
-  { inf: "querer", en: "to want", f: ["quiero", "quieres", "quiere", "queremos", "queréis", "quieren"] },
-  { inf: "poder", en: "can / to be able", f: ["puedo", "puedes", "puede", "podemos", "podéis", "pueden"] },
-  { inf: "decir", en: "to say", f: ["digo", "dices", "dice", "decimos", "decís", "dicen"] },
-  { inf: "ver", en: "to see", f: ["veo", "ves", "ve", "vemos", "veis", "ven"] }
+  { inf: "hablar", en: "to speak",
+    present: ["hablo", "hablas", "habla", "hablamos", "habláis", "hablan"],
+    preterite: ["hablé", "hablaste", "habló", "hablamos", "hablasteis", "hablaron"],
+    subjunctive: ["hable", "hables", "hable", "hablemos", "habléis", "hablen"] },
+  { inf: "comer", en: "to eat",
+    present: ["como", "comes", "come", "comemos", "coméis", "comen"],
+    preterite: ["comí", "comiste", "comió", "comimos", "comisteis", "comieron"],
+    subjunctive: ["coma", "comas", "coma", "comamos", "comáis", "coman"] },
+  { inf: "vivir", en: "to live",
+    present: ["vivo", "vives", "vive", "vivimos", "vivís", "viven"],
+    preterite: ["viví", "viviste", "vivió", "vivimos", "vivisteis", "vivieron"],
+    subjunctive: ["viva", "vivas", "viva", "vivamos", "viváis", "vivan"] },
+  { inf: "ser", en: "to be",
+    present: ["soy", "eres", "es", "somos", "sois", "son"],
+    preterite: ["fui", "fuiste", "fue", "fuimos", "fuisteis", "fueron"],
+    subjunctive: ["sea", "seas", "sea", "seamos", "seáis", "sean"] },
+  { inf: "estar", en: "to be",
+    present: ["estoy", "estás", "está", "estamos", "estáis", "están"],
+    preterite: ["estuve", "estuviste", "estuvo", "estuvimos", "estuvisteis", "estuvieron"],
+    subjunctive: ["esté", "estés", "esté", "estemos", "estéis", "estén"] },
+  { inf: "tener", en: "to have",
+    present: ["tengo", "tienes", "tiene", "tenemos", "tenéis", "tienen"],
+    preterite: ["tuve", "tuviste", "tuvo", "tuvimos", "tuvisteis", "tuvieron"],
+    subjunctive: ["tenga", "tengas", "tenga", "tengamos", "tengáis", "tengan"] },
+  { inf: "ir", en: "to go",
+    present: ["voy", "vas", "va", "vamos", "vais", "van"],
+    preterite: ["fui", "fuiste", "fue", "fuimos", "fuisteis", "fueron"],
+    subjunctive: ["vaya", "vayas", "vaya", "vayamos", "vayáis", "vayan"] },
+  { inf: "hacer", en: "to do / make",
+    present: ["hago", "haces", "hace", "hacemos", "hacéis", "hacen"],
+    preterite: ["hice", "hiciste", "hizo", "hicimos", "hicisteis", "hicieron"],
+    subjunctive: ["haga", "hagas", "haga", "hagamos", "hagáis", "hagan"] },
+  { inf: "querer", en: "to want",
+    present: ["quiero", "quieres", "quiere", "queremos", "queréis", "quieren"],
+    preterite: ["quise", "quisiste", "quiso", "quisimos", "quisisteis", "quisieron"],
+    subjunctive: ["quiera", "quieras", "quiera", "queramos", "queráis", "quieran"] },
+  { inf: "poder", en: "can / to be able",
+    present: ["puedo", "puedes", "puede", "podemos", "podéis", "pueden"],
+    preterite: ["pude", "pudiste", "pudo", "pudimos", "pudisteis", "pudieron"],
+    subjunctive: ["pueda", "puedas", "pueda", "podamos", "podáis", "puedan"] },
+  { inf: "decir", en: "to say",
+    present: ["digo", "dices", "dice", "decimos", "decís", "dicen"],
+    preterite: ["dije", "dijiste", "dijo", "dijimos", "dijisteis", "dijeron"],
+    subjunctive: ["diga", "digas", "diga", "digamos", "digáis", "digan"] },
+  { inf: "ver", en: "to see",
+    present: ["veo", "ves", "ve", "vemos", "veis", "ven"],
+    preterite: ["vi", "viste", "vio", "vimos", "visteis", "vieron"],
+    subjunctive: ["vea", "veas", "vea", "veamos", "veáis", "vean"] }
 ];
 const CONJ_PRON = ["yo", "tú", "él / ella", "nosotros", "vosotros", "ellos / ellas"];
+const CONJ_TENSES = [["present", "Present"], ["preterite", "Past"], ["subjunctive", "Subjunctive"], ["mix", "Mix"]];
+let conjTense = "present";
 let conj = {};
 
 function openGrammar() {
@@ -2160,7 +2244,19 @@ function openGrammar() {
   $("conjugPlay").classList.add("hidden");
   $("conjEnd").classList.add("hidden");
   renderLessons();
+  renderTenseSel();
   show("grammar");
+}
+function renderTenseSel() {
+  const sel = $("conjTenseSel");
+  sel.innerHTML = "";
+  CONJ_TENSES.forEach(([v, l]) => {
+    const b = document.createElement("button");
+    b.className = "sc-chip" + (v === conjTense ? " selected" : "");
+    b.textContent = l;
+    b.onclick = () => { conjTense = v; renderTenseSel(); };
+    sel.appendChild(b);
+  });
 }
 function renderLessons() {
   $("grammarLessons").innerHTML = GRAMMAR_LESSONS.map((l, i) =>
@@ -2172,10 +2268,12 @@ function renderLessons() {
   });
 }
 const CONJ_ROUND = 10;
+const TENSE_LABEL = { present: "present", preterite: "past", subjunctive: "subjunctive" };
 function startConjug() {
   const q = [];
   for (let i = 0; i < CONJ_ROUND; i++) {
-    q.push({ v: Math.floor(Math.random() * CONJUG.length), p: Math.floor(Math.random() * 6) });
+    const t = conjTense === "mix" ? ["present", "preterite", "subjunctive"][Math.floor(Math.random() * 3)] : conjTense;
+    q.push({ v: Math.floor(Math.random() * CONJUG.length), p: Math.floor(Math.random() * 6), t });
   }
   conj = { q, i: 0, score: 0 };
   $("grammarHome").classList.add("hidden");
@@ -2187,10 +2285,10 @@ function nextConjug() {
   if (conj.i >= conj.q.length) return endConjug();
   const it = conj.q[conj.i];
   const verb = CONJUG[it.v];
-  conj.cur = { answer: verb.f[it.p], done: false };
+  conj.cur = { answer: verb[it.t][it.p], done: false };
   $("conjProg").textContent = (conj.i + 1) + "/" + conj.q.length;
   $("conjScore").textContent = conj.score;
-  $("conjLabel").textContent = "Conjugate — " + CONJ_PRON[it.p];
+  $("conjLabel").textContent = "Conjugate (" + TENSE_LABEL[it.t] + ") — " + CONJ_PRON[it.p];
   $("conjPrompt").textContent = verb.inf;
   $("conjMeaning").textContent = verb.en;
   $("conjFeedback").textContent = "";
@@ -2288,7 +2386,165 @@ function buildCoach() {
     saveStore();
     startDaily();
   };
+  renderReminderTile();
 }
+
+/* ============================================================
+   DAILY REMINDER — notification to keep the streak
+   ============================================================ */
+function getReminder() { try { return JSON.parse(localStorage.getItem("aventura_reminder")) || { on: false, time: "19:00" }; } catch (e) { return { on: false, time: "19:00" }; } }
+function setReminder(r) { try { localStorage.setItem("aventura_reminder", JSON.stringify(r)); } catch (e) {} }
+
+function renderReminderTile() {
+  const r = getReminder();
+  const supported = "Notification" in window;
+  const perm = supported ? Notification.permission : "unsupported";
+  const tile = document.createElement("div");
+  tile.className = "coach-tile";
+  tile.innerHTML =
+    "<h3>🔔 Daily reminder</h3>" +
+    (supported
+      ? "<div style='display:flex;gap:8px;align-items:center;flex-wrap:wrap;'>" +
+        "<label style='display:flex;gap:6px;align-items:center;'><input type='checkbox' id='remOn'" + (r.on ? " checked" : "") + "/> On</label>" +
+        "<input type='time' id='remTime' value='" + r.time + "' class='mc-input' style='width:120px;padding:8px;'/>" +
+        "</div>" +
+        "<p style='opacity:.7;font-size:.8rem;margin-top:8px;line-height:1.4;'>" +
+        (perm === "denied" ? "Notifications are blocked in your browser settings." :
+          "Reminds you to practise while the app is open. Reliable background reminders when the app is fully closed need a supported phone browser (Android Chrome) — otherwise leave the app open.") + "</p>"
+      : "<p style='opacity:.7;font-size:.85rem;'>This browser doesn't support notifications.</p>");
+  $("coachBody").appendChild(tile);
+  if (supported) {
+    $("remOn").onchange = (e) => {
+      const on = e.target.checked;
+      if (on && Notification.permission !== "granted") {
+        Notification.requestPermission().then(p => { const rr = getReminder(); rr.on = (p === "granted"); setReminder(rr); scheduleReminder(); renderCoachRefresh(); });
+      } else { const rr = getReminder(); rr.on = on; setReminder(rr); scheduleReminder(); }
+    };
+    $("remTime").onchange = (e) => { const rr = getReminder(); rr.time = e.target.value; setReminder(rr); scheduleReminder(); };
+  }
+}
+function renderCoachRefresh() { if (!$("coach").classList.contains("hidden")) buildCoach(); }
+
+function scheduleReminder() {
+  const r = getReminder();
+  if (reminderTimer) { clearTimeout(reminderTimer); reminderTimer = null; }
+  if (!r.on || !("Notification" in window) || Notification.permission !== "granted") return;
+  // Next occurrence of the chosen time.
+  const [h, m] = r.time.split(":").map(Number);
+  const next = new Date();
+  next.setHours(h, m, 0, 0);
+  if (next.getTime() <= Date.now()) next.setDate(next.getDate() + 1);
+  const delay = next.getTime() - Date.now();
+  // Try a background-capable scheduled notification (Chrome Android); else in-session timeout.
+  if ("serviceWorker" in navigator && "showTrigger" in Notification.prototype && window.TimestampTrigger) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.getNotifications({ tag: "aventura-daily" }).then(ns => ns.forEach(n => n.close()));
+      reg.showNotification("¡Aventura Español! 🇪🇸", {
+        tag: "aventura-daily", body: "Time for your Spanish practice — keep your streak alive! 🔥",
+        showTrigger: new window.TimestampTrigger(next.getTime())
+      }).catch(() => {});
+    }).catch(() => {});
+  } else {
+    reminderTimer = setTimeout(() => {
+      try { new Notification("¡Aventura Español! 🇪🇸", { body: "Time for your Spanish practice — keep your streak alive! 🔥" }); } catch (e) {}
+      scheduleReminder(); // reschedule for next day if still open
+    }, Math.min(delay, 2147483647));
+  }
+}
+let reminderTimer = null;
+
+/* ============================================================
+   WRITING CORRECTION (AI)
+   ============================================================ */
+function openWrite() {
+  $("writeResult").innerHTML = "";
+  $("writeStatus").textContent = getApiKey() ? "" : "Add your API key in My Cards → ⚙️ to use this.";
+  show("write");
+}
+function writeCheck() {
+  const text = $("writeText").value.trim();
+  const status = $("writeStatus");
+  if (!text) { status.textContent = "Write something first."; return; }
+  if (!navigator.onLine) { status.textContent = "Writing correction needs an internet connection."; return; }
+  if (!getApiKey()) { status.textContent = "Add your API key in My Cards → ⚙️ first."; return; }
+  status.textContent = "✍️ Checking…";
+  $("writeCheckBtn").disabled = true;
+  const sys = "You are a kind Spanish writing tutor for a beginner–intermediate learner. Correct the learner's Spanish text. " +
+    "Reply in this format:\nCorrected:\n<the corrected Spanish>\n\nNotes:\n- <each key fix: original → correction, with a brief reason in English>\nKeep it concise and encouraging.";
+  const body = {
+    model: getApiModel(), max_tokens: 1200, thinking: { type: "disabled" }, output_config: { effort: "low" },
+    system: sys, messages: [{ role: "user", content: text }]
+  };
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body)
+  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+    .then(data => {
+      const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
+      $("writeResult").innerHTML = "<div class='explain-box' style='margin-top:14px;'>" + escapeHtml(txt) + "</div>";
+      status.textContent = "";
+    })
+    .catch(e => { status.textContent = e.message || "Something went wrong."; })
+    .finally(() => { $("writeCheckBtn").disabled = false; });
+}
+
+/* ============================================================
+   READING STORIES (AI)
+   ============================================================ */
+let storyLevel = "beginner";
+function openStory() {
+  $("storySetup").classList.remove("hidden");
+  $("storyRead").classList.add("hidden");
+  $("storyStatus").textContent = getApiKey() ? "" : "Add your API key in My Cards → ⚙️ to use this.";
+  renderStoryLevel();
+  show("story");
+}
+function renderStoryLevel() {
+  const sel = $("storyLevel");
+  sel.innerHTML = "";
+  [["beginner", "Beginner"], ["intermediate", "Intermediate"]].forEach(([v, l]) => {
+    const b = document.createElement("button");
+    b.className = "sc-chip" + (v === storyLevel ? " selected" : "");
+    b.textContent = l;
+    b.onclick = () => { storyLevel = v; renderStoryLevel(); };
+    sel.appendChild(b);
+  });
+}
+function storyGenerate() {
+  const topic = $("storyTopic").value.trim() || "everyday life";
+  const status = $("storyStatus");
+  if (!navigator.onLine) { status.textContent = "Reading stories need an internet connection."; return; }
+  if (!getApiKey()) { status.textContent = "Add your API key in My Cards → ⚙️ first."; return; }
+  status.textContent = "✨ Writing your story…";
+  $("storyGenBtn").disabled = true;
+  const sys = "Write a short, engaging Spanish story (6–9 sentences) for a " + storyLevel + " learner about the given topic, using simple vocabulary and mostly present/past tense. " +
+    "Then give a natural English translation. Return ONLY a JSON object: {\"es\": \"<story in Spanish>\", \"en\": \"<English translation>\"}.";
+  const body = {
+    model: getApiModel(), max_tokens: 1500, thinking: { type: "disabled" }, output_config: { effort: "low" },
+    system: sys, messages: [{ role: "user", content: "Topic: " + topic }]
+  };
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body)
+  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+    .then(data => {
+      const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      let obj = null; try { obj = JSON.parse(text); } catch (e) { const m = text.match(/\{[\s\S]*\}/); if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} } }
+      if (!obj || !obj.es) throw new Error("Couldn't read the story — try again.");
+      story = { es: obj.es, en: obj.en || "" };
+      renderLookupSentence($("storyEs"), story.es, { es: story.es, en: story.en });
+      $("storyEs").style.fontSize = "";
+      $("storyEn").textContent = story.en;
+      $("storySetup").classList.add("hidden");
+      $("storyRead").classList.remove("hidden");
+      status.textContent = "";
+    })
+    .catch(e => { status.textContent = e.message || "Something went wrong."; })
+    .finally(() => { $("storyGenBtn").disabled = false; });
+}
+let story = {};
 
 /* ============================================================
    ACTIVITY: SCENARIO CONVERSATIONS (AI roleplay)
@@ -3167,7 +3423,7 @@ function buildProgress() {
    SCREENS
    ============================================================ */
 function show(screen) {
-  ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach","write","story"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
   if (screen !== "player" && player && player.playing) { player.playing = false; if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); if (typeof releaseWakeLock === "function") releaseWakeLock(); }
   if (screen === "home") buildDashboard();
   if (screen === "progress") buildProgress();
@@ -3849,6 +4105,14 @@ $("conjNext").onclick = nextConjug;
 $("conjQuit").onclick = openGrammar;
 $("openCoachBtn").onclick = openCoach;
 $("coachQuitBtn").onclick = () => show("home");
+$("openWriteBtn").onclick = openWrite;
+$("writeCheckBtn").onclick = writeCheck;
+$("writeQuitBtn").onclick = () => show("home");
+$("openStoryBtn").onclick = openStory;
+$("storyGenBtn").onclick = storyGenerate;
+$("storyPlay").onclick = () => { if (story && story.es) speak(story.es); };
+$("storyNewBtn").onclick = openStory;
+$("storyQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
 $("plPlay").onclick = playerToggle;
 $("plNext").onclick = () => playerGoto(player.i + 1);
 $("plPrev").onclick = () => playerGoto(player.i - 1);
@@ -3877,6 +4141,7 @@ $("scStartBtn").onclick = scStart;
 applyUserCards();   // fold any saved user cards into the decks before first render
 buildChips();
 show("home");
+try { scheduleReminder(); } catch (e) {}   // re-arm the daily reminder if enabled
 
 /* Register the service worker for offline use (only works over http/https). */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
