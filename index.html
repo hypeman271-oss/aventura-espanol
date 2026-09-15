@@ -521,6 +521,20 @@
   .chat-corr { display: block; font-size: 0.8rem; margin-top: 5px; padding-top: 5px; border-top: 1px dashed rgba(0,0,0,0.15); color: #b8860b; }
   .sc-them .chat-corr { color: #7a5c00; }
   #scThinking { text-align: center; opacity: 0.7; font-style: italic; margin: 10px 0; }
+
+  /* ---- Listen & Repeat player ---- */
+  .pl-counter { text-align: center; opacity: 0.7; font-size: 0.85rem; margin-bottom: 12px; }
+  .pl-card { background: var(--card-solid); color: var(--ink); border-radius: 16px; padding: 30px 20px; text-align: center; min-height: 130px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+  .pl-en { font-size: 1.1rem; opacity: 0.55; transition: opacity 0.2s, color 0.2s; }
+  .pl-es { font-size: 1.5rem; font-weight: 800; opacity: 0.55; transition: opacity 0.2s, color 0.2s; }
+  .pl-en.active { opacity: 1; color: var(--bg2); }
+  .pl-es.active { opacity: 1; color: var(--accent2); }
+  .pl-controls { display: flex; justify-content: center; align-items: center; gap: 18px; margin: 24px 0 14px; }
+  .pl-btn { width: 60px; height: 60px; border-radius: 50%; border: none; background: var(--card); color: #fff; font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+  .pl-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  .pl-play { background: var(--accent); color: var(--ink); width: 76px; height: 76px; font-size: 1.9rem; }
+  .pl-opts { display: flex; gap: 8px; justify-content: center; }
+  .pl-opts .sc-chip.selected { background: var(--accent); color: var(--ink); border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -551,6 +565,10 @@
       <button class="btn accent2" id="openScenarioBtn">
         <span class="emoji">💬</span>
         <span>Conversations<small>Roleplay real situations — offline, or AI for custom</small></span>
+      </button>
+      <button class="btn accent2" id="openPlayerBtn">
+        <span class="emoji">🔁</span>
+        <span>Listen &amp; Repeat<small>Hear phrases English → Spanish, hands-free</small></span>
       </button>
     </div>
 
@@ -734,6 +752,29 @@
         <button class="back-link" id="orderSkip" style="display:block;margin:8px auto 0;">Skip / show answer</button>
       </div>
       <div id="listenEnd" class="order-end hidden"></div>
+    </div>
+  </div>
+
+  <!-- ============ LISTEN & REPEAT (phrase player) ============ -->
+  <div id="player" class="hidden">
+    <button class="back-link" id="playerQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <p class="section-title">🔁 Listen &amp; Repeat</p>
+      <p class="order-instr">Each phrase plays English → Spanish → English → Spanish. Say it aloud in the pauses.</p>
+      <div class="pl-counter" id="plCounter">0 / 0</div>
+      <div class="pl-card">
+        <div class="pl-en" id="plEn"></div>
+        <div class="pl-es" id="plEs"></div>
+      </div>
+      <div class="pl-controls">
+        <button class="pl-btn" id="plPrev" title="Previous">⏮</button>
+        <button class="pl-btn pl-play" id="plPlay" title="Play / Pause">▶️</button>
+        <button class="pl-btn" id="plNext" title="Next">⏭</button>
+      </div>
+      <div class="pl-opts">
+        <button class="sc-chip" id="plSlow">🐢 Slow</button>
+        <button class="sc-chip" id="plShuffle">🔀 Shuffle</button>
+      </div>
     </div>
   </div>
 
@@ -1564,6 +1605,114 @@ function endListen() {
     "<button class='btn center' id='listenHome'>🏠 Menu</button>";
   $("listenAgain").onclick = startListen;
   $("listenHome").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+}
+
+/* ============================================================
+   ACTIVITY: LISTEN & REPEAT (hands-free phrase player)
+   Plays each phrase English → Spanish → English → Spanish with
+   pauses to shadow, auto-advancing. Uses example sentences + cards.
+   ============================================================ */
+const PLAYER_STEPS = ["en", "es", "en", "es"];
+let player = { slow: false, shuffle: true };
+
+function playerPool() {
+  const out = [];
+  Object.keys(SENTENCES).forEach(k => { const [t, a, en] = SENTENCES[k]; if (en) out.push({ es: t.replace("___", a), en }); });
+  (store.userCards || []).forEach(c => { if (!c.template && c.es && c.en) out.push({ es: c.es, en: c.en }); });
+  return out;
+}
+
+function openPlayer() {
+  const slow = !!player.slow, shuffleOn = player.shuffle !== false;
+  let pool = playerPool();
+  if (shuffleOn) pool = shuffle(pool);
+  player = { pool, i: 0, step: 0, playing: false, timer: null, slow, shuffle: shuffleOn, loop: true };
+  show("player");
+  updatePlayerOpts();
+  playerRender();
+}
+
+function playerRender() {
+  const ph = player.pool[player.i];
+  if (!ph) { $("plEn").textContent = "No phrases yet — add some cards!"; $("plEs").textContent = ""; $("plCounter").textContent = "0 / 0"; return; }
+  $("plEn").textContent = ph.en;
+  $("plEs").textContent = ph.es;
+  $("plCounter").textContent = (player.i + 1) + " / " + player.pool.length;
+  const step = PLAYER_STEPS[player.step];
+  $("plEn").classList.toggle("active", player.playing && step === "en");
+  $("plEs").classList.toggle("active", player.playing && step === "es");
+}
+
+function playerSpeak(text, lang, rate, onend) {
+  if (!("speechSynthesis" in window)) { player.timer = setTimeout(onend, 500); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang; u.rate = rate;
+    const base = lang.slice(0, 2).toLowerCase();
+    const v = speechSynthesis.getVoices().find(vo => vo.lang && vo.lang.toLowerCase().startsWith(base));
+    if (v) u.voice = v;
+    u.onend = onend; u.onerror = onend;
+    speechSynthesis.speak(u);
+  } catch (e) { player.timer = setTimeout(onend, 500); }
+}
+
+function playerRunStep() {
+  if (!player.playing) return;
+  const ph = player.pool[player.i];
+  if (!ph) { playerPause(); return; }
+  playerRender();
+  const step = PLAYER_STEPS[player.step];
+  const text = step === "en" ? ph.en : ph.es;
+  const lang = step === "en" ? "en-US" : "es-ES";
+  const rate = step === "en" ? (player.slow ? 0.85 : 1.0) : (player.slow ? 0.65 : 0.9);
+  playerSpeak(text, lang, rate, () => {
+    if (!player.playing) return;
+    const gap = step === "es" ? 1200 : 500; // longer pause after Spanish to repeat
+    player.timer = setTimeout(() => {
+      if (!player.playing) return;
+      player.step++;
+      if (player.step >= PLAYER_STEPS.length) {
+        player.step = 0;
+        player.i++;
+        if (player.i >= player.pool.length) {
+          if (player.loop) player.i = 0;
+          else { player.i = player.pool.length - 1; playerPause(); return; }
+        }
+      }
+      playerRunStep();
+    }, gap);
+  });
+}
+
+function playerPlay() {
+  if (!player.pool.length) return;
+  player.playing = true;
+  $("plPlay").textContent = "⏸";
+  playerRunStep();
+}
+function playerPause() {
+  player.playing = false;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  clearTimeout(player.timer);
+  $("plPlay").textContent = "▶️";
+  playerRender();
+}
+function playerToggle() { player.playing ? playerPause() : playerPlay(); }
+
+function playerGoto(idx) {
+  if (!player.pool.length) return;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  clearTimeout(player.timer);
+  player.i = (idx + player.pool.length) % player.pool.length;
+  player.step = 0;
+  playerRender();
+  if (player.playing) playerRunStep();
+}
+
+function updatePlayerOpts() {
+  $("plSlow").classList.toggle("selected", player.slow);
+  $("plShuffle").classList.toggle("selected", player.shuffle);
 }
 
 /* ============================================================
@@ -2430,7 +2579,8 @@ function buildProgress() {
    SCREENS
    ============================================================ */
 function show(screen) {
-  ["home","game","memory","results","progress","mycards","listen","scenario"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  ["home","game","memory","results","progress","mycards","listen","scenario","player"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  if (screen !== "player" && player && player.playing) { player.playing = false; if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); }
   if (screen === "home") buildDashboard();
   if (screen === "progress") buildProgress();
   if (screen === "mycards") buildMyCards();
@@ -3089,6 +3239,20 @@ $("aiClearKey").onclick = clearAiKey;
 
 /* Activities wiring */
 $("openListenBtn").onclick = startListen;
+$("openPlayerBtn").onclick = openPlayer;
+$("plPlay").onclick = playerToggle;
+$("plNext").onclick = () => playerGoto(player.i + 1);
+$("plPrev").onclick = () => playerGoto(player.i - 1);
+$("plSlow").onclick = () => { player.slow = !player.slow; updatePlayerOpts(); if (player.playing) { if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); playerRunStep(); } };
+$("plShuffle").onclick = () => {
+  player.shuffle = !player.shuffle;
+  let pool = playerPool();
+  if (player.shuffle) pool = shuffle(pool);
+  player.pool = pool; player.i = 0; player.step = 0;
+  updatePlayerOpts(); playerRender();
+  if (player.playing) { if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); playerRunStep(); }
+};
+$("playerQuitBtn").onclick = () => { playerPause(); show("home"); };
 $("listenReplay").onclick = () => { if (ord.cur) speak(ord.cur.full); };
 $("orderCheck").onclick = checkOrder;
 $("orderSkip").onclick = orderReveal;
