@@ -3957,34 +3957,46 @@ function startListening() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { setMic("idle", "Speech recognition isn't available in this browser."); return; }
   if (!navigator.onLine) { setMic("idle", "The mic needs a connection — use “show answer” while offline."); return; }
+  // Never stack recognizers — cancel any previous one first.
+  if (state.recog) { try { state.recog.onend = null; state.recog.abort(); } catch (e) {} state.recog = null; }
   const target = state.current[0];
   const r = new SR();
   r.lang = speakLang();
-  r.interimResults = false;
+  r.interimResults = true;   // capture partial speech too — more forgiving
   r.maxAlternatives = 5;
   state.recog = r;
-  setMic("listening", "🎧 Listening…");
-  try { r.start(); } catch (e) {}
+  let got = false, hadError = false;
+  setMic("listening", "🎧 Listening… speak now");
+  try { r.start(); } catch (e) { setMic("idle", "Tap the mic to try again."); return; }
 
   r.onresult = (e) => {
-    const alts = [];
+    let finalAlts = null;
     for (let i = 0; i < e.results.length; i++) {
-      const res = e.results[i];
-      for (let j = 0; j < res.length; j++) alts.push(res[j].transcript);
+      if (e.results[i].isFinal) { finalAlts = []; for (let j = 0; j < e.results[i].length; j++) finalAlts.push(e.results[i][j].transcript); }
     }
-    const heard = alts[0] || "";
-    const ok = alts.some(a => matchesSpoken(a, target));
+    if (!finalAlts) return; // interim result — keep listening
+    got = true;
+    const heard = finalAlts[0] || "";
+    const ok = finalAlts.some(a => matchesSpoken(a, target));
     setMic("done", "Heard: “" + heard + "”");
     speak(target);
     resolveAnswer(ok, target);
   };
   r.onerror = (e) => {
+    hadError = true;
     if (e.error === "not-allowed" || e.error === "service-not-allowed")
       setMic("idle", "Microphone blocked — allow mic access, or use “show answer”.");
     else if (e.error === "no-speech")
-      setMic("idle", "Didn't hear anything — tap the mic and try again.");
+      setMic("idle", "Didn't hear you — tap the mic and speak a bit louder.");
+    else if (e.error === "aborted")
+      { /* we cancelled it — no message */ }
     else
       setMic("idle", "Try again — tap the mic when ready.");
+  };
+  r.onend = () => {
+    if (state.recog === r) state.recog = null;
+    // Recognizer stopped with nothing captured: reset so the user can retry.
+    if (!got && !hadError && !state.answeredThis) setMic("idle", "Didn't catch that — tap the mic to try again.");
   };
 }
 
