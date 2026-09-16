@@ -1897,8 +1897,10 @@ function renderOrder() {
   const c = ord.cur;
   const ans = $("orderAnswer"), bank = $("orderBank");
   ans.innerHTML = ""; bank.innerHTML = "";
+  // Show tiles lowercased & without edge punctuation so the capital first word
+  // and the final period don't give away the order.
   c.answerIds.forEach(id => {
-    ans.appendChild(makeWordTile(c.tokens[id], () => {
+    ans.appendChild(makeWordTile(cleanWord(c.tokens[id]), () => {
       if (c.done) return;
       c.answerIds = c.answerIds.filter(x => x !== id);
       renderOrder();
@@ -1906,7 +1908,7 @@ function renderOrder() {
   });
   c.bankOrder.forEach(id => {
     if (c.answerIds.indexOf(id) >= 0) return;
-    bank.appendChild(makeWordTile(c.tokens[id], () => {
+    bank.appendChild(makeWordTile(cleanWord(c.tokens[id]), () => {
       if (c.done) return;
       c.answerIds.push(id);
       renderOrder();
@@ -1919,8 +1921,9 @@ function checkOrder() {
   const c = ord.cur;
   if (!c || c.done || c.answerIds.length !== c.tokens.length) return;
   c.done = true;
-  const guess = c.answerIds.map(id => c.tokens[id]).join(" ");
-  const correct = c.tokens.join(" ");
+  // Compare case- and punctuation-insensitively (tiles are shown normalized).
+  const guess = c.answerIds.map(id => cleanWord(c.tokens[id])).join(" ");
+  const correct = c.tokens.map(cleanWord).join(" ");
   const fb = $("listenFeedback");
   if (guess === correct) {
     ord.score++; $("listenScore").textContent = ord.score;
