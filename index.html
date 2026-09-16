@@ -4192,6 +4192,8 @@ function handleChoice(btn, chosen, correct, idx) {
 
   const isRight = chosen === correct;
   if (!isRight) btn.classList.add("wrong");
+  // On a correct pick, hide the other options so the reveal fits on one screen.
+  if (isRight) buttons.forEach(b => { if (b !== btn) b.classList.add("hidden"); });
 
   // Speak the full sentence (cloze) or the word as reinforcement.
   speak(state.sentence ? state.sentence.full : state.current[0]);
