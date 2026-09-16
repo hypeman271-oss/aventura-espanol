@@ -548,6 +548,34 @@
   .coach-tile { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 14px; margin: 10px 0; }
   .coach-tile h3 { font-size: 0.95rem; margin-bottom: 8px; opacity: 0.9; }
   .coach-word { display: inline-block; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 5px 10px; margin: 3px; font-size: 0.9rem; }
+
+  /* ---- Word Scramble ---- */
+  #scrAnswer { min-height: 52px; }
+  .ltile { background: var(--card-solid); color: var(--ink); border: none; border-radius: 10px; width: 44px; height: 48px; font-size: 1.3rem; font-weight: 800; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.2); text-transform: lowercase; }
+  .ltile:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
+
+  /* ---- Wordle ---- */
+  .wordle-grid { display: grid; gap: 6px; justify-content: center; margin: 14px 0; }
+  .wordle-row { display: grid; grid-auto-flow: column; gap: 6px; justify-content: center; }
+  .wcell { width: 46px; height: 46px; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; text-transform: uppercase; }
+  .wcell.hit { background: #2ecc71; border-color: #2ecc71; color: #fff; }
+  .wcell.near { background: #f1c40f; border-color: #f1c40f; color: #1a2a4a; }
+  .wcell.miss { background: rgba(0,0,0,0.3); border-color: rgba(0,0,0,0.3); color: #fff; }
+  .wordle-keys { display: flex; flex-direction: column; gap: 5px; align-items: center; margin-top: 10px; }
+  .wk-row { display: flex; gap: 4px; justify-content: center; }
+  .wkey { background: var(--card); color: #fff; border: none; border-radius: 5px; min-width: 26px; height: 44px; padding: 0 5px; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
+  .wkey.wide { min-width: 52px; font-size: 0.75rem; }
+  .wkey.hit { background: #2ecc71; } .wkey.near { background: #f1c40f; color: #1a2a4a; } .wkey.miss { background: rgba(0,0,0,0.4); opacity: 0.6; }
+
+  /* ---- Word Search ---- */
+  .search-grid { display: grid; gap: 2px; justify-content: center; margin: 12px 0; }
+  .sc-cell { width: 30px; height: 30px; background: var(--card-solid); color: var(--ink); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; cursor: pointer; -webkit-user-select: none; user-select: none; }
+  .sc-cell.sel { background: var(--accent); }
+  .sc-cell.found { background: var(--good); color: #fff; }
+  .search-clues { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+  .search-clue { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 10px; font-size: 0.85rem; }
+  .search-clue.done { text-decoration: line-through; opacity: 0.5; }
+  @media (max-width: 420px) { .sc-cell { width: 27px; height: 27px; font-size: 0.85rem; } .wcell { width: 40px; height: 40px; } }
 </style>
 </head>
 <body>
@@ -598,6 +626,22 @@
       <button class="btn accent2" id="openStoryBtn">
         <span class="emoji">📖</span>
         <span>Reading<small>A short story at your level (AI)</small></span>
+      </button>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <p class="section-title">🧩 Word games</p>
+      <button class="btn" id="openScrambleBtn" style="background:#a06cd5;color:#fff;">
+        <span class="emoji">🔡</span><span>Word Scramble<small>Unscramble the letters to spell it</small></span>
+      </button>
+      <button class="btn" id="openGenderBtn" style="background:#a06cd5;color:#fff;">
+        <span class="emoji">🚻</span><span>el / la Race<small>Tap the right article, against the clock</small></span>
+      </button>
+      <button class="btn" id="openWordleBtn" style="background:#a06cd5;color:#fff;">
+        <span class="emoji">🟩</span><span>Spanish Wordle<small>Guess the hidden word in 6 tries</small></span>
+      </button>
+      <button class="btn" id="openSearchBtn" style="background:#a06cd5;color:#fff;">
+        <span class="emoji">🔎</span><span>Word Search<small>Find the hidden Spanish words</small></span>
       </button>
     </div>
 
@@ -910,6 +954,86 @@
         </div>
         <button class="btn primary center" id="storyNewBtn" style="margin-top:14px;">🔁 New story</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ============ WORD SCRAMBLE ============ -->
+  <div id="scramble" class="hidden">
+    <button class="back-link" id="scrambleQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <div class="hud">
+        <span class="pill">🔡 <span id="scrProg">0/0</span></span>
+        <span class="pill">⭐ <span id="scrScore">0</span></span>
+      </div>
+      <div id="scrPlay">
+        <div class="prompt-card">
+          <div class="prompt-label">Unscramble</div>
+          <div class="prompt-emoji" id="scrEmoji"></div>
+          <div class="prompt-word" id="scrClue" style="font-size:1.4rem;"></div>
+          <div class="sc-en" id="scrArticle" style="opacity:.7;"></div>
+        </div>
+        <div class="order-answer" id="scrAnswer" style="justify-content:center;"></div>
+        <div class="order-bank" id="scrBank"></div>
+        <div class="feedback" id="scrFeedback"></div>
+        <button class="btn primary center" id="scrCheck">Check</button>
+        <button class="btn primary center hidden" id="scrNext">Next →</button>
+        <button class="back-link" id="scrClear" style="display:block;margin:8px auto 0;">↺ Clear</button>
+      </div>
+      <div id="scrEnd" class="order-end hidden"></div>
+    </div>
+  </div>
+
+  <!-- ============ EL / LA GENDER RACE ============ -->
+  <div id="gender" class="hidden">
+    <button class="back-link" id="genderQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <div id="genderStart" class="order-end">
+        <p class="section-title">🚻 el / la Race</p>
+        <p class="sc-intro">A noun appears — tap <b>el</b> or <b>la</b>. Get as many right as you can before time runs out!</p>
+        <button class="btn primary center" id="genderGoBtn">▶️ Start (45s)</button>
+      </div>
+      <div id="genderPlay" class="hidden">
+        <div class="hud">
+          <span class="pill">⏱️ <span id="genderTime">45</span></span>
+          <span class="pill">✅ <span id="genderScore">0</span></span>
+        </div>
+        <div class="prompt-card">
+          <div class="prompt-emoji" id="genderEmoji"></div>
+          <div class="prompt-word" id="genderWord"></div>
+          <div class="sc-en" id="genderEn" style="opacity:.7;"></div>
+        </div>
+        <div class="btn-row" style="margin-top:16px;">
+          <button class="btn primary center" id="genderEl" style="font-size:1.4rem;">el</button>
+          <button class="btn primary center" id="genderLa" style="font-size:1.4rem;">la</button>
+        </div>
+        <div class="feedback" id="genderFeedback"></div>
+      </div>
+      <div id="genderEnd" class="order-end hidden"></div>
+    </div>
+  </div>
+
+  <!-- ============ SPANISH WORDLE ============ -->
+  <div id="wordle" class="hidden">
+    <button class="back-link" id="wordleQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <p class="section-title">🟩 Spanish Wordle</p>
+      <p class="sc-intro" id="wordleHint">Guess the 5-letter Spanish word in 6 tries.</p>
+      <div id="wordleGrid" class="wordle-grid"></div>
+      <div id="wordleMsg" class="feedback"></div>
+      <div id="wordleKeys" class="wordle-keys"></div>
+      <button class="btn primary center hidden" id="wordleAgain">🔁 New word</button>
+    </div>
+  </div>
+
+  <!-- ============ WORD SEARCH ============ -->
+  <div id="search" class="hidden">
+    <button class="back-link" id="searchQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <p class="section-title">🔎 Word Search</p>
+      <p class="sc-intro">Tap the first and last letter of each word. Find them all!</p>
+      <div id="searchGrid" class="search-grid"></div>
+      <div id="searchClues" class="search-clues"></div>
+      <button class="btn primary center hidden" id="searchAgain">🔁 New puzzle</button>
     </div>
   </div>
 
@@ -2593,6 +2717,252 @@ function storyGenerate() {
 let story = {};
 
 /* ============================================================
+   WORD GAMES — Scramble, el/la Race, Wordle, Word Search (offline)
+   ============================================================ */
+
+/* ---- Word Scramble ---- */
+const SCR_ROUND = 10;
+let scr = {};
+function scramblePool() {
+  return CARDS.filter(c => { const b = stripArticle(c.es); return b.length >= 3 && b.length <= 9 && !/\s/.test(b); });
+}
+function openScramble() {
+  const pool = shuffle(scramblePool()).slice(0, SCR_ROUND);
+  if (!pool.length) return;
+  scr = { pool, i: 0, score: 0, total: pool.length };
+  $("scrEnd").classList.add("hidden"); $("scrPlay").classList.remove("hidden");
+  show("scramble"); nextScramble();
+}
+function nextScramble() {
+  if (scr.i >= scr.pool.length) return endScramble();
+  const card = scr.pool[scr.i];
+  const bare = stripArticle(card.es).toLowerCase();
+  const art = card.es !== stripArticle(card.es) ? card.es.split(/\s+/)[0] : "";
+  let letters; do { letters = shuffle(bare.split("")); } while (letters.join("") === bare && bare.length > 1);
+  scr.cur = { word: bare, art, letters: letters.map((ch, idx) => ({ id: idx, ch })), answerIds: [], done: false };
+  $("scrProg").textContent = (scr.i + 1) + "/" + scr.total;
+  $("scrScore").textContent = scr.score;
+  $("scrEmoji").textContent = card.emoji;
+  $("scrClue").textContent = card.en;
+  $("scrArticle").textContent = art ? "(" + art + " …)" : "";
+  $("scrFeedback").textContent = "";
+  $("scrCheck").classList.remove("hidden");
+  $("scrNext").classList.add("hidden");
+  renderScramble();
+}
+function renderScramble() {
+  const c = scr.cur, ans = $("scrAnswer"), bank = $("scrBank");
+  ans.innerHTML = ""; bank.innerHTML = "";
+  c.answerIds.forEach(id => {
+    const b = document.createElement("button"); b.className = "ltile"; b.textContent = c.letters[id].ch;
+    b.onclick = () => { if (c.done) return; c.answerIds = c.answerIds.filter(x => x !== id); renderScramble(); };
+    ans.appendChild(b);
+  });
+  c.letters.forEach(L => {
+    if (c.answerIds.indexOf(L.id) >= 0) return;
+    const b = document.createElement("button"); b.className = "ltile"; b.textContent = L.ch;
+    b.onclick = () => { if (c.done) return; c.answerIds.push(L.id); renderScramble(); };
+    bank.appendChild(b);
+  });
+  $("scrCheck").disabled = c.answerIds.length !== c.letters.length;
+}
+function checkScramble() {
+  const c = scr.cur; if (!c || c.done || c.answerIds.length !== c.letters.length) return;
+  c.done = true;
+  const guess = c.answerIds.map(id => c.letters[id].ch).join("");
+  const ok = guess === c.word || normalize(guess) === normalize(c.word);
+  const full = (c.art ? c.art + " " : "") + c.word;
+  const fb = $("scrFeedback");
+  if (ok) { scr.score++; $("scrScore").textContent = scr.score; fb.style.color = "var(--good)"; fb.innerHTML = "¡Correcto! ✓ " + full; }
+  else { fb.style.color = "var(--bad)"; fb.innerHTML = "✗ It was: <b>" + full + "</b>"; }
+  speak(full);
+  creditReview(scr.pool[scr.i].id, ok, true);
+  $("scrCheck").classList.add("hidden");
+  scr.i++;
+  const nb = $("scrNext"); nb.textContent = scr.i >= scr.pool.length ? "See results →" : "Next →"; nb.classList.remove("hidden"); setTimeout(() => nb.focus(), 30);
+}
+function endScramble() {
+  $("scrPlay").classList.add("hidden");
+  logActivity(scr.total, scr.score * 10);
+  const end = $("scrEnd"); end.classList.remove("hidden");
+  end.innerHTML = "<p class='section-title'>🔡 Round complete</p><div class='big-score'>" + scr.score + "/" + scr.total + "</div>" +
+    "<button class='btn primary center' id='scrAgain'>🔁 Again</button><button class='btn center' id='scrHome'>🏠 Menu</button>";
+  $("scrAgain").onclick = openScramble; $("scrHome").onclick = () => show("home");
+}
+
+/* ---- el / la Gender Race ---- */
+let gen = {};
+function genderPool() {
+  return CARDS.filter(c => /^(el|la|los|las)\s/i.test(c.es)).map(c => {
+    const art = c.es.split(/\s+/)[0].toLowerCase();
+    return { bare: stripArticle(c.es), en: c.en, emoji: c.emoji, art: art === "los" ? "el" : art === "las" ? "la" : art };
+  });
+}
+function openGender() {
+  $("genderStart").classList.remove("hidden");
+  $("genderPlay").classList.add("hidden");
+  $("genderEnd").classList.add("hidden");
+  show("gender");
+}
+function startGenderRace() {
+  gen = { pool: shuffle(genderPool()), i: 0, score: 0, time: 45, timer: null };
+  $("genderStart").classList.add("hidden");
+  $("genderEnd").classList.add("hidden");
+  $("genderPlay").classList.remove("hidden");
+  $("genderTime").textContent = 45; $("genderScore").textContent = 0;
+  gen.timer = setInterval(() => { gen.time--; $("genderTime").textContent = gen.time; if (gen.time <= 0) endGender(); }, 1000);
+  nextGender();
+}
+function nextGender() {
+  if (gen.i >= gen.pool.length) { gen.pool = shuffle(gen.pool); gen.i = 0; }
+  const w = gen.pool[gen.i]; gen.cur = w;
+  $("genderEmoji").textContent = w.emoji; $("genderWord").textContent = w.bare; $("genderEn").textContent = w.en;
+  $("genderFeedback").textContent = "";
+}
+function answerGender(art) {
+  if (!gen.cur || gen.time <= 0) return;
+  const ok = art === gen.cur.art;
+  const fb = $("genderFeedback");
+  if (ok) { gen.score++; $("genderScore").textContent = gen.score; fb.style.color = "var(--good)"; fb.textContent = "✓"; }
+  else { fb.style.color = "var(--bad)"; fb.textContent = "✗ " + gen.cur.art + " " + gen.cur.bare; }
+  gen.i++;
+  setTimeout(nextGender, ok ? 150 : 750);
+}
+function endGender() {
+  if (gen.timer) { clearInterval(gen.timer); gen.timer = null; }
+  $("genderPlay").classList.add("hidden");
+  logActivity(gen.score, gen.score * 5);
+  const end = $("genderEnd"); end.classList.remove("hidden");
+  end.innerHTML = "<p class='section-title'>🚻 ¡Tiempo!</p><div class='big-score'>" + gen.score + "</div><p class='result-msg'>correct in 45 seconds</p>" +
+    "<button class='btn primary center' id='genAgain'>🔁 Again</button><button class='btn center' id='genHome'>🏠 Menu</button>";
+  $("genAgain").onclick = startGenderRace; $("genHome").onclick = () => show("home");
+}
+
+/* ---- Spanish Wordle ---- */
+const WORDLE_WORDS = ["perro", "plato", "libro", "silla", "verde", "negro", "rumba", "tinto", "carro", "playa",
+  "fruta", "leche", "noche", "tarde", "mujer", "mundo", "feliz", "campo", "cielo", "fuego", "nieve", "gente",
+  "calle", "tigre", "reloj", "papel", "salud", "dolor", "lucas", "vaina", "chino", "amigo", "comer", "vivir",
+  "jugar", "bueno", "pollo", "queso", "huevo", "arroz", "traje", "clima", "traer", "beber", "lunes", "jueves"];
+let wdl = {};
+function openWordle() {
+  const target = WORDLE_WORDS[Math.floor(Math.random() * WORDLE_WORDS.length)];
+  wdl = { target: target.toUpperCase(), len: target.length, row: 0, cur: "", done: false, keyState: {} };
+  $("wordleHint").textContent = "Guess the " + target.length + "-letter Spanish word in 6 tries.";
+  $("wordleMsg").textContent = ""; $("wordleAgain").classList.add("hidden");
+  buildWordleGrid(); buildWordleKeys();
+  show("wordle");
+}
+function buildWordleGrid() {
+  const g = $("wordleGrid"); g.innerHTML = "";
+  for (let r = 0; r < 6; r++) {
+    const row = document.createElement("div"); row.className = "wordle-row";
+    for (let c = 0; c < wdl.len; c++) { const cell = document.createElement("div"); cell.className = "wcell"; cell.id = "wc" + r + "_" + c; row.appendChild(cell); }
+    g.appendChild(row);
+  }
+}
+function renderWordleCur() { for (let c = 0; c < wdl.len; c++) { const cell = $("wc" + wdl.row + "_" + c); if (cell) cell.textContent = wdl.cur[c] || ""; } }
+const WK_ROWS = ["QWERTYUIOP", "ASDFGHJKLÑ", "ZXCVBNM"];
+function buildWordleKeys() {
+  const k = $("wordleKeys"); k.innerHTML = "";
+  WK_ROWS.forEach((rowStr, ri) => {
+    const row = document.createElement("div"); row.className = "wk-row";
+    if (ri === 2) { const en = document.createElement("button"); en.className = "wkey wide"; en.textContent = "ENTER"; en.onclick = wordleEnter; row.appendChild(en); }
+    rowStr.split("").forEach(ch => { const b = document.createElement("button"); b.className = "wkey" + (wdl.keyState[ch] ? " " + wdl.keyState[ch] : ""); b.textContent = ch; b.onclick = () => wordleType(ch); row.appendChild(b); });
+    if (ri === 2) { const bs = document.createElement("button"); bs.className = "wkey wide"; bs.textContent = "⌫"; bs.onclick = wordleBack; row.appendChild(bs); }
+    k.appendChild(row);
+  });
+}
+function wordleType(ch) { if (wdl.done) return; if (wdl.cur.length < wdl.len) { wdl.cur += ch; renderWordleCur(); } }
+function wordleBack() { if (wdl.done) return; wdl.cur = wdl.cur.slice(0, -1); renderWordleCur(); }
+function wordleFlash(m) { const el = $("wordleMsg"); el.style.color = "var(--text)"; el.textContent = m; setTimeout(() => { if (el.textContent === m) el.textContent = ""; }, 1200); }
+function wordleEnter() {
+  if (wdl.done) return;
+  if (wdl.cur.length !== wdl.len) { wordleFlash("Not enough letters"); return; }
+  const guess = wdl.cur, target = wdl.target, res = new Array(wdl.len).fill("miss");
+  const tArr = target.split(""), used = new Array(wdl.len).fill(false);
+  for (let c = 0; c < wdl.len; c++) if (guess[c] === tArr[c]) { res[c] = "hit"; used[c] = true; }
+  for (let c = 0; c < wdl.len; c++) { if (res[c] === "hit") continue; const idx = tArr.findIndex((t, i) => !used[i] && t === guess[c]); if (idx >= 0) { res[c] = "near"; used[idx] = true; } }
+  const rank = { miss: 0, near: 1, hit: 2 };
+  for (let c = 0; c < wdl.len; c++) { const cell = $("wc" + wdl.row + "_" + c); cell.textContent = guess[c]; cell.classList.add(res[c]); const cur = wdl.keyState[guess[c]]; if (!cur || rank[res[c]] > rank[cur]) wdl.keyState[guess[c]] = res[c]; }
+  buildWordleKeys();
+  if (guess === target) { wdl.done = true; $("wordleMsg").style.color = "var(--good)"; $("wordleMsg").textContent = "¡Correcto! 🎉"; speak(target.toLowerCase()); logActivity(1, 20); $("wordleAgain").classList.remove("hidden"); return; }
+  wdl.row++; wdl.cur = "";
+  if (wdl.row >= 6) { wdl.done = true; $("wordleMsg").style.color = "var(--bad)"; $("wordleMsg").textContent = "The word was: " + target.toLowerCase(); speak(target.toLowerCase()); logActivity(1, 0); $("wordleAgain").classList.remove("hidden"); }
+}
+function wordleKeydown(e) {
+  if ($("wordle").classList.contains("hidden") || wdl.done) return;
+  if (e.key === "Enter") wordleEnter();
+  else if (e.key === "Backspace") wordleBack();
+  else if (/^[a-zñ]$/i.test(e.key)) wordleType(e.key.toUpperCase());
+}
+
+/* ---- Word Search ---- */
+let ws = {};
+function searchPool() {
+  return CARDS.map(c => ({ es: stripArticle(c.es).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zñ]/g, ""), en: c.en }))
+    .filter(w => w.es.length >= 3 && w.es.length <= 8);
+}
+function wsCanPlace(grid, size, word, r, c, dr, dc) {
+  for (let k = 0; k < word.length; k++) { const rr = r + dr * k, cc = c + dc * k; if (rr < 0 || cc < 0 || rr >= size || cc >= size) return false; const cell = grid[rr][cc]; if (cell && cell !== word[k]) return false; } return true;
+}
+function openSearch() {
+  const size = 10;
+  let pool = shuffle(searchPool()); const seen = {}; pool = pool.filter(w => { if (seen[w.es]) return false; seen[w.es] = 1; return true; });
+  const grid = Array.from({ length: size }, () => Array(size).fill(""));
+  const dirs = [[0, 1], [1, 0], [1, 1], [-1, 1]];
+  const placed = [];
+  for (const w of pool) {
+    if (placed.length >= 7) break;
+    if (w.es.length > size) continue;
+    for (let t = 0; t < 60; t++) {
+      const [dr, dc] = dirs[Math.floor(Math.random() * dirs.length)];
+      const r = Math.floor(Math.random() * size), c = Math.floor(Math.random() * size);
+      if (wsCanPlace(grid, size, w.es, r, c, dr, dc)) {
+        const cells = []; for (let k = 0; k < w.es.length; k++) { const rr = r + dr * k, cc = c + dc * k; grid[rr][cc] = w.es[k]; cells.push(rr + "," + cc); }
+        placed.push({ es: w.es, en: w.en, cells, found: false }); break;
+      }
+    }
+  }
+  const AB = "abcdefghijklmnopqrstuvwxyz";
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!grid[r][c]) grid[r][c] = AB[Math.floor(Math.random() * 26)];
+  ws = { size, grid, placed, first: null };
+  $("searchAgain").classList.add("hidden");
+  renderSearch();
+  show("search");
+}
+function renderSearch() {
+  const g = $("searchGrid"); g.style.gridTemplateColumns = "repeat(" + ws.size + ", 1fr)"; g.innerHTML = "";
+  for (let r = 0; r < ws.size; r++) for (let c = 0; c < ws.size; c++) {
+    const key = r + "," + c, cell = document.createElement("div"); cell.className = "sc-cell"; cell.textContent = ws.grid[r][c];
+    if (ws.placed.some(p => p.found && p.cells.indexOf(key) >= 0)) cell.classList.add("found");
+    if (ws.first === key) cell.classList.add("sel");
+    cell.onclick = () => searchTap(r, c);
+    g.appendChild(cell);
+  }
+  $("searchClues").innerHTML = ws.placed.map(p => "<span class='search-clue" + (p.found ? " done" : "") + "'>" + escapeHtml(p.en) + "</span>").join("");
+}
+function searchTap(r, c) {
+  const key = r + "," + c;
+  if (ws.first === null) { ws.first = key; renderSearch(); return; }
+  if (ws.first === key) { ws.first = null; renderSearch(); return; }
+  const [r1, c1] = ws.first.split(",").map(Number);
+  ws.first = null;
+  if (!(r1 === r || c1 === c || Math.abs(r - r1) === Math.abs(c - c1))) { renderSearch(); return; }
+  const dr = Math.sign(r - r1), dc = Math.sign(c - c1), len = Math.max(Math.abs(r - r1), Math.abs(c - c1)) + 1;
+  const cells = []; for (let k = 0; k < len; k++) cells.push((r1 + dr * k) + "," + (c1 + dc * k));
+  const fwd = cells.join("|"), rev = cells.slice().reverse().join("|");
+  const match = ws.placed.find(p => !p.found && (p.cells.join("|") === fwd || p.cells.join("|") === rev));
+  if (match) { match.found = true; speak(match.es); }
+  renderSearch();
+  if (ws.placed.length && ws.placed.every(p => p.found)) {
+    logActivity(ws.placed.length, ws.placed.length * 10);
+    $("searchAgain").classList.remove("hidden");
+    const msg = document.createElement("p"); msg.className = "result-msg"; msg.textContent = "🎉 ¡Todas encontradas!"; msg.style.marginTop = "10px";
+    $("searchClues").after(msg);
+  }
+}
+
+/* ============================================================
    ACTIVITY: SCENARIO CONVERSATIONS (AI roleplay)
    Pick a situation → Claude writes a dialogue → you play one side,
    responding by speech or typing, with show/hide hints.
@@ -3469,7 +3839,8 @@ function buildProgress() {
    SCREENS
    ============================================================ */
 function show(screen) {
-  ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach","write","story"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach","write","story","scramble","gender","wordle","search"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  if (screen !== "gender" && typeof gen === "object" && gen.timer) { clearInterval(gen.timer); gen.timer = null; }
   if (screen !== "player" && player && player.playing) { player.playing = false; if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); if (typeof releaseWakeLock === "function") releaseWakeLock(); }
   if (screen === "home") buildDashboard();
   if (screen === "progress") buildProgress();
@@ -4171,6 +4542,25 @@ $("conjNext").onclick = nextConjug;
 $("conjQuit").onclick = openGrammar;
 $("openCoachBtn").onclick = openCoach;
 $("coachQuitBtn").onclick = () => show("home");
+
+/* Word games wiring */
+$("openScrambleBtn").onclick = openScramble;
+$("scrCheck").onclick = checkScramble;
+$("scrNext").onclick = nextScramble;
+$("scrClear").onclick = () => { if (scr.cur && !scr.cur.done) { scr.cur.answerIds = []; renderScramble(); } };
+$("scrambleQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("openGenderBtn").onclick = openGender;
+$("genderGoBtn").onclick = startGenderRace;
+$("genderEl").onclick = () => answerGender("el");
+$("genderLa").onclick = () => answerGender("la");
+$("genderQuitBtn").onclick = () => { if (gen.timer) { clearInterval(gen.timer); gen.timer = null; } show("home"); };
+$("openWordleBtn").onclick = openWordle;
+$("wordleAgain").onclick = openWordle;
+$("wordleQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+document.addEventListener("keydown", wordleKeydown);
+$("openSearchBtn").onclick = openSearch;
+$("searchAgain").onclick = openSearch;
+$("searchQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
 $("openWriteBtn").onclick = openWrite;
 $("writeCheckBtn").onclick = writeCheck;
 $("writeQuitBtn").onclick = () => show("home");
