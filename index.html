@@ -4586,8 +4586,21 @@ function endGame() {
 const MEMORY_PAIRS = 6;
 let mem = {};
 
+function memoryPool() {
+  // Respect the global topic focus; fall back to all words if a topic is
+  // too small (or "All topics" is selected, where VOCAB has no single key).
+  let pool = [];
+  Object.keys(VOCAB).forEach(cat => { if (inFocus(cat)) pool = pool.concat(VOCAB[cat]); });
+  if (pool.length < MEMORY_PAIRS) {
+    pool = [];
+    Object.keys(VOCAB).forEach(cat => { pool = pool.concat(VOCAB[cat]); });
+  }
+  return pool;
+}
+
 function startMemory() {
-  const words = shuffle(VOCAB[selectedCategory]).slice(0, Math.min(MEMORY_PAIRS, VOCAB[selectedCategory].length));
+  const pool = memoryPool();
+  const words = shuffle(pool).slice(0, Math.min(MEMORY_PAIRS, pool.length));
   // Build two cards per word: a Spanish card and an English card
   const cards = [];
   words.forEach((w, i) => {
