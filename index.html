@@ -654,7 +654,7 @@
       <p class="section-title">🎮 Free play — pick a topic</p>
       <div class="chips" id="categoryChips"></div>
 
-      <p class="section-title" style="margin-top:24px;">Choose a game</p>
+      <p class="section-title" style="margin-top:24px;">Choose an exercise</p>
       <button class="btn primary" data-mode="es2en">
         <span class="emoji">🌎</span>
         <span>Spanish → English<small>See the Spanish word, pick the meaning</small></span>
@@ -3791,8 +3791,8 @@ function getGoals() {
   const g = store.meta.goals || {};
   return {
     type: g.type === "hours" ? "hours" : "words",
-    wordsDaily: g.wordsDaily || 20, wordsWeekly: g.wordsWeekly || 100, wordsMonthly: g.wordsMonthly || 400,
-    hoursDaily: g.hoursDaily || 0.5, hoursWeekly: g.hoursWeekly || 3, hoursMonthly: g.hoursMonthly || 12
+    wordsDaily: g.wordsDaily || 20, wordsWeekly: g.wordsWeekly || 100, wordsMonthly: g.wordsMonthly || 400, wordsYearly: g.wordsYearly || 5000,
+    hoursDaily: g.hoursDaily || 0.5, hoursWeekly: g.hoursWeekly || 3, hoursMonthly: g.hoursMonthly || 12, hoursYearly: g.hoursYearly || 150
   };
 }
 function setGoals(patch) { store.meta.goals = Object.assign(getGoals(), patch); saveStore(); }
@@ -3807,9 +3807,13 @@ function usageStats() {
     weekItems += it; weekSecs += daySeconds(d); if (it > 0 || daySeconds(d) > 0) daysActive++;
   }
   const ym = todayKey().slice(0, 7); // current calendar month "YYYY-MM"
-  let monthItems = 0, monthSecs = 0;
-  Object.keys(hist).forEach(k => { if (k.slice(0, 7) === ym) { monthItems += dayItems(hist[k]); monthSecs += daySeconds(hist[k]); } });
-  return { todayItems: items, todaySecs: secs, weekItems, weekSecs, monthItems, monthSecs, daysActive };
+  const yy = todayKey().slice(0, 4); // current calendar year "YYYY"
+  let monthItems = 0, monthSecs = 0, yearItems = 0, yearSecs = 0;
+  Object.keys(hist).forEach(k => {
+    if (k.slice(0, 7) === ym) { monthItems += dayItems(hist[k]); monthSecs += daySeconds(hist[k]); }
+    if (k.slice(0, 4) === yy) { yearItems += dayItems(hist[k]); yearSecs += daySeconds(hist[k]); }
+  });
+  return { todayItems: items, todaySecs: secs, weekItems, weekSecs, monthItems, monthSecs, yearItems, yearSecs, daysActive };
 }
 function goalsCardHtml() {
   const g = getGoals(), u = usageStats(), hours = g.type === "hours";
@@ -3817,9 +3821,11 @@ function goalsCardHtml() {
   const dGoal = hours ? g.hoursDaily : g.wordsDaily;
   const wGoal = hours ? g.hoursWeekly : g.wordsWeekly;
   const mGoal = hours ? g.hoursMonthly : g.wordsMonthly;
+  const yGoal = hours ? g.hoursYearly : g.wordsYearly;
   const dVal = hours ? u.todaySecs / 3600 : u.todayItems;
   const wVal = hours ? u.weekSecs / 3600 : u.weekItems;
   const mVal = hours ? u.monthSecs / 3600 : u.monthItems;
+  const yVal = hours ? u.yearSecs / 3600 : u.yearItems;
   const fmt = v => hours ? (Math.round(v * 10) / 10) : Math.round(v);
   const step = hours ? "0.5" : "1";
   const bar = (val, goal) => "<div class='goalbar'><div style='width:" + Math.min(100, Math.round(val / goal * 100)) + "%'></div></div>";
@@ -3831,11 +3837,13 @@ function goalsCardHtml() {
     row("Today", dVal, dGoal) + bar(dVal, dGoal) +
     row("This week", wVal, wGoal) + bar(wVal, wGoal) +
     row("This month", mVal, mGoal) + bar(mVal, mGoal) +
+    row("This year", yVal, yGoal) + bar(yVal, yGoal) +
     "<p style='opacity:.7;font-size:.78rem;margin:8px 0;'>" + u.daysActive + " active day" + (u.daysActive === 1 ? "" : "s") + " this week · " +
       (hours ? "hours = time spent practising in the app." : "words = every card/answer you practise, anywhere.") + "</p>" +
     "<div class='goal-edit'>Daily <input id='goalDaily' type='number' min='0.1' step='" + step + "' value='" + dGoal + "'/> " +
       "Weekly <input id='goalWeekly' type='number' min='0.1' step='" + step + "' value='" + wGoal + "'/> " +
       "Monthly <input id='goalMonthly' type='number' min='0.1' step='" + step + "' value='" + mGoal + "'/> " +
+      "Yearly <input id='goalYearly' type='number' min='0.1' step='" + step + "' value='" + yGoal + "'/> " +
       "<span style='opacity:.7;'>" + unit + "</span> <button id='goalSave' class='sc-chip'>Save</button></div>" +
     "</div>";
 }
@@ -3848,8 +3856,9 @@ function wireGoals() {
     const d = Math.max(0.1, +$("goalDaily").value || (hours ? 0.5 : 20));
     const w = Math.max(0.1, +$("goalWeekly").value || (hours ? 3 : 100));
     const m = Math.max(0.1, +$("goalMonthly").value || (hours ? 12 : 400));
-    setGoals(hours ? { hoursDaily: d, hoursWeekly: w, hoursMonthly: m }
-                   : { wordsDaily: Math.round(d), wordsWeekly: Math.round(w), wordsMonthly: Math.round(m) });
+    const y = Math.max(0.1, +$("goalYearly").value || (hours ? 150 : 5000));
+    setGoals(hours ? { hoursDaily: d, hoursWeekly: w, hoursMonthly: m, hoursYearly: y }
+                   : { wordsDaily: Math.round(d), wordsWeekly: Math.round(w), wordsMonthly: Math.round(m), wordsYearly: Math.round(y) });
     buildProgress();
   };
 }
@@ -3973,19 +3982,16 @@ function show(screen) {
 /* ============================================================
    HOME — build category chips
    ============================================================ */
-let selectedCategory = Object.keys(VOCAB)[0];
+let selectedCategory = "__all__";   // default to a mix of all topics for variety
 
 function buildChips() {
   const wrap = $("categoryChips");
   wrap.innerHTML = "";
-  Object.keys(VOCAB).forEach(cat => {
+  ["__all__"].concat(Object.keys(VOCAB)).forEach(cat => {
     const chip = document.createElement("button");
     chip.className = "chip" + (cat === selectedCategory ? " selected" : "");
-    chip.textContent = cat;
-    chip.onclick = () => {
-      selectedCategory = cat;
-      buildChips();
-    };
+    chip.textContent = cat === "__all__" ? "🎲 All topics" : cat;
+    chip.onclick = () => { selectedCategory = cat; buildChips(); };
     wrap.appendChild(chip);
   });
 }
@@ -4117,13 +4123,18 @@ function shuffle(arr) {
 }
 
 function startGame(mode) {
-  let words = VOCAB[selectedCategory];
-  if (mode === "cloze") words = words.filter(w => hasSentence(selectedCategory, w[0]));
-  const deck = shuffle(words).slice(0, Math.min(QUESTIONS_PER_ROUND, words.length));
+  // "__all__" draws from every topic (variety); otherwise a single category.
+  const all = selectedCategory === "__all__";
+  let cards = all
+    ? CARDS.map(c => ({ es: c.es, en: c.en, emoji: c.emoji, cat: c.cat }))
+    : (VOCAB[selectedCategory] || []).map(w => ({ es: w[0], en: w[1], emoji: w[2], cat: selectedCategory }));
+  if (mode === "cloze") cards = cards.filter(c => hasSentence(c.cat, c.es));
+  const chosen = shuffle(cards).slice(0, Math.min(QUESTIONS_PER_ROUND, cards.length));
   state = {
     mode,
-    deck,
-    pool: VOCAB[selectedCategory],
+    deck: chosen.map(c => [c.es, c.en, c.emoji]),
+    deckCat: chosen.map(c => c.cat),
+    pool: all ? CARDS.map(c => [c.es, c.en, c.emoji]) : VOCAB[selectedCategory],
     index: 0,
     score: 0,
     lives: START_LIVES,
@@ -4141,10 +4152,11 @@ function nextQuestion() {
     return endGame();
   }
   state.current = state.deck[state.index]; // [es, en, emoji]
+  state.curCat = state.deckCat ? state.deckCat[state.index] : selectedCategory;
   state.currentCard = null;
   state.currentItem = null;
   state.sentence = (state.mode === "cloze" || state.mode === "clozetype")
-    ? getSentence(selectedCategory, state.current[0]) : null;
+    ? getSentence(state.curCat, state.current[0]) : null;
   renderQuestion();
 }
 
@@ -4385,7 +4397,7 @@ function resolveAnswer(isRight, correctText) {
     gradeSrs(isRight); advance = nextSrsQuestion;
   } else {
     // Free-play games also feed the review schedule.
-    creditReview(selectedCategory + "||" + w[0], isRight, ["type", "listen", "speak", "clozetype"].includes(state.mode));
+    creditReview((state.curCat || selectedCategory) + "||" + w[0], isRight, ["type", "listen", "speak", "clozetype"].includes(state.mode));
     state.index++; advance = nextQuestion;
   }
 
