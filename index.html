@@ -548,6 +548,11 @@
   .coach-tile { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 14px; margin: 10px 0; }
   .coach-tile h3 { font-size: 0.95rem; margin-bottom: 8px; opacity: 0.9; }
   .coach-word { display: inline-block; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 5px 10px; margin: 3px; font-size: 0.9rem; }
+  .goal-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 0.9rem; margin: 6px 0 4px; }
+  .goalbar { height: 12px; background: rgba(0,0,0,0.25); border-radius: 8px; overflow: hidden; }
+  .goalbar > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.4s ease; }
+  .goal-edit { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 10px; font-size: 0.82rem; opacity: 0.9; }
+  .goal-edit input { width: 60px; padding: 6px 8px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.25); background: #fff; color: var(--ink); font-size: 0.9rem; }
 
   /* ---- Word Scramble ---- */
   #scrAnswer { min-height: 52px; }
@@ -3781,6 +3786,33 @@ function buildDashboard() {
 }
 
 /* Progress screen: mastery, per-topic coverage, activity + review forecast. */
+/* ---- Usage tracker & goals ---- */
+function getGoals() { const g = store.meta.goals || {}; return { daily: g.daily || 20, weekly: g.weekly || 100 }; }
+function setGoals(d, w) { store.meta.goals = { daily: Math.max(1, Math.round(d) || 20), weekly: Math.max(1, Math.round(w) || 100) }; saveStore(); }
+function dayItems(d) { return d ? ((d.new || 0) + (d.reviews || 0) + (d.activity || 0)) : 0; }
+function usageStats() {
+  const hist = store.meta.history || {}, now = Date.now(), wd = new Date().getDay();
+  const today = dayItems(hist[todayKey()]);
+  let week = 0, daysActive = 0;
+  for (let i = 0; i <= wd; i++) { const it = dayItems(hist[dateKey(now - i * DAY)]); week += it; if (it > 0) daysActive++; }
+  return { today, week, daysActive };
+}
+function goalsCardHtml() {
+  const g = getGoals(), u = usageStats();
+  const bar = (val, goal) => "<div class='goalbar'><div style='width:" + Math.min(100, Math.round(val / goal * 100)) + "%'></div></div>";
+  const row = (label, val, goal) => "<div class='goal-row'><span>" + label + (val >= goal ? " ✅" : "") + "</span><span>" + val + " / " + goal + "</span></div>";
+  return "<div class='coach-tile'><h3>🎯 Goals</h3>" +
+    row("Today", u.today, g.daily) + bar(u.today, g.daily) +
+    row("This week", u.week, g.weekly) + bar(u.week, g.weekly) +
+    "<p style='opacity:.7;font-size:.78rem;margin:8px 0;'>" + u.daysActive + " active day" + (u.daysActive === 1 ? "" : "s") + " this week · counts every word you practise, anywhere.</p>" +
+    "<div class='goal-edit'>Daily <input id='goalDaily' type='number' min='1' value='" + g.daily + "'/> Weekly <input id='goalWeekly' type='number' min='1' value='" + g.weekly + "'/> <button id='goalSave' class='sc-chip'>Save</button></div>" +
+    "</div>";
+}
+function wireGoals() {
+  const b = $("goalSave");
+  if (b) b.onclick = () => { setGoals(+$("goalDaily").value, +$("goalWeekly").value); buildProgress(); };
+}
+
 function buildProgress() {
   const now = Date.now();
   const body = $("progBody");
@@ -3788,8 +3820,9 @@ function buildProgress() {
   const learned = learnedCards.length;
 
   if (!learned) {
-    body.innerHTML = '<p class="prog-empty">No words learned yet.<br>' +
+    body.innerHTML = goalsCardHtml() + '<p class="prog-empty">No words learned yet.<br>' +
       'Tap <b>Start daily practice</b> on the home screen and your progress will grow here. 🌱</p>';
+    wireGoals();
     return;
   }
 
@@ -3854,11 +3887,13 @@ function buildProgress() {
     fc.map((n, i) => barCol(n, Math.round(n / fcMax * 100), i === 0 ? "Now" : DOW[new Date(now + i * DAY).getDay()])).join("") + '</div>';
 
   body.innerHTML =
+    goalsCardHtml() +
     '<div class="dash-stats">' + tiles + '</div>' +
     '<div class="prog-section"><h3>Mastery — ' + learned + ' word' + (learned > 1 ? "s" : "") + '</h3>' + masteryBar + legend + '</div>' +
     '<div class="prog-section"><h3>By topic</h3>' + cats + '</div>' +
     '<div class="prog-section"><h3>Activity — last 14 days</h3>' + actChart + '</div>' +
     '<div class="prog-section"><h3>Reviews coming up</h3>' + fcChart + '</div>';
+  wireGoals();
 }
 
 /* ============================================================
