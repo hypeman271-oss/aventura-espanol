@@ -3791,8 +3791,8 @@ function getGoals() {
   const g = store.meta.goals || {};
   return {
     type: g.type === "hours" ? "hours" : "words",
-    wordsDaily: g.wordsDaily || 20, wordsWeekly: g.wordsWeekly || 100,
-    hoursDaily: g.hoursDaily || 0.5, hoursWeekly: g.hoursWeekly || 3
+    wordsDaily: g.wordsDaily || 20, wordsWeekly: g.wordsWeekly || 100, wordsMonthly: g.wordsMonthly || 400,
+    hoursDaily: g.hoursDaily || 0.5, hoursWeekly: g.hoursWeekly || 3, hoursMonthly: g.hoursMonthly || 12
   };
 }
 function setGoals(patch) { store.meta.goals = Object.assign(getGoals(), patch); saveStore(); }
@@ -3806,16 +3806,22 @@ function usageStats() {
     const d = hist[dateKey(now - i * DAY)]; const it = dayItems(d);
     weekItems += it; weekSecs += daySeconds(d); if (it > 0 || daySeconds(d) > 0) daysActive++;
   }
-  return { todayItems: items, todaySecs: secs, weekItems, weekSecs, daysActive };
+  const ym = todayKey().slice(0, 7); // current calendar month "YYYY-MM"
+  let monthItems = 0, monthSecs = 0;
+  Object.keys(hist).forEach(k => { if (k.slice(0, 7) === ym) { monthItems += dayItems(hist[k]); monthSecs += daySeconds(hist[k]); } });
+  return { todayItems: items, todaySecs: secs, weekItems, weekSecs, monthItems, monthSecs, daysActive };
 }
 function goalsCardHtml() {
   const g = getGoals(), u = usageStats(), hours = g.type === "hours";
   const unit = hours ? "hrs" : "words";
   const dGoal = hours ? g.hoursDaily : g.wordsDaily;
   const wGoal = hours ? g.hoursWeekly : g.wordsWeekly;
+  const mGoal = hours ? g.hoursMonthly : g.wordsMonthly;
   const dVal = hours ? u.todaySecs / 3600 : u.todayItems;
   const wVal = hours ? u.weekSecs / 3600 : u.weekItems;
+  const mVal = hours ? u.monthSecs / 3600 : u.monthItems;
   const fmt = v => hours ? (Math.round(v * 10) / 10) : Math.round(v);
+  const step = hours ? "0.5" : "1";
   const bar = (val, goal) => "<div class='goalbar'><div style='width:" + Math.min(100, Math.round(val / goal * 100)) + "%'></div></div>";
   const row = (label, val, goal) => "<div class='goal-row'><span>" + label + (val >= goal ? " ✅" : "") + "</span><span>" + fmt(val) + " / " + goal + " " + unit + "</span></div>";
   return "<div class='coach-tile'><h3>🎯 Goals</h3>" +
@@ -3824,10 +3830,12 @@ function goalsCardHtml() {
       "<button class='sc-chip" + (hours ? " selected" : "") + "' id='goalTypeHours'>Hours</button></div>" +
     row("Today", dVal, dGoal) + bar(dVal, dGoal) +
     row("This week", wVal, wGoal) + bar(wVal, wGoal) +
+    row("This month", mVal, mGoal) + bar(mVal, mGoal) +
     "<p style='opacity:.7;font-size:.78rem;margin:8px 0;'>" + u.daysActive + " active day" + (u.daysActive === 1 ? "" : "s") + " this week · " +
       (hours ? "hours = time spent practising in the app." : "words = every card/answer you practise, anywhere.") + "</p>" +
-    "<div class='goal-edit'>Daily <input id='goalDaily' type='number' min='0.1' step='" + (hours ? "0.5" : "1") + "' value='" + dGoal + "'/> " +
-      "Weekly <input id='goalWeekly' type='number' min='0.1' step='" + (hours ? "0.5" : "1") + "' value='" + wGoal + "'/> " +
+    "<div class='goal-edit'>Daily <input id='goalDaily' type='number' min='0.1' step='" + step + "' value='" + dGoal + "'/> " +
+      "Weekly <input id='goalWeekly' type='number' min='0.1' step='" + step + "' value='" + wGoal + "'/> " +
+      "Monthly <input id='goalMonthly' type='number' min='0.1' step='" + step + "' value='" + mGoal + "'/> " +
       "<span style='opacity:.7;'>" + unit + "</span> <button id='goalSave' class='sc-chip'>Save</button></div>" +
     "</div>";
 }
@@ -3839,7 +3847,9 @@ function wireGoals() {
     const hours = getGoals().type === "hours";
     const d = Math.max(0.1, +$("goalDaily").value || (hours ? 0.5 : 20));
     const w = Math.max(0.1, +$("goalWeekly").value || (hours ? 3 : 100));
-    setGoals(hours ? { hoursDaily: d, hoursWeekly: w } : { wordsDaily: Math.round(d), wordsWeekly: Math.round(w) });
+    const m = Math.max(0.1, +$("goalMonthly").value || (hours ? 12 : 400));
+    setGoals(hours ? { hoursDaily: d, hoursWeekly: w, hoursMonthly: m }
+                   : { wordsDaily: Math.round(d), wordsWeekly: Math.round(w), wordsMonthly: Math.round(m) });
     buildProgress();
   };
 }
