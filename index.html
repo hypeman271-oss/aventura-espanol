@@ -803,10 +803,11 @@
         <span class="pill">🔄 <span id="memMoves">0</span> moves</span>
         <span class="pill">⏱️ <span id="memTime">0:00</span></span>
       </div>
-      <p style="text-align:center;opacity:0.85;margin-bottom:14px;font-size:0.95rem;">
+      <p style="text-align:center;opacity:0.85;margin-bottom:14px;font-size:0.95rem;" id="memInstr">
         Match each Spanish word with its English meaning.
       </p>
       <div class="mem-grid" id="memGrid"></div>
+      <button class="btn primary center hidden" id="memDoneBtn" style="margin-top:16px;">See results →</button>
     </div>
   </div>
 
@@ -4707,6 +4708,8 @@ function startMemory() {
   $("memPairs").textContent = mem.pairs;
   $("memMoves").textContent = "0";
   $("memTime").textContent = "0:00";
+  $("memDoneBtn").classList.add("hidden");
+  $("memInstr").textContent = "Match each Spanish word with its English meaning.";
 
   renderMemGrid();
   show("memory");
@@ -4769,7 +4772,11 @@ function flipCard(idx, btn) {
     speak(b.speak);
     if (mem.matches === mem.pairs) {
       clearInterval(mem.timer);
-      setTimeout(endMemory, 700);
+      // Let the student study the finished board before seeing results.
+      $("memInstr").textContent = "🎉 ¡Todas emparejadas! Review the board, then continue.";
+      const done = $("memDoneBtn");
+      done.classList.remove("hidden");
+      setTimeout(() => done.focus(), 400);
     }
   } else {
     // No match — flip both back
@@ -4839,6 +4846,7 @@ $("memQuitBtn").onclick = () => {
   speechSynthesis && speechSynthesis.cancel();
   show("home");
 };
+$("memDoneBtn").onclick = endMemory;
 $("menuBtn").onclick = () => show("home");
 $("playAgainBtn").onclick = () => {
   if (state.srs) startDaily();
