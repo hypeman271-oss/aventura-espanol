@@ -159,6 +159,18 @@
 
   /* ---- Category chips ---- */
   .chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .chip-group {
+    flex-basis: 100%;
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin: 12px 0 2px;
+  }
+  .chip-group:first-child { margin-top: 4px; }
   .chip {
     padding: 12px 16px;
     border-radius: 30px;
@@ -1243,6 +1255,12 @@ const VOCAB = {
     ["quiubo","what's up?","👋"],["berraco","tough / gutsy","💪"],["chino","kid","🧒"],
     ["la rumba","party","🎉"],["el tinto","black coffee","☕"],["paila","too bad / bummer","😬"],
     ["la vaina","thing / stuff","📦"],["las lucas","money (bucks)","💵"],["el camello","job / work","💼"]
+  ],
+  "Sex 🔞": [
+    ["el sexo","sex","🔞"],["el amante","lover","❤️‍🔥"],["besar","to kiss","💋"],
+    ["el deseo","desire","🔥"],["atractivo","attractive","😍"],["coquetear","to flirt","😉"],
+    ["desnudo","naked","🫣"],["el condón","condom","🛡️"],["la protección","protection","🦺"],
+    ["el consentimiento","consent","✅"],["embarazada","pregnant","🤰"],["la píldora","the pill","💊"]
   ]
 };
 
@@ -1509,7 +1527,19 @@ const SENTENCES = {
   "Colombian Slang 🇨🇴||paila": ["Si llueve, ___, no salimos.", "paila", "If it rains, too bad, we don't go out."],
   "Colombian Slang 🇨🇴||la vaina": ["Pásame esa ___, por favor.", "vaina", "Pass me that thing, please."],
   "Colombian Slang 🇨🇴||las lucas": ["No tengo ___ para eso.", "lucas", "I don't have the money for that."],
-  "Colombian Slang 🇨🇴||el camello": ["Por fin conseguí un buen ___.", "camello", "I finally got a good job."]
+  "Colombian Slang 🇨🇴||el camello": ["Por fin conseguí un buen ___.", "camello", "I finally got a good job."],
+  "Sex 🔞||el sexo": ["Hablar de ___ con tu pareja es importante.", "sexo", "Talking about sex with your partner is important."],
+  "Sex 🔞||el amante": ["Ella tiene un ___ nuevo.", "amante", "She has a new lover."],
+  "Sex 🔞||besar": ["Quiero ___ a mi novia.", "besar", "I want to kiss my girlfriend."],
+  "Sex 🔞||el deseo": ["Siento mucho ___ por ti.", "deseo", "I feel a lot of desire for you."],
+  "Sex 🔞||atractivo": ["Ese hombre es muy ___.", "atractivo", "That man is very attractive."],
+  "Sex 🔞||coquetear": ["A él le gusta ___ en las fiestas.", "coquetear", "He likes to flirt at parties."],
+  "Sex 🔞||desnudo": ["No me gusta dormir ___.", "desnudo", "I don't like to sleep naked."],
+  "Sex 🔞||el condón": ["Siempre uso ___ para protegerme.", "condón", "I always use a condom to protect myself."],
+  "Sex 🔞||la protección": ["La ___ previene enfermedades.", "protección", "Protection prevents diseases."],
+  "Sex 🔞||el consentimiento": ["El ___ es necesario siempre.", "consentimiento", "Consent is always necessary."],
+  "Sex 🔞||embarazada": ["Mi hermana está ___.", "embarazada", "My sister is pregnant."],
+  "Sex 🔞||la píldora": ["Ella toma la ___ anticonceptiva.", "píldora", "She takes the birth-control pill."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -4068,20 +4098,52 @@ let selectedCategory = (function () { try { return localStorage.getItem("aventur
 function focusAll() { return selectedCategory === "__all__"; }
 function inFocus(cat) { return focusAll() || cat === selectedCategory; }
 
+/* Topic groups so the chip list reads as organized sections rather than
+   one long row. Keys must match VOCAB keys exactly (emoji included). */
+const CATEGORY_GROUPS = [
+  ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
+  ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺"]],
+  ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Weather & Seasons 🌤️"]],
+  ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
+  ["🚨 Emergencies", ["Earthquake 🌎", "Crime & Safety 🚔"]]
+];
+
 function buildChips() {
   const wrap = $("categoryChips");
   wrap.innerHTML = "";
-  ["__all__"].concat(Object.keys(VOCAB)).forEach(cat => {
+  const makeChip = (cat, label) => {
     const chip = document.createElement("button");
     chip.className = "chip" + (cat === selectedCategory ? " selected" : "");
-    chip.textContent = cat === "__all__" ? "🎲 All topics" : cat;
+    chip.textContent = label;
     chip.onclick = () => {
       selectedCategory = cat;
       try { localStorage.setItem("aventura_focus", cat); } catch (e) {}
       buildChips();
     };
-    wrap.appendChild(chip);
+    return chip;
+  };
+  const groupHead = (text) => {
+    const h = document.createElement("div");
+    h.className = "chip-group";
+    h.textContent = text;
+    wrap.appendChild(h);
+  };
+
+  wrap.appendChild(makeChip("__all__", "🎲 All topics"));
+  const seen = new Set();
+  CATEGORY_GROUPS.forEach(([group, cats]) => {
+    const present = cats.filter(c => VOCAB[c]);
+    if (!present.length) return;
+    groupHead(group);
+    present.forEach(c => { seen.add(c); wrap.appendChild(makeChip(c, c)); });
   });
+  // Any category not placed in a group still shows up, so nothing is hidden.
+  const rest = Object.keys(VOCAB).filter(c => !seen.has(c));
+  if (rest.length) {
+    groupHead("📚 More");
+    rest.forEach(c => wrap.appendChild(makeChip(c, c)));
+  }
+
   const lbl = $("focusLabel");
   if (lbl) lbl.textContent = focusAll() ? "All topics" : selectedCategory;
 }
