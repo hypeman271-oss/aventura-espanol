@@ -90,6 +90,41 @@
     opacity: 0.9;
   }
 
+  /* ---- Collapsible sections ---- */
+  .fold-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: 1.2rem;
+    font-weight: 700;
+    opacity: 0.95;
+    cursor: pointer;
+    padding: 4px 2px;
+    margin: 0;
+    text-align: left;
+  }
+  .fold-head .fold-chev {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    transition: transform 0.2s ease;
+  }
+  .panel.folded .fold-head .fold-chev { transform: rotate(-90deg); }
+  .fold-body { margin-top: 16px; }
+  .panel.folded .fold-body { display: none; }
+  .fold-head .fold-sub {
+    font-size: 0.8rem;
+    font-weight: 500;
+    opacity: 0.65;
+    margin-left: auto;
+    margin-right: 8px;
+  }
+
   /* ---- Buttons ---- */
   .btn {
     display: block;
@@ -591,23 +626,34 @@
     <h1>¡Aventura Español!</h1>
     <p class="subtitle">Learn Spanish the smart way — a little every day.</p>
 
-    <div class="panel" id="dashboard">
-      <p class="section-title">📅 Today's practice</p>
-      <div class="dash-stats" id="dashStats"></div>
-      <button class="btn primary center" id="startDailyBtn">▶️ Start daily practice</button>
-      <div class="btn-row">
-        <button class="btn center" id="openProgressBtn" style="background:rgba(255,255,255,0.15);color:#fff;">📊 Progress</button>
-        <button class="btn center" id="openMyCardsBtn" style="background:rgba(255,255,255,0.15);color:#fff;">✏️ My Cards</button>
+    <div class="panel fold" id="dashboard" data-fold="dashboard">
+      <button class="fold-head" type="button"><span>📅 Today's practice</span><span class="fold-chev">▾</span></button>
+      <div class="fold-body">
+        <div class="dash-stats" id="dashStats"></div>
+        <button class="btn primary center" id="startDailyBtn">▶️ Start daily practice</button>
+        <div class="btn-row">
+          <button class="btn center" id="openProgressBtn" style="background:rgba(255,255,255,0.15);color:#fff;">📊 Progress</button>
+          <button class="btn center" id="openMyCardsBtn" style="background:rgba(255,255,255,0.15);color:#fff;">✏️ My Cards</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn center" id="openTutorBtn" style="background:rgba(255,255,255,0.15);color:#fff;">🎓 Ask a Tutor</button>
+          <button class="btn center" id="openCoachBtn" style="background:rgba(255,255,255,0.15);color:#fff;">🎯 Coach</button>
+        </div>
+        <p class="dash-next" id="dashNext"></p>
       </div>
-      <div class="btn-row">
-        <button class="btn center" id="openTutorBtn" style="background:rgba(255,255,255,0.15);color:#fff;">🎓 Ask a Tutor</button>
-        <button class="btn center" id="openCoachBtn" style="background:rgba(255,255,255,0.15);color:#fff;">🎯 Coach</button>
-      </div>
-      <p class="dash-next" id="dashNext"></p>
     </div>
 
-    <div class="panel" style="margin-top:16px;">
-      <p class="section-title">🎧 Activities</p>
+    <div class="panel fold" id="focusPanel" data-fold="focus" style="margin-top:16px;">
+      <button class="fold-head" type="button"><span>🎯 Topic focus</span><span class="fold-sub" id="focusLabel"></span><span class="fold-chev">▾</span></button>
+      <div class="fold-body">
+        <p style="text-align:center;opacity:0.8;margin:0 0 14px;font-size:0.9rem;">Pick a topic to focus the whole app — daily practice, games, and activities all draw from it.</p>
+        <div class="chips" id="categoryChips"></div>
+      </div>
+    </div>
+
+    <div class="panel fold folded" data-fold="activities" style="margin-top:16px;">
+      <button class="fold-head" type="button"><span>🎧 Activities</span><span class="fold-chev">▾</span></button>
+      <div class="fold-body">
       <button class="btn accent2" id="openListenBtn">
         <span class="emoji">🎧</span>
         <span>Listening<small>Hear a sentence, tap the words in order</small></span>
@@ -632,10 +678,12 @@
         <span class="emoji">📖</span>
         <span>Reading<small>A short story at your level (AI)</small></span>
       </button>
+      </div>
     </div>
 
-    <div class="panel" style="margin-top:16px;">
-      <p class="section-title">🧩 Word games</p>
+    <div class="panel fold folded" data-fold="wordgames" style="margin-top:16px;">
+      <button class="fold-head" type="button"><span>🧩 Word games</span><span class="fold-chev">▾</span></button>
+      <div class="fold-body">
       <button class="btn" id="openScrambleBtn" style="background:#a06cd5;color:#fff;">
         <span class="emoji">🔡</span><span>Word Scramble<small>Unscramble the letters to spell it</small></span>
       </button>
@@ -648,13 +696,13 @@
       <button class="btn" id="openSearchBtn" style="background:#a06cd5;color:#fff;">
         <span class="emoji">🔎</span><span>Word Search<small>Find the hidden Spanish words</small></span>
       </button>
+      </div>
     </div>
 
-    <div class="panel" style="margin-top:16px;">
-      <p class="section-title">🎮 Free play — pick a topic</p>
-      <div class="chips" id="categoryChips"></div>
-
-      <p class="section-title" style="margin-top:24px;">Choose an exercise</p>
+    <div class="panel fold folded" data-fold="freeplay" style="margin-top:16px;">
+      <button class="fold-head" type="button"><span>🎮 Free play</span><span class="fold-chev">▾</span></button>
+      <div class="fold-body">
+      <p style="text-align:center;opacity:0.8;margin:0 0 14px;font-size:0.9rem;">Practice one word at a time. Uses your topic focus above.</p>
       <button class="btn primary" data-mode="es2en">
         <span class="emoji">🌎</span>
         <span>Spanish → English<small>See the Spanish word, pick the meaning</small></span>
@@ -683,6 +731,7 @@
         <span class="emoji">🃏</span>
         <span>Match the Pairs<small>Flip cards to match Spanish &amp; English</small></span>
       </button>
+      </div>
     </div>
     <p class="footer-note">Tip: tap the 🔊 speaker on any word to hear how it sounds.</p>
   </div>
@@ -1722,8 +1771,7 @@ function mcDelete(i) {
 
 function mcPractice() {
   if (!(store.userCards || []).length) return;
-  selectedCategory = MY_CARDS_CAT;
-  startGame("es2en");
+  startGame("es2en", MY_CARDS_CAT);   // one-off, doesn't change the global focus
 }
 
 function userCardExists(es) { return (store.userCards || []).some(c => sameEs(c.es, es)); }
@@ -1896,9 +1944,11 @@ const LISTEN_ROUND = 8;
 let ord = {};
 
 function listenPool() {
-  return Object.keys(SENTENCES)
-    .map(k => { const [t, a, en] = SENTENCES[k]; return { id: k, full: t.replace("___", a), en }; })
+  const all = Object.keys(SENTENCES)
+    .map(k => { const [t, a, en] = SENTENCES[k]; return { id: k, cat: k.split("||")[0], full: t.replace("___", a), en }; })
     .filter(s => s.full.split(/\s+/).length >= 2);
+  const f = all.filter(s => inFocus(s.cat));
+  return f.length ? f : all; // fall back to everything if the focus topic has too few
 }
 
 function startListen() {
@@ -2144,10 +2194,14 @@ const PLAYER_STEPS = ["en", "es", "en", "es"];
 let player = { slow: false, shuffle: true };
 
 function playerPool() {
-  const out = [];
-  Object.keys(SENTENCES).forEach(k => { const [t, a, en] = SENTENCES[k]; if (en) out.push({ es: t.replace("___", a), en }); });
-  (store.userCards || []).forEach(c => { if (!c.template && c.es && c.en) out.push({ es: c.es, en: c.en }); });
-  return out;
+  const build = (useFocus) => {
+    const out = [];
+    Object.keys(SENTENCES).forEach(k => { const [t, a, en] = SENTENCES[k]; if (en && (!useFocus || inFocus(k.split("||")[0]))) out.push({ es: t.replace("___", a), en }); });
+    (store.userCards || []).forEach(c => { if (!c.template && c.es && c.en && (!useFocus || inFocus(MY_CARDS_CAT))) out.push({ es: c.es, en: c.en }); });
+    return out;
+  };
+  const f = build(true);
+  return f.length ? f : build(false);
 }
 
 function openPlayer() {
@@ -2755,7 +2809,9 @@ let story = {};
 const SCR_ROUND = 10;
 let scr = {};
 function scramblePool() {
-  return CARDS.filter(c => { const b = stripArticle(c.es); return b.length >= 3 && b.length <= 9 && !/\s/.test(b); });
+  const ok = c => { const b = stripArticle(c.es); return b.length >= 3 && b.length <= 9 && !/\s/.test(b); };
+  const f = CARDS.filter(c => ok(c) && inFocus(c.cat));
+  return f.length ? f : CARDS.filter(ok);
 }
 function openScramble() {
   const pool = shuffle(scramblePool()).slice(0, SCR_ROUND);
@@ -2824,7 +2880,9 @@ function endScramble() {
 /* ---- el / la Gender Race ---- */
 let gen = {};
 function genderPool() {
-  return CARDS.filter(c => /^(el|la|los|las)\s/i.test(c.es)).map(c => {
+  const nouns = CARDS.filter(c => /^(el|la|los|las)\s/i.test(c.es));
+  const src = nouns.filter(c => inFocus(c.cat)).length ? nouns.filter(c => inFocus(c.cat)) : nouns;
+  return src.map(c => {
     const art = c.es.split(/\s+/)[0].toLowerCase();
     return { bare: stripArticle(c.es), en: c.en, emoji: c.emoji, art: art === "los" ? "el" : art === "las" ? "la" : art };
   });
@@ -2930,8 +2988,10 @@ function wordleKeydown(e) {
 /* ---- Word Search ---- */
 let ws = {};
 function searchPool() {
-  return CARDS.map(c => ({ es: stripArticle(c.es).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zñ]/g, ""), en: c.en }))
-    .filter(w => w.es.length >= 3 && w.es.length <= 8);
+  const map = c => ({ es: stripArticle(c.es).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zñ]/g, ""), en: c.en });
+  const ok = w => w.es.length >= 3 && w.es.length <= 8;
+  const f = CARDS.filter(c => inFocus(c.cat)).map(map).filter(ok);
+  return f.length >= 4 ? f : CARDS.map(map).filter(ok);
 }
 function wsCanPlace(grid, size, word, r, c, dr, dc) {
   for (let k = 0; k < word.length; k++) { const rr = r + dr * k, cc = c + dc * k; if (rr < 0 || cc < 0 || rr >= size || cc >= size) return false; const cell = grid[rr][cc]; if (cell && cell !== word[k]) return false; } return true;
@@ -3575,13 +3635,13 @@ function schedule(prev, q) {
 function buildSession() {
   const now = Date.now();
   const due = CARDS
-    .filter(c => store.cards[c.id] && store.cards[c.id].due <= now)
+    .filter(c => store.cards[c.id] && store.cards[c.id].due <= now && inFocus(c.cat))
     .sort((a, b) => store.cards[a.id].due - store.cards[b.id].due)
     .slice(0, MAX_REVIEWS);
 
   const newAllowed = Math.max(0, NEW_PER_DAY - introducedToday());
   // Introduce the user's own cards before built-ins — that's what they came to learn.
-  const newPool = CARDS.filter(c => !store.cards[c.id])
+  const newPool = CARDS.filter(c => !store.cards[c.id] && inFocus(c.cat))
     .sort((a, b) => (a.cat === MY_CARDS_CAT ? 0 : 1) - (b.cat === MY_CARDS_CAT ? 0 : 1));
   const newCards = newPool.slice(0, newAllowed);
 
@@ -3982,7 +4042,10 @@ function show(screen) {
 /* ============================================================
    HOME — build category chips
    ============================================================ */
-let selectedCategory = "__all__";   // default to a mix of all topics for variety
+// Global topic focus: applies to daily practice, games and activities.
+let selectedCategory = (function () { try { return localStorage.getItem("aventura_focus") || "__all__"; } catch (e) { return "__all__"; } })();
+function focusAll() { return selectedCategory === "__all__"; }
+function inFocus(cat) { return focusAll() || cat === selectedCategory; }
 
 function buildChips() {
   const wrap = $("categoryChips");
@@ -3991,8 +4054,38 @@ function buildChips() {
     const chip = document.createElement("button");
     chip.className = "chip" + (cat === selectedCategory ? " selected" : "");
     chip.textContent = cat === "__all__" ? "🎲 All topics" : cat;
-    chip.onclick = () => { selectedCategory = cat; buildChips(); };
+    chip.onclick = () => {
+      selectedCategory = cat;
+      try { localStorage.setItem("aventura_focus", cat); } catch (e) {}
+      buildChips();
+    };
     wrap.appendChild(chip);
+  });
+  const lbl = $("focusLabel");
+  if (lbl) lbl.textContent = focusAll() ? "All topics" : selectedCategory;
+}
+
+/* ---- Collapsible home sections ---- */
+function foldState() {
+  try { return JSON.parse(localStorage.getItem("aventura_folds") || "{}"); } catch (e) { return {}; }
+}
+function wireFolds() {
+  const saved = foldState();
+  document.querySelectorAll(".panel.fold").forEach(panel => {
+    const key = panel.getAttribute("data-fold");
+    if (key && saved.hasOwnProperty(key)) {
+      panel.classList.toggle("folded", !!saved[key]);
+    }
+    const head = panel.querySelector(".fold-head");
+    if (head && !head.dataset.wired) {
+      head.dataset.wired = "1";
+      head.addEventListener("click", () => {
+        panel.classList.toggle("folded");
+        const st = foldState();
+        st[key] = panel.classList.contains("folded");
+        try { localStorage.setItem("aventura_folds", JSON.stringify(st)); } catch (e) {}
+      });
+    }
   });
 }
 
@@ -4122,19 +4215,20 @@ function shuffle(arr) {
   return a;
 }
 
-function startGame(mode) {
+function startGame(mode, catOverride) {
   // "__all__" draws from every topic (variety); otherwise a single category.
-  const all = selectedCategory === "__all__";
+  const cat = catOverride || selectedCategory;
+  const all = cat === "__all__";
   let cards = all
     ? CARDS.map(c => ({ es: c.es, en: c.en, emoji: c.emoji, cat: c.cat }))
-    : (VOCAB[selectedCategory] || []).map(w => ({ es: w[0], en: w[1], emoji: w[2], cat: selectedCategory }));
+    : (VOCAB[cat] || []).map(w => ({ es: w[0], en: w[1], emoji: w[2], cat: cat }));
   if (mode === "cloze") cards = cards.filter(c => hasSentence(c.cat, c.es));
   const chosen = shuffle(cards).slice(0, Math.min(QUESTIONS_PER_ROUND, cards.length));
   state = {
     mode,
     deck: chosen.map(c => [c.es, c.en, c.emoji]),
     deckCat: chosen.map(c => c.cat),
-    pool: all ? CARDS.map(c => [c.es, c.en, c.emoji]) : VOCAB[selectedCategory],
+    pool: all ? CARDS.map(c => [c.es, c.en, c.emoji]) : (VOCAB[cat] || []),
     index: 0,
     score: 0,
     lives: START_LIVES,
@@ -4745,6 +4839,7 @@ $("scStartBtn").onclick = scStart;
 
 applyUserCards();   // fold any saved user cards into the decks before first render
 buildChips();
+wireFolds();
 show("home");
 try { scheduleReminder(); } catch (e) {}   // re-arm the daily reminder if enabled
 
