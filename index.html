@@ -1697,6 +1697,7 @@ const WORD_EMOJI = {
   // people / body / time
   mono: "🐒", primo: "👦", prima: "👧", gente: "👥", niño: "🧒", niña: "👧", hombre: "👨", mujer: "👩",
   dedo: "☝️", diente: "🦷", pierna: "🦵", espalda: "🧍", rodilla: "🦵", brazo: "💪", brazos: "💪",
+  mejilla: "😊", voz: "🗣️",
   cumpleaños: "🎂", verano: "☀️", invierno: "❄️", primavera: "🌸", otoño: "🍂",
   semana: "📅", mes: "📆", año: "📅", hora: "🕐", tiempo: "⏰", reloj: "⏰", día: "📆", noche: "🌙",
   // objects / things
@@ -1751,6 +1752,21 @@ function saveStore() { try { localStorage.setItem(SRS_KEY, JSON.stringify(store)
 const MY_CARDS_CAT = "My Cards ✏️";
 
 function sameEs(a, b) { return (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase(); }
+
+/* Backfill any saved cards that were stored with a blank meaning or the
+   placeholder emoji (e.g. words added before the dictionary covered them).
+   Runs once on load and repairs them in place so daily practice shows a
+   real definition. */
+function repairUserCards() {
+  let changed = false;
+  (store.userCards || []).forEach(c => {
+    if (!c.en || !c.en.trim()) { const g = glossFor(c.es); if (g) { c.en = g; changed = true; } }
+    if (!c.emoji || c.emoji.trim() === "" || c.emoji === "📝") {
+      const e = emojiFor(c.es); if (e && e !== "📝") { c.emoji = e; changed = true; }
+    }
+  });
+  if (changed) saveStore();
+}
 
 /* Rebuild the "My Cards" topic + its sentences from saved user cards. */
 function applyUserCards() {
@@ -2135,9 +2151,13 @@ function emojiFor(word) {
 function addWordCard(es, en, emoji, sentenceEs, sentenceEn) {
   es = (es || "").trim();
   if (!es || userCardExists(es)) return false;
+  // Never save a card with a blank meaning — fall back to the dictionary gloss.
+  en = (en || "").trim() || glossFor(es) || "";
+  emoji = (emoji || "").trim();
+  if (!emoji || emoji === "📝") emoji = emojiFor(es) || "📝";
   const cloze = buildClozeFromSentence(es, sentenceEs || "");
   store.userCards.push({
-    es, en: (en || "").trim(), emoji: (emoji || "").trim() || "📝",
+    es, en, emoji,
     sentence: (sentenceEs || "").trim(), sentenceEn: (sentenceEn || "").trim(),
     template: cloze ? cloze.template : "", answer: cloze ? cloze.answer : "",
     created: Date.now(), fromUnknown: true
@@ -4993,6 +5013,7 @@ $("scStartBtn").onclick = scStart;
   $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") mcAdd(); });
 });
 
+repairUserCards();  // backfill any saved cards missing a meaning/emoji
 applyUserCards();   // fold any saved user cards into the decks before first render
 buildChips();
 wireFolds();
