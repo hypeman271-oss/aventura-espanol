@@ -552,6 +552,18 @@
   .sc-chip { padding: 10px 14px; border-radius: 24px; border: 2px solid rgba(255,255,255,0.28); background: rgba(255,255,255,0.08); color: #fff; cursor: pointer; font-size: 0.95rem; font-weight: 600; }
   .sc-chip.selected { background: var(--accent); color: var(--ink); border-color: var(--accent); }
   .sc-diff { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  /* Region picker: a horizontal slider so wide options (e.g. "Latin America 🌎")
+     never overflow or get cut off on narrow phones. */
+  .region-sel {
+    display: flex; gap: 8px; margin: 12px 0; padding-bottom: 8px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.4) transparent;
+  }
+  .region-sel .sc-chip { flex: 0 0 auto; white-space: nowrap; scroll-snap-align: center; }
+  .region-sel::-webkit-scrollbar { height: 6px; }
+  .region-sel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); border-radius: 3px; }
+  .region-sel::-webkit-scrollbar-track { background: transparent; }
   .sc-line { border-radius: 14px; padding: 12px 14px; margin: 10px 0; max-width: 88%; line-height: 1.4; }
   .sc-them { background: var(--card-solid); color: var(--ink); border-bottom-left-radius: 4px; margin-right: auto; }
   .sc-you { background: var(--accent2); color: #fff; border-bottom-right-radius: 4px; margin-left: auto; }
@@ -1277,6 +1289,14 @@ const VOCAB = {
     ["la lencería","lingerie","👙"],["el placer","pleasure","😌"],["la fidelidad","faithfulness","🤞"],
     ["la infidelidad","infidelity / cheating","💔"],["sensual","sensual","💄"],["el orgasmo","orgasm","✨"],
     ["el levante","a hookup / pickup (Col.)","😏"]
+  ],
+  "Roommates 🏠": [
+    ["el compañero de cuarto","roommate","🧑‍🤝‍🧑"],["el arriendo","rent","💰"],["el apartamento","apartment","🏢"],
+    ["la habitación","bedroom","🛏️"],["la sala","living room","🛋️"],["el baño","bathroom","🚽"],
+    ["la cocina","kitchen","🍳"],["la nevera","fridge","🧊"],["la basura","trash","🗑️"],
+    ["limpiar","to clean","🧹"],["el aseo","cleaning / chores","🧼"],["los servicios","utilities","💡"],
+    ["compartir","to share","🤝"],["el ruido","noise","🔊"],["el desorden","mess","🧺"],
+    ["la regla","rule","📏"],["el vecino","neighbor","🏘️"],["la llave","key","🔑"]
   ]
 };
 
@@ -1597,7 +1617,25 @@ const SENTENCES = {
   "Sex 🔞||la infidelidad": ["La ___ rompió la relación.", "infidelidad", "Infidelity broke the relationship."],
   "Sex 🔞||sensual": ["Bailó de forma muy ___.", "sensual", "She danced in a very sensual way."],
   "Sex 🔞||el orgasmo": ["El ___ es una respuesta natural.", "orgasmo", "The orgasm is a natural response."],
-  "Sex 🔞||el levante": ["Tuvo un ___ en la fiesta.", "levante", "He had a hookup at the party."]
+  "Sex 🔞||el levante": ["Tuvo un ___ en la fiesta.", "levante", "He had a hookup at the party."],
+  "Roommates 🏠||el compañero de cuarto": ["Vivo con un ___ nuevo.", "compañero de cuarto", "I live with a new roommate."],
+  "Roommates 🏠||el arriendo": ["Pago el ___ el primer día del mes.", "arriendo", "I pay the rent on the first day of the month."],
+  "Roommates 🏠||el apartamento": ["Nuestro ___ tiene dos cuartos.", "apartamento", "Our apartment has two rooms."],
+  "Roommates 🏠||la habitación": ["Mi ___ es pequeña pero cómoda.", "habitación", "My bedroom is small but comfortable."],
+  "Roommates 🏠||la sala": ["Vemos televisión en la ___.", "sala", "We watch television in the living room."],
+  "Roommates 🏠||el baño": ["El ___ está al final del pasillo.", "baño", "The bathroom is at the end of the hallway."],
+  "Roommates 🏠||la cocina": ["Cocinamos juntos en la ___.", "cocina", "We cook together in the kitchen."],
+  "Roommates 🏠||la nevera": ["Guarda la leche en la ___.", "nevera", "Keep the milk in the fridge."],
+  "Roommates 🏠||la basura": ["Saca la ___ los martes.", "basura", "Take out the trash on Tuesdays."],
+  "Roommates 🏠||limpiar": ["Tengo que ___ mi cuarto hoy.", "limpiar", "I have to clean my room today."],
+  "Roommates 🏠||el aseo": ["Hacemos el ___ cada sábado.", "aseo", "We do the cleaning every Saturday."],
+  "Roommates 🏠||los servicios": ["Dividimos los ___ entre todos.", "servicios", "We split the utilities among everyone."],
+  "Roommates 🏠||compartir": ["Debemos ___ la nevera.", "compartir", "We must share the fridge."],
+  "Roommates 🏠||el ruido": ["No hagas tanto ___ de noche.", "ruido", "Don't make so much noise at night."],
+  "Roommates 🏠||el desorden": ["Hay mucho ___ en la sala.", "desorden", "There's a lot of mess in the living room."],
+  "Roommates 🏠||la regla": ["Tenemos una ___ sobre las visitas.", "regla", "We have a rule about guests."],
+  "Roommates 🏠||el vecino": ["El ___ de al lado es amable.", "vecino", "The neighbor next door is kind."],
+  "Roommates 🏠||la llave": ["Perdí la ___ del apartamento.", "llave", "I lost the apartment key."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1733,7 +1771,15 @@ const WORD_GLOSS = {
   pido: "I order / ask for", prefiero: "I prefer", preparo: "I prepare",
   respuesta: "answer / response", "rompió": "broke", seria: "serious",
   siente: "feels", suave: "soft / gentle", todos: "all / everyone", tuvo: "had",
-  vino: "wine", "ácido": "sour / acidic"
+  vino: "wine", "ácido": "sour / acidic",
+  // ---- words from the Roommates sentences ----
+  amable: "kind / nice", cocinamos: "we cook", "compañero": "companion / partner",
+  cuarto: "room", cuartos: "rooms", "cómoda": "comfortable", debemos: "we must",
+  dividimos: "we split / divide", final: "end", guarda: "keep / store (it)",
+  hacemos: "we do / make", hagas: "(you) make / do", lado: "side", martes: "Tuesdays",
+  nuestro: "our", pasillo: "hallway", "pequeña": "small", "perdí": "I lost",
+  pero: "but", saca: "take out", sobre: "about / on", tanto: "so much",
+  "televisión": "television", vemos: "we watch / see", visitas: "visits / guests"
 };
 
 /* Drop a leading Spanish article so cloze options/answers line up. */
@@ -2821,8 +2867,8 @@ function renderRegionTile() {
   const cur = getRegion();
   const tile = document.createElement("div");
   tile.className = "coach-tile";
-  tile.innerHTML = "<h3>🌎 Spanish variety</h3><div class='sc-diff' id='regionSel'></div>" +
-    "<p style='opacity:.7;font-size:.8rem;margin-top:8px;line-height:1.4;'>Sets the accent (voice), the AI's dialect (conversations, stories, tutor…), and skips vosotros for Latin American varieties.</p>";
+  tile.innerHTML = "<h3>🌎 Spanish variety</h3><div class='region-sel' id='regionSel'></div>" +
+    "<p style='opacity:.7;font-size:.8rem;margin-top:8px;line-height:1.4;'>Swipe to see all options. Sets the accent (voice), the AI's dialect (conversations, stories, tutor…), and skips vosotros for Latin American varieties.</p>";
   $("coachBody").appendChild(tile);
   const sel = tile.querySelector("#regionSel");
   Object.keys(REGIONS).forEach(k => {
@@ -4242,6 +4288,7 @@ function inFocus(cat) { return focusAll() || cat === selectedCategory; }
 const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
   ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺"]],
+  ["🏠 Home Life", ["Roommates 🏠"]],
   ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
   ["🚨 Emergencies", ["Earthquake 🌎", "Crime & Safety 🚔"]]
