@@ -986,7 +986,25 @@
         <p class="sc-intro" style="margin:14px 0 6px;">Conjugation practice — choose a tense:</p>
         <div class="sc-diff" id="conjTenseSel"></div>
         <button class="btn primary center" id="startConjugBtn" style="margin-top:12px;">▶️ Practise conjugation</button>
+        <p class="sc-intro" style="margin:18px 0 6px;">Tense practice — read the time clue, then pick the verb form that fits:</p>
+        <button class="btn accent2 center" id="startTenseBtn">🎯 Which form fits?</button>
       </div>
+      <div id="tensePlay" class="hidden">
+        <div class="hud">
+          <span class="pill">🎯 <span id="tenseProg">0/0</span></span>
+          <span class="pill">⭐ <span id="tenseScore">0</span></span>
+        </div>
+        <div class="prompt-card">
+          <div class="prompt-label" id="tenseLabel">Which form fits?</div>
+          <div class="prompt-word" id="tenseSentence" style="font-size:1.3rem;"></div>
+          <div class="sc-en" id="tenseHint" style="opacity:.7;"></div>
+        </div>
+        <div id="tenseOptions"></div>
+        <div class="feedback" id="tenseFeedback"></div>
+        <button class="btn primary center hidden" id="tenseNext">Next →</button>
+        <button class="back-link" id="tenseQuit" style="display:block;margin:8px auto 0;">← Back to lessons</button>
+      </div>
+      <div id="tenseEnd" class="order-end hidden"></div>
       <div id="conjugPlay" class="hidden">
         <div class="hud">
           <span class="pill">🔤 <span id="conjProg">0/0</span></span>
@@ -1202,7 +1220,11 @@ const VOCAB = {
     ["el carro","car","🚗"],["el avión","airplane","✈️"],["el tren","train","🚆"],
     ["el barco","boat","⛵"],["la calle","street","🛣️"],["el hotel","hotel","🏨"],
     ["la playa","beach","🏖️"],["el mapa","map","🗺️"],["la maleta","suitcase","🧳"],
-    ["el tiquete","ticket","🎫"]
+    ["el tiquete","ticket","🎫"],["el aeropuerto","airport","🛫"],["el pasaporte","passport","🛂"],
+    ["el vuelo","flight","🛩️"],["el equipaje","luggage","🧳"],["la reserva","reservation","📅"],
+    ["el turista","tourist","📸"],["la aduana","customs","🛃"],["la frontera","border","🚧"],
+    ["el viajero","traveler","🚶"],["la llegada","arrival","🛬"],["la salida","departure","🚪"],
+    ["el destino","destination","📍"],["el guía","guide","🧭"],["la moneda","currency / coin","🪙"]
   ],
   "Greetings 👋": [
     ["hola","hello","👋"],["adiós","goodbye","🫡"],["gracias","thank you","🙏"],
@@ -1410,6 +1432,20 @@ const SENTENCES = {
   "Travel ✈️||el mapa": ["Miro el ___ para no perderme.", "mapa", "I look at the map so I don't get lost."],
   "Travel ✈️||la maleta": ["Mi ___ es muy pesada.", "maleta", "My suitcase is very heavy."],
   "Travel ✈️||el tiquete": ["Compro un ___ de tren.", "tiquete", "I buy a train ticket."],
+  "Travel ✈️||el aeropuerto": ["Llegamos al ___ temprano.", "aeropuerto", "We arrive at the airport early."],
+  "Travel ✈️||el pasaporte": ["Necesito mi ___ para viajar.", "pasaporte", "I need my passport to travel."],
+  "Travel ✈️||el vuelo": ["Mi ___ sale a mediodía.", "vuelo", "My flight leaves at noon."],
+  "Travel ✈️||el equipaje": ["Reviso mi ___ antes de salir.", "equipaje", "I check my luggage before leaving."],
+  "Travel ✈️||la reserva": ["Hice una ___ en el hotel.", "reserva", "I made a reservation at the hotel."],
+  "Travel ✈️||el turista": ["El ___ toma muchas fotos.", "turista", "The tourist takes many photos."],
+  "Travel ✈️||la aduana": ["Pasamos por la ___ en el aeropuerto.", "aduana", "We go through customs at the airport."],
+  "Travel ✈️||la frontera": ["Cruzamos la ___ en bus.", "frontera", "We cross the border by bus."],
+  "Travel ✈️||el viajero": ["El ___ lleva una mochila grande.", "viajero", "The traveler carries a big backpack."],
+  "Travel ✈️||la llegada": ["La ___ del vuelo es a las cinco.", "llegada", "The flight's arrival is at five."],
+  "Travel ✈️||la salida": ["La ___ del tren es puntual.", "salida", "The train's departure is on time."],
+  "Travel ✈️||el destino": ["Nuestro ___ es Cartagena.", "destino", "Our destination is Cartagena."],
+  "Travel ✈️||el guía": ["El ___ nos muestra la ciudad.", "guía", "The guide shows us the city."],
+  "Travel ✈️||la moneda": ["Cambio mi ___ en el banco.", "moneda", "I change my currency at the bank."],
 
   "Greetings 👋||hola": ["___, ¿cómo estás?", "hola", "Hello, how are you?"],
   "Greetings 👋||adiós": ["___, hasta mañana.", "adiós", "Goodbye, see you tomorrow."],
@@ -1779,7 +1815,13 @@ const WORD_GLOSS = {
   hacemos: "we do / make", hagas: "(you) make / do", lado: "side", martes: "Tuesdays",
   nuestro: "our", pasillo: "hallway", "pequeña": "small", "perdí": "I lost",
   pero: "but", saca: "take out", sobre: "about / on", tanto: "so much",
-  "televisión": "television", vemos: "we watch / see", visitas: "visits / guests"
+  "televisión": "television", vemos: "we watch / see", visitas: "visits / guests",
+  // ---- words from the expanded Travel sentences ----
+  antes: "before", bus: "bus", cambio: "I change / exchange", ciudad: "city",
+  fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
+  mochila: "backpack", muestra: "shows", pasamos: "we pass / go through",
+  puntual: "on time / punctual", reviso: "I check", sale: "leaves / goes out",
+  salir: "to leave / go out", temprano: "early", viajar: "to travel"
 };
 
 /* Drop a leading Spanish article so cloze options/answers line up. */
@@ -2710,6 +2752,8 @@ function openGrammar() {
   $("grammarHome").classList.remove("hidden");
   $("conjugPlay").classList.add("hidden");
   $("conjEnd").classList.add("hidden");
+  $("tensePlay").classList.add("hidden");
+  $("tenseEnd").classList.add("hidden");
   renderLessons();
   renderTenseSel();
   show("grammar");
@@ -2798,6 +2842,111 @@ function endConjug() {
     "<button class='btn center' id='conjBackLessons'>📖 Lessons</button>";
   $("conjAgain").onclick = startConjug;
   $("conjBackLessons").onclick = openGrammar;
+}
+
+/* ---- "Which form fits?" — tense recognition (multiple choice) ----
+   A time clue signals the tense; the learner picks the correctly
+   conjugated form. Distractors are the same verb+person in other
+   tenses, so it tests choosing the right tense, not just spelling. */
+const TENSE_CLUES = {
+  present:     [["Todos los días, ", "every day"], ["Normalmente, ", "usually"], ["Ahora, ", "right now"]],
+  preterite:   [["Ayer, ", "yesterday"], ["La semana pasada, ", "last week"], ["Anoche, ", "last night"]],
+  subjunctive: [["Espero que ", "I hope that…"], ["Ojalá que ", "hopefully…"], ["Quiero que ", "I want that…"]]
+};
+const TENSE_ROUND = 10;
+let tense = {};
+
+function startTense() {
+  const persons = (REGIONS[getRegion()] || REGIONS.co).vosotros ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 5];
+  const tenses = ["present", "preterite", "subjunctive"];
+  const q = [];
+  for (let i = 0; i < TENSE_ROUND; i++) {
+    const t = tenses[Math.floor(Math.random() * tenses.length)];
+    const clues = TENSE_CLUES[t];
+    q.push({
+      v: Math.floor(Math.random() * CONJUG.length),
+      p: persons[Math.floor(Math.random() * persons.length)],
+      t, clue: clues[Math.floor(Math.random() * clues.length)]
+    });
+  }
+  tense = { q, i: 0, score: 0, persons };
+  $("grammarHome").classList.add("hidden");
+  $("tenseEnd").classList.add("hidden");
+  $("tensePlay").classList.remove("hidden");
+  nextTense();
+}
+
+function nextTense() {
+  if (tense.i >= tense.q.length) return endTense();
+  const it = tense.q[tense.i];
+  const verb = CONJUG[it.v];
+  const correct = verb[it.t][it.p];
+  // Build unique options: right answer + same person in other tenses, padded
+  // with same-tense other persons if needed, up to 4.
+  const opts = new Set([correct]);
+  ["present", "preterite", "subjunctive"].forEach(tt => { if (tt !== it.t) opts.add(verb[tt][it.p]); });
+  let pi = 0;
+  while (opts.size < 4 && pi < 30) { opts.add(verb[it.t][tense.persons[pi % tense.persons.length]]); pi++; }
+  const options = shuffle([...opts]).slice(0, 4);
+  if (!options.includes(correct)) options[0] = correct;
+
+  tense.cur = { correct, done: false };
+  $("tenseProg").textContent = (tense.i + 1) + "/" + tense.q.length;
+  $("tenseScore").textContent = tense.score;
+  $("tenseSentence").textContent = it.clue[0] + CONJ_PRON[it.p] + " ___.";
+  $("tenseHint").textContent = verb.inf + " — " + verb.en + "  ·  " + it.clue[1];
+  $("tenseFeedback").textContent = "";
+  $("tenseNext").classList.add("hidden");
+
+  const wrap = $("tenseOptions");
+  wrap.innerHTML = "";
+  options.forEach(opt => {
+    const b = document.createElement("button");
+    b.className = "btn center";
+    b.style.cssText = "background:rgba(255,255,255,0.12);color:#fff;";
+    b.textContent = opt;
+    b.onclick = () => pickTense(b, opt);
+    wrap.appendChild(b);
+  });
+}
+
+function pickTense(btn, choice) {
+  const c = tense.cur;
+  if (!c || c.done) return;
+  c.done = true;
+  const it = tense.q[tense.i];
+  const verb = CONJUG[it.v];
+  const ok = choice === c.correct;
+  const buttons = $("tenseOptions").querySelectorAll("button");
+  buttons.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === c.correct) b.style.cssText = "background:var(--good);color:#fff;";
+    else if (b === btn) b.style.cssText = "background:var(--bad);color:#fff;";
+    else b.style.opacity = "0.5";
+  });
+  const fb = $("tenseFeedback");
+  if (ok) { tense.score++; $("tenseScore").textContent = tense.score; fb.style.color = "var(--good)"; fb.textContent = "¡Correcto! ✓"; }
+  else { fb.style.color = "var(--bad)"; fb.textContent = "✗ It's: " + c.correct; }
+  speak(it.clue[0] + CONJ_PRON[it.p] + " " + c.correct);
+  tense.i++;
+  const nb = $("tenseNext");
+  nb.textContent = tense.i >= tense.q.length ? "See results →" : "Next →";
+  nb.classList.remove("hidden");
+  setTimeout(() => nb.focus(), 30);
+}
+
+function endTense() {
+  $("tensePlay").classList.add("hidden");
+  logActivity(tense.q.length, tense.score * 10);
+  const end = $("tenseEnd");
+  end.classList.remove("hidden");
+  end.innerHTML =
+    "<p class='section-title'>🎯 Round complete</p>" +
+    "<div class='big-score'>" + tense.score + "/" + tense.q.length + "</div>" +
+    "<button class='btn primary center' id='tenseAgain'>🔁 Again</button>" +
+    "<button class='btn center' id='tenseBackLessons'>📖 Lessons</button>";
+  $("tenseAgain").onclick = startTense;
+  $("tenseBackLessons").onclick = openGrammar;
 }
 
 /* ============================================================
@@ -5072,6 +5221,9 @@ $("conjSubmit").onclick = checkConjug;
 $("conjInput").addEventListener("keydown", (e) => { if (e.key === "Enter") checkConjug(); });
 $("conjNext").onclick = nextConjug;
 $("conjQuit").onclick = openGrammar;
+$("startTenseBtn").onclick = startTense;
+$("tenseNext").onclick = nextTense;
+$("tenseQuit").onclick = openGrammar;
 $("openCoachBtn").onclick = openCoach;
 $("coachQuitBtn").onclick = () => show("home");
 
