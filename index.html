@@ -1148,7 +1148,14 @@ const VOCAB = {
     ["la manzana","apple","🍎"],["el pan","bread","🍞"],["el queso","cheese","🧀"],
     ["la leche","milk","🥛"],["el huevo","egg","🥚"],["el pollo","chicken","🍗"],
     ["el arroz","rice","🍚"],["la naranja","orange","🍊"],["el plátano","banana","🍌"],
-    ["el agua","water","💧"],["el pastel","cake","🍰"],["el café","coffee","☕"]
+    ["el agua","water","💧"],["el pastel","cake","🍰"],["el café","coffee","☕"],
+    ["la papa","potato","🥔"],["el tomate","tomato","🍅"],["la cebolla","onion","🧅"],
+    ["el ajo","garlic","🧄"],["el maíz","corn","🌽"],["el frijol","bean","🫘"],
+    ["la carne","meat","🥩"],["el pescado","fish (food)","🐟"],["el cerdo","pork / pig","🥓"],
+    ["la hamburguesa","hamburger","🍔"],["la pizza","pizza","🍕"],["el sándwich","sandwich","🥪"],
+    ["la sopa","soup","🍲"],["la ensalada","salad","🥗"],["la fresa","strawberry","🍓"],
+    ["la uva","grape","🍇"],["el limón","lemon / lime","🍋"],["el aguacate","avocado","🥑"],
+    ["la arepa","arepa","🫓"],["el helado","ice cream","🍦"]
   ],
   "Colors 🎨": [
     ["rojo","red","🟥"],["azul","blue","🟦"],["verde","green","🟩"],
@@ -1195,7 +1202,11 @@ const VOCAB = {
     ["el amor","love","❤️"],["la cita","the date","💐"],["el novio","boyfriend","👦"],
     ["la novia","girlfriend","👧"],["el beso","kiss","💋"],["el abrazo","hug","🤗"],
     ["la pareja","couple / partner","💑"],["la flor","flower","🌹"],["el cariño","affection","🥰"],
-    ["la boda","wedding","💒"],["el anillo","ring","💍"],["enamorarse","to fall in love","😍"]
+    ["la boda","wedding","💒"],["el anillo","ring","💍"],["enamorarse","to fall in love","😍"],
+    ["el corazón","heart","❤️"],["querer","to love / want","💗"],["extrañar","to miss (someone)","🥺"],
+    ["el sentimiento","feeling","💞"],["la relación","relationship","🧑‍🤝‍🧑"],["celoso","jealous","😒"],
+    ["enamorado","in love","🥰"],["soltero","single","🙋"],["la luna de miel","honeymoon","🌙"],
+    ["la pasión","passion","💓"],["la caricia","caress","🤲"],["el compromiso","commitment / engagement","🤝"]
   ],
   "Restaurant 🍽️": [
     ["el menú","menu","📋"],["el camarero","waiter","🤵"],["la mesa","table","🍽️"],
@@ -1261,7 +1272,11 @@ const VOCAB = {
     ["el sexo","sex","🔞"],["el amante","lover","❤️‍🔥"],["besar","to kiss","💋"],
     ["el deseo","desire","🔥"],["atractivo","attractive","😍"],["coquetear","to flirt","😉"],
     ["desnudo","naked","🫣"],["el condón","condom","🛡️"],["la protección","protection","🦺"],
-    ["el consentimiento","consent","✅"],["embarazada","pregnant","🤰"],["la píldora","the pill","💊"]
+    ["el consentimiento","consent","✅"],["embarazada","pregnant","🤰"],["la píldora","the pill","💊"],
+    ["hacer el amor","to make love","💞"],["la cama","bed","🛏️"],["excitado","aroused","🥵"],
+    ["la lencería","lingerie","👙"],["el placer","pleasure","😌"],["la fidelidad","faithfulness","🤞"],
+    ["la infidelidad","infidelity / cheating","💔"],["sensual","sensual","💄"],["el orgasmo","orgasm","✨"],
+    ["el levante","a hookup / pickup (Col.)","😏"]
   ]
 };
 
@@ -1540,7 +1555,49 @@ const SENTENCES = {
   "Sex 🔞||la protección": ["La ___ previene enfermedades.", "protección", "Protection prevents diseases."],
   "Sex 🔞||el consentimiento": ["El ___ es necesario siempre.", "consentimiento", "Consent is always necessary."],
   "Sex 🔞||embarazada": ["Mi hermana está ___.", "embarazada", "My sister is pregnant."],
-  "Sex 🔞||la píldora": ["Ella toma la ___ anticonceptiva.", "píldora", "She takes the birth-control pill."]
+  "Sex 🔞||la píldora": ["Ella toma la ___ anticonceptiva.", "píldora", "She takes the birth-control pill."],
+  "Food 🍎||la papa": ["Me gusta la ___ frita.", "papa", "I like fried potato."],
+  "Food 🍎||el tomate": ["El ___ es rojo y jugoso.", "tomate", "The tomato is red and juicy."],
+  "Food 🍎||la cebolla": ["La ___ me hace llorar.", "cebolla", "The onion makes me cry."],
+  "Food 🍎||el ajo": ["El ___ tiene un olor fuerte.", "ajo", "Garlic has a strong smell."],
+  "Food 🍎||el maíz": ["El ___ es amarillo y dulce.", "maíz", "Corn is yellow and sweet."],
+  "Food 🍎||el frijol": ["Comemos ___ casi todos los días.", "frijol", "We eat beans almost every day."],
+  "Food 🍎||la carne": ["Como ___ los domingos.", "carne", "I eat meat on Sundays."],
+  "Food 🍎||el pescado": ["Prefiero ___ a la carne.", "pescado", "I prefer fish to meat."],
+  "Food 🍎||el cerdo": ["El ___ vive en la granja.", "cerdo", "The pig lives on the farm."],
+  "Food 🍎||la hamburguesa": ["Pido una ___ con papas.", "hamburguesa", "I order a hamburger with fries."],
+  "Food 🍎||la pizza": ["La ___ tiene queso y tomate.", "pizza", "The pizza has cheese and tomato."],
+  "Food 🍎||el sándwich": ["Preparo un ___ de jamón.", "sándwich", "I make a ham sandwich."],
+  "Food 🍎||la sopa": ["La ___ está muy caliente.", "sopa", "The soup is very hot."],
+  "Food 🍎||la ensalada": ["La ___ tiene lechuga y tomate.", "ensalada", "The salad has lettuce and tomato."],
+  "Food 🍎||la fresa": ["La ___ es dulce y roja.", "fresa", "The strawberry is sweet and red."],
+  "Food 🍎||la uva": ["El vino se hace de la ___.", "uva", "Wine is made from grapes."],
+  "Food 🍎||el limón": ["El ___ es muy ácido.", "limón", "The lemon is very sour."],
+  "Food 🍎||el aguacate": ["El ___ es cremoso y verde.", "aguacate", "The avocado is creamy and green."],
+  "Food 🍎||la arepa": ["En Colombia comemos ___ en el desayuno.", "arepa", "In Colombia we eat arepa for breakfast."],
+  "Food 🍎||el helado": ["En verano quiero un ___.", "helado", "In summer I want an ice cream."],
+  "Dating & Romance 💕||el corazón": ["Mi ___ late por ti.", "corazón", "My heart beats for you."],
+  "Dating & Romance 💕||querer": ["Te voy a ___ para siempre.", "querer", "I'm going to love you forever."],
+  "Dating & Romance 💕||extrañar": ["Te voy a ___ mucho.", "extrañar", "I'm going to miss you a lot."],
+  "Dating & Romance 💕||el sentimiento": ["Tengo un ___ especial por ella.", "sentimiento", "I have a special feeling for her."],
+  "Dating & Romance 💕||la relación": ["Tenemos una ___ muy seria.", "relación", "We have a very serious relationship."],
+  "Dating & Romance 💕||celoso": ["Mi novio es muy ___.", "celoso", "My boyfriend is very jealous."],
+  "Dating & Romance 💕||enamorado": ["Estoy ___ de ti.", "enamorado", "I'm in love with you."],
+  "Dating & Romance 💕||soltero": ["Por ahora estoy ___.", "soltero", "For now I'm single."],
+  "Dating & Romance 💕||la luna de miel": ["Fuimos de ___ a Cartagena.", "luna de miel", "We went on a honeymoon to Cartagena."],
+  "Dating & Romance 💕||la pasión": ["Bailan con mucha ___.", "pasión", "They dance with a lot of passion."],
+  "Dating & Romance 💕||la caricia": ["Le hizo una ___ suave.", "caricia", "He gave her a gentle caress."],
+  "Dating & Romance 💕||el compromiso": ["Anunciaron su ___ ayer.", "compromiso", "They announced their engagement yesterday."],
+  "Sex 🔞||hacer el amor": ["Deciden ___ con protección.", "hacer el amor", "They decide to make love with protection."],
+  "Sex 🔞||la cama": ["Duermen juntos en la ___.", "cama", "They sleep together in the bed."],
+  "Sex 🔞||excitado": ["Se siente muy ___.", "excitado", "He feels very aroused."],
+  "Sex 🔞||la lencería": ["Compró ___ para la ocasión.", "lencería", "She bought lingerie for the occasion."],
+  "Sex 🔞||el placer": ["El ___ es parte del amor.", "placer", "Pleasure is part of love."],
+  "Sex 🔞||la fidelidad": ["La ___ es clave en la pareja.", "fidelidad", "Faithfulness is key in a couple."],
+  "Sex 🔞||la infidelidad": ["La ___ rompió la relación.", "infidelidad", "Infidelity broke the relationship."],
+  "Sex 🔞||sensual": ["Bailó de forma muy ___.", "sensual", "She danced in a very sensual way."],
+  "Sex 🔞||el orgasmo": ["El ___ es una respuesta natural.", "orgasmo", "The orgasm is a natural response."],
+  "Sex 🔞||el levante": ["Tuvo un ___ en la fiesta.", "levante", "He had a hookup at the party."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1663,7 +1720,20 @@ const WORD_GLOSS = {
   tomamos: "we take / drink", tomar: "to take / drink", trae: "brings", trajo: "brought", "té": "tea",
   unos: "some", urgente: "urgent", uso: "I use / use", van: "they go", vas: "you go",
   veces: "times", ventana: "window", vio: "saw", vivo: "I live / alive", voz: "voice",
-  ya: "already / now", zapatos: "shoes"
+  ya: "already / now", zapatos: "shoes",
+  // ---- words from the expanded Food / Dating / Sex sentences ----
+  ahora: "now", anunciaron: "they announced", bailan: "they dance", "bailó": "danced",
+  cartagena: "Cartagena (a city)", clave: "key / crucial", colombia: "Colombia",
+  comemos: "we eat", cremoso: "creamy", deciden: "they decide", domingos: "Sundays",
+  duermen: "they sleep", dulce: "sweet", especial: "special", forma: "way / form",
+  frita: "fried", granja: "farm", hacer: "to do / make", hizo: "did / made",
+  "jamón": "ham", jugoso: "juicy", juntos: "together", lechuga: "lettuce",
+  llorar: "to cry", luna: "moon", miel: "honey", natural: "natural",
+  "ocasión": "occasion", olor: "smell", papas: "potatoes", parte: "part",
+  pido: "I order / ask for", prefiero: "I prefer", preparo: "I prepare",
+  respuesta: "answer / response", "rompió": "broke", seria: "serious",
+  siente: "feels", suave: "soft / gentle", todos: "all / everyone", tuvo: "had",
+  vino: "wine", "ácido": "sour / acidic"
 };
 
 /* Drop a leading Spanish article so cloze options/answers line up. */
