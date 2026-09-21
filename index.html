@@ -3445,7 +3445,7 @@ function searchTap(r, c) {
    ============================================================ */
 const SC_PRESETS = ["Order at a café", "Ask for directions", "At the market", "At the doctor",
   "Hotel check-in", "Make small talk", "At the airport", "Ordering at a restaurant",
-  "Report a crime to police"];
+  "Shopping — pay the clerk", "Report a crime to police"];
 
 /* Built-in dialogues so the preset conversations work fully OFFLINE.
    (Typing a custom situation still uses AI, which needs a connection.) */
@@ -3455,7 +3455,7 @@ const SC_DIALOGUES = {
     { speaker: "you", es: "Un café con leche, por favor.", en: "A coffee with milk, please." },
     { speaker: "them", es: "¿Algo de comer?", en: "Anything to eat?" },
     { speaker: "you", es: "Sí, un croissant.", en: "Yes, a croissant." },
-    { speaker: "them", es: "Son cuatro euros.", en: "That's four euros." },
+    { speaker: "them", es: "Son ocho mil pesos.", en: "That's eight thousand pesos. (8,000)" },
     { speaker: "you", es: "Aquí tiene. Gracias.", en: "Here you go. Thank you." }
   ],
   "Ask for directions": [
@@ -3471,7 +3471,7 @@ const SC_DIALOGUES = {
     { speaker: "you", es: "Un kilo de manzanas, por favor.", en: "A kilo of apples, please." },
     { speaker: "them", es: "¿Algo más?", en: "Anything else?" },
     { speaker: "you", es: "¿Cuánto cuestan las naranjas?", en: "How much are the oranges?" },
-    { speaker: "them", es: "Dos euros el kilo.", en: "Two euros a kilo." },
+    { speaker: "them", es: "Cuatro mil pesos el kilo.", en: "Four thousand pesos a kilo. (4,000)" },
     { speaker: "you", es: "Vale, un kilo también.", en: "Okay, a kilo too." }
   ],
   "At the doctor": [
@@ -3513,6 +3513,18 @@ const SC_DIALOGUES = {
     { speaker: "you", es: "Agua, por favor.", en: "Water, please." },
     { speaker: "them", es: "¿Desea postre?", en: "Would you like dessert?" },
     { speaker: "you", es: "Sí, un pastel de chocolate.", en: "Yes, a chocolate cake." }
+  ],
+  "Shopping — pay the clerk": [
+    { speaker: "them", es: "¡Buenas! ¿Le ayudo en algo?", en: "Hello! Can I help you with something?" },
+    { speaker: "you", es: "Sí, ¿cuánto cuestan estos zapatos?", en: "Yes, how much are these shoes?" },
+    { speaker: "them", es: "Esos zapatos cuestan doscientos mil pesos.", en: "Those shoes cost two hundred thousand pesos. (200,000)" },
+    { speaker: "you", es: "¿Y cuánto vale esta chaqueta?", en: "And how much is this jacket?" },
+    { speaker: "them", es: "La chaqueta vale doscientos cincuenta mil.", en: "The jacket is two hundred fifty thousand. (250,000)" },
+    { speaker: "you", es: "Me llevo las dos cosas. ¿Cuánto es en total?", en: "I'll take both. How much is it in total?" },
+    { speaker: "them", es: "En total son cuatrocientos cincuenta mil pesos.", en: "In total it's four hundred fifty thousand pesos. (450,000)" },
+    { speaker: "you", es: "¿Cuatrocientos cincuenta mil? ¿Aceptan tarjeta?", en: "Four hundred fifty thousand? Do you accept card?" },
+    { speaker: "them", es: "Sí, señor. Pase la tarjeta, por favor.", en: "Yes, sir. Please tap your card." },
+    { speaker: "you", es: "Perfecto. Muchas gracias.", en: "Perfect. Thank you very much." }
   ],
   "Report a crime to police": [
     { speaker: "them", es: "Buenas tardes. ¿En qué puedo ayudarle?", en: "Good afternoon. How can I help you?" },
@@ -3782,6 +3794,8 @@ function scListen() {
 
 function scResolve(ok, saidText) {
   const cur = sc.turns[sc.i];
+  if (!cur || sc.resolving) return;   // ignore rapid double-taps and end-of-conversation
+  sc.resolving = true;
   if (ok) sc.score++;
   const said = (saidText || "").trim();
   const differs = said && normalize(said) !== normalize(cur.es);
@@ -3796,7 +3810,7 @@ function scResolve(ok, saidText) {
   });
   sc.i++;
   speak(cur.es);
-  setTimeout(renderScenario, 1300);
+  setTimeout(() => { sc.resolving = false; renderScenario(); }, 1300);
 }
 
 function scAbort() {
