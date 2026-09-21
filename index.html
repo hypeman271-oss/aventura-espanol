@@ -2458,14 +2458,18 @@ const PLAYER_STEPS = ["en", "es", "en", "es"];
 let player = { slow: false, shuffle: true };
 
 function playerPool() {
-  const build = (useFocus) => {
-    const out = [];
-    Object.keys(SENTENCES).forEach(k => { const [t, a, en] = SENTENCES[k]; if (en && (!useFocus || inFocus(k.split("||")[0]))) out.push({ es: t.replace("___", a), en }); });
-    (store.userCards || []).forEach(c => { if (!c.template && c.es && c.en && (!useFocus || inFocus(MY_CARDS_CAT))) out.push({ es: c.es, en: c.en }); });
-    return out;
-  };
-  const f = build(true);
-  return f.length ? f : build(false);
+  // Strictly follow the topic focus: only phrases from the focused topic
+  // (or all topics when "All topics" is selected). No silent fallback to
+  // everything, which previously made a focused topic look ignored.
+  const out = [];
+  Object.keys(SENTENCES).forEach(k => {
+    const [t, a, en] = SENTENCES[k];
+    if (en && inFocus(k.split("||")[0])) out.push({ es: t.replace("___", a), en });
+  });
+  (store.userCards || []).forEach(c => {
+    if (c.es && c.en && inFocus(MY_CARDS_CAT)) out.push({ es: c.es, en: c.en });
+  });
+  return out;
 }
 
 function openPlayer() {
