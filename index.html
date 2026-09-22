@@ -1318,6 +1318,12 @@ const VOCAB = {
     ["limpiar","to clean","🧹"],["el aseo","cleaning / chores","🧼"],["los servicios","utilities","💡"],
     ["compartir","to share","🤝"],["el ruido","noise","🔊"],["el desorden","mess","🧺"],
     ["la regla","rule","📏"],["el vecino","neighbor","🏘️"],["la llave","key","🔑"]
+  ],
+  "Peso Amounts 💵": [
+    ["mil","one thousand (1,000)","💵"],["dos mil","two thousand (2,000)","💵"],["cinco mil","five thousand (5,000)","💵"],
+    ["diez mil","ten thousand (10,000)","💵"],["veinte mil","twenty thousand (20,000)","💵"],["treinta mil","thirty thousand (30,000)","💵"],
+    ["cincuenta mil","fifty thousand (50,000)","💵"],["cien mil","one hundred thousand (100,000)","💰"],["doscientos mil","two hundred thousand (200,000)","💰"],
+    ["quinientos mil","five hundred thousand (500,000)","💰"],["un millón","one million (1,000,000)","🤑"],["dos millones","two million (2,000,000)","🤑"]
   ]
 };
 
@@ -1670,7 +1676,19 @@ const SENTENCES = {
   "Roommates 🏠||el desorden": ["Hay mucho ___ en la sala.", "desorden", "There's a lot of mess in the living room."],
   "Roommates 🏠||la regla": ["Tenemos una ___ sobre las visitas.", "regla", "We have a rule about guests."],
   "Roommates 🏠||el vecino": ["El ___ de al lado es amable.", "vecino", "The neighbor next door is kind."],
-  "Roommates 🏠||la llave": ["Perdí la ___ del apartamento.", "llave", "I lost the apartment key."]
+  "Roommates 🏠||la llave": ["Perdí la ___ del apartamento.", "llave", "I lost the apartment key."],
+  "Peso Amounts 💵||mil": ["Un tinto cuesta ___ pesos.", "mil", "A coffee costs one thousand pesos. (1,000)"],
+  "Peso Amounts 💵||dos mil": ["El pasaje cuesta ___ pesos.", "dos mil", "The bus fare costs two thousand pesos. (2,000)"],
+  "Peso Amounts 💵||cinco mil": ["La arepa vale ___ pesos.", "cinco mil", "The arepa is five thousand pesos. (5,000)"],
+  "Peso Amounts 💵||diez mil": ["El almuerzo cuesta ___ pesos.", "diez mil", "Lunch costs ten thousand pesos. (10,000)"],
+  "Peso Amounts 💵||veinte mil": ["La camiseta cuesta ___ pesos.", "veinte mil", "The t-shirt costs twenty thousand pesos. (20,000)"],
+  "Peso Amounts 💵||treinta mil": ["El libro vale ___ pesos.", "treinta mil", "The book is thirty thousand pesos. (30,000)"],
+  "Peso Amounts 💵||cincuenta mil": ["Los zapatos cuestan ___ pesos.", "cincuenta mil", "The shoes cost fifty thousand pesos. (50,000)"],
+  "Peso Amounts 💵||cien mil": ["El mercado cuesta ___ pesos.", "cien mil", "The groceries cost one hundred thousand pesos. (100,000)"],
+  "Peso Amounts 💵||doscientos mil": ["El arriendo subió a ___ pesos.", "doscientos mil", "The rent went up to two hundred thousand pesos. (200,000)"],
+  "Peso Amounts 💵||quinientos mil": ["El celular cuesta ___ pesos.", "quinientos mil", "The cell phone costs five hundred thousand pesos. (500,000)"],
+  "Peso Amounts 💵||un millón": ["Gano ___ de pesos al mes.", "un millón", "I earn one million pesos a month. (1,000,000)"],
+  "Peso Amounts 💵||dos millones": ["El carro usado cuesta ___ de pesos.", "dos millones", "The used car costs two million pesos. (2,000,000)"]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1815,6 +1833,11 @@ const WORD_GLOSS = {
   nuestro: "our", pasillo: "hallway", "pequeña": "small", "perdí": "I lost",
   pero: "but", saca: "take out", sobre: "about / on", tanto: "so much",
   "televisión": "television", vemos: "we watch / see", visitas: "visits / guests",
+  // ---- words from the Peso Amounts sentences ----
+  almuerzo: "lunch", camiseta: "t-shirt", celular: "cell phone", cuestan: "cost (they)",
+  doscientos: "two hundred", gano: "I earn", mercado: "market / groceries",
+  millones: "million (pl.)", "millón": "million", pasaje: "fare / ticket",
+  quinientos: "five hundred", "subió": "went up / rose", usado: "used", vale: "costs / is worth",
   // ---- words from the expanded Travel sentences ----
   antes: "before", bus: "bus", cambio: "I change / exchange", ciudad: "city",
   fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
@@ -4455,7 +4478,7 @@ const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
   ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺"]],
   ["🏠 Home Life", ["Roommates 🏠"]],
-  ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Weather & Seasons 🌤️"]],
+  ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
   ["🚨 Emergencies", ["Earthquake 🌎", "Crime & Safety 🚔"]]
 ];
