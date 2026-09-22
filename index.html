@@ -724,6 +724,9 @@
       <button class="btn" id="openSearchBtn" style="background:#a06cd5;color:#fff;">
         <span class="emoji">🔎</span><span>Word Search<small>Find the hidden Spanish words</small></span>
       </button>
+      <button class="btn" id="openMemoryBtn" style="background:#a06cd5;color:#fff;">
+        <span class="emoji">🃏</span><span>Match the Pairs<small>Flip cards to match Spanish &amp; English</small></span>
+      </button>
       </div>
     </div>
 
@@ -754,10 +757,6 @@
       <button class="btn accent2" data-mode="speak" id="speakModeBtn">
         <span class="emoji">🎤</span>
         <span>Speak It<small>Say the Spanish word out loud — it listens</small></span>
-      </button>
-      <button class="btn" data-mode="memory" style="background:#a06cd5;color:#fff;">
-        <span class="emoji">🃏</span>
-        <span>Match the Pairs<small>Flip cards to match Spanish &amp; English</small></span>
       </button>
       </div>
     </div>
@@ -5263,6 +5262,7 @@ document.addEventListener("keydown", wordleKeydown);
 $("openSearchBtn").onclick = openSearch;
 $("searchAgain").onclick = openSearch;
 $("searchQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("openMemoryBtn").onclick = startMemory;
 $("openWriteBtn").onclick = openWrite;
 $("writeCheckBtn").onclick = writeCheck;
 $("writeQuitBtn").onclick = () => show("home");
