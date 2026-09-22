@@ -3835,8 +3835,20 @@ function scResolve(ok, saidText) {
     expectedEn: cur.en
   });
   sc.i++;
-  speak(cur.es);
-  setTimeout(() => { sc.resolving = false; renderScenario(); }, 1300);
+  // Advance only after the spoken line finishes, so it isn't cut off by the
+  // next turn's speech. Prefer the utterance's own onend; fall back to an
+  // estimate of how long the line takes to say (some browsers never fire
+  // onend), which is always at least as long as the speech so nothing is cut.
+  let advanced = false;
+  const go = () => { if (advanced) return; advanced = true; sc.resolving = false; renderScenario(); };
+  speak(cur.es, null, null, () => setTimeout(go, 450));
+  setTimeout(go, speakEstimateMs(cur.es));
+}
+
+/* Rough time (ms) to speak a line at our ~0.9 rate — a safe upper bound used
+   as a fallback so turns never advance before the audio finishes. */
+function speakEstimateMs(text) {
+  return Math.min(12000, 700 + (text || "").length * 90);
 }
 
 function scAbort() {
@@ -4566,8 +4578,8 @@ function setRegion(r) { try { localStorage.setItem("aventura_region", r); } catc
 function speakLang() { return (REGIONS[getRegion()] || REGIONS.co).tts; }
 function regionAi() { return (REGIONS[getRegion()] || REGIONS.co).ai; }
 
-function speak(text, langOverride, rateOverride) {
-  if (!("speechSynthesis" in window)) return;
+function speak(text, langOverride, rateOverride, onend) {
+  if (!("speechSynthesis" in window)) { if (onend) setTimeout(onend, 400); return; }
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -4580,8 +4592,9 @@ function speak(text, langOverride, rateOverride) {
     const v = voices.find(x => x.lang && x.lang.toLowerCase() === lang.toLowerCase())
       || voices.find(x => x.lang && x.lang.toLowerCase().startsWith(base));
     if (v) u.voice = v;
+    if (onend) { u.onend = onend; u.onerror = onend; }
     speechSynthesis.speak(u);
-  } catch(e) {}
+  } catch(e) { if (onend) setTimeout(onend, 400); }
 }
 // Warm up voices list
 if ("speechSynthesis" in window) { speechSynthesis.onvoiceschanged = () => {}; }
