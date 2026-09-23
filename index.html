@@ -4606,10 +4606,42 @@ if ("speechSynthesis" in window) { speechSynthesis.onvoiceschanged = () => {}; }
    ============================================================ */
 const SPEECH_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
+/* Spanish number words 0–100 → value, so the speak exercise can match a
+   spoken number that the recognizer transcribed as digits (e.g. it hears
+   "19" when you say "diecinueve"). */
+const NUM_DIRECT = {
+  cero: 0, uno: 1, un: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6,
+  siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14,
+  quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20,
+  veintiuno: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25,
+  veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30,
+  cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90,
+  cien: 100, ciento: 100
+};
+function spanishToNumber(s) {
+  s = (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  if (!s) return null;
+  if (NUM_DIRECT[s] != null) return NUM_DIRECT[s];
+  const nospace = s.replace(/\s+/g, "");
+  if (NUM_DIRECT[nospace] != null) return NUM_DIRECT[nospace]; // "dieci nueve" → diecinueve
+  if (s.includes(" y ")) {                                     // "treinta y uno" → 30 + 1
+    const parts = s.split(" y ").map(p => NUM_DIRECT[p.trim()]);
+    if (parts.every(p => p != null)) return parts.reduce((a, b) => a + b, 0);
+  }
+  return null;
+}
+function asNumber(s) {
+  s = (s || "").toLowerCase().replace(/[.,!?;:¿¡"']/g, "").trim();
+  if (/^\d+$/.test(s)) return parseInt(s, 10);
+  return spanishToNumber(s);
+}
+
 function matchesSpoken(heard, target) {
   const h = normalize(heard), t = normalize(target);
   if (!h) return false;
-  return h === t || h.includes(t) || t.includes(h);
+  if (h === t || h.includes(t) || t.includes(h)) return true;
+  const hn = asNumber(heard), tn = asNumber(target);
+  return hn != null && tn != null && hn === tn; // same number, word vs digits
 }
 
 function setMic(cls, text) {
