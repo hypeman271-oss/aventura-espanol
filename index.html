@@ -1324,6 +1324,14 @@ const VOCAB = {
     ["diez mil","ten thousand (10,000)","💵"],["veinte mil","twenty thousand (20,000)","💵"],["treinta mil","thirty thousand (30,000)","💵"],
     ["cincuenta mil","fifty thousand (50,000)","💵"],["cien mil","one hundred thousand (100,000)","💰"],["doscientos mil","two hundred thousand (200,000)","💰"],
     ["quinientos mil","five hundred thousand (500,000)","💰"],["un millón","one million (1,000,000)","🤑"],["dos millones","two million (2,000,000)","🤑"]
+  ],
+  "Banking 🏦": [
+    ["el banco","bank","🏦"],["la cuenta","account","🧾"],["el cajero","ATM","🏧"],
+    ["la tarjeta","card","💳"],["la clave","PIN / password","🔐"],["el saldo","balance","📊"],
+    ["retirar","to withdraw","💸"],["depositar","to deposit","📥"],["ahorrar","to save","🐖"],
+    ["el préstamo","loan","📃"],["la deuda","debt","⛓️"],["el interés","interest","📈"],
+    ["la transferencia","transfer","🔁"],["la firma","signature","✍️"],["el billete","bill / banknote","💵"],
+    ["la moneda","coin","🪙"],["el cheque","check","🧾"],["la sucursal","branch","🏢"]
   ]
 };
 
@@ -1688,7 +1696,25 @@ const SENTENCES = {
   "Peso Amounts 💵||doscientos mil": ["El arriendo subió a ___ pesos.", "doscientos mil", "The rent went up to two hundred thousand pesos. (200,000)"],
   "Peso Amounts 💵||quinientos mil": ["El celular cuesta ___ pesos.", "quinientos mil", "The cell phone costs five hundred thousand pesos. (500,000)"],
   "Peso Amounts 💵||un millón": ["Gano ___ de pesos al mes.", "un millón", "I earn one million pesos a month. (1,000,000)"],
-  "Peso Amounts 💵||dos millones": ["El carro usado cuesta ___ de pesos.", "dos millones", "The used car costs two million pesos. (2,000,000)"]
+  "Peso Amounts 💵||dos millones": ["El carro usado cuesta ___ de pesos.", "dos millones", "The used car costs two million pesos. (2,000,000)"],
+  "Banking 🏦||el banco": ["Voy al ___ a sacar plata.", "banco", "I'm going to the bank to get cash."],
+  "Banking 🏦||la cuenta": ["Abrí una ___ de ahorros.", "cuenta", "I opened a savings account."],
+  "Banking 🏦||el cajero": ["Saco plata en el ___ automático.", "cajero", "I get cash from the ATM."],
+  "Banking 🏦||la tarjeta": ["Pago todo con la ___.", "tarjeta", "I pay for everything with the card."],
+  "Banking 🏦||la clave": ["No le digas tu ___ a nadie.", "clave", "Don't tell anyone your PIN."],
+  "Banking 🏦||el saldo": ["Reviso mi ___ en el celular.", "saldo", "I check my balance on my phone."],
+  "Banking 🏦||retirar": ["Necesito ___ cien mil pesos.", "retirar", "I need to withdraw one hundred thousand pesos."],
+  "Banking 🏦||depositar": ["Voy a ___ mi sueldo.", "depositar", "I'm going to deposit my salary."],
+  "Banking 🏦||ahorrar": ["Quiero ___ para un viaje.", "ahorrar", "I want to save for a trip."],
+  "Banking 🏦||el préstamo": ["Pedí un ___ para el carro.", "préstamo", "I asked for a loan for the car."],
+  "Banking 🏦||la deuda": ["Estoy pagando una ___ grande.", "deuda", "I'm paying off a big debt."],
+  "Banking 🏦||el interés": ["El ___ del préstamo es alto.", "interés", "The interest on the loan is high."],
+  "Banking 🏦||la transferencia": ["Te hago una ___ hoy.", "transferencia", "I'll make you a transfer today."],
+  "Banking 🏦||la firma": ["Necesito tu ___ en el documento.", "firma", "I need your signature on the document."],
+  "Banking 🏦||el billete": ["Pagué con un ___ de cincuenta mil.", "billete", "I paid with a fifty thousand bill."],
+  "Banking 🏦||la moneda": ["Encontré una ___ en el piso.", "moneda", "I found a coin on the floor."],
+  "Banking 🏦||el cheque": ["Me pagaron con un ___.", "cheque", "They paid me with a check."],
+  "Banking 🏦||la sucursal": ["La ___ del banco está cerrada.", "sucursal", "The bank branch is closed."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1838,6 +1864,12 @@ const WORD_GLOSS = {
   doscientos: "two hundred", gano: "I earn", mercado: "market / groceries",
   millones: "million (pl.)", "millón": "million", pasaje: "fare / ticket",
   quinientos: "five hundred", "subió": "went up / rose", usado: "used", vale: "costs / is worth",
+  // ---- words from the Banking sentences ----
+  "abrí": "I opened", ahorros: "savings", "automático": "automatic", cerrada: "closed",
+  digas: "(you) tell / say", documento: "document", "encontré": "I found", hago: "I make / do",
+  nadie: "nobody / anyone", pagando: "paying", pagaron: "they paid", "pagué": "I paid",
+  "pedí": "I asked for / requested", piso: "floor", plata: "money / cash (Col.)",
+  sacar: "to take out / withdraw", saco: "I take out / withdraw", viaje: "trip",
   // ---- words from the expanded Travel sentences ----
   antes: "before", bus: "bus", cambio: "I change / exchange", ciudad: "city",
   fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
@@ -4525,7 +4557,7 @@ const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
   ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺"]],
   ["🏠 Home Life", ["Roommates 🏠"]],
-  ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Weather & Seasons 🌤️"]],
+  ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
   ["🚨 Emergencies", ["Earthquake 🌎", "Crime & Safety 🚔"]]
 ];
