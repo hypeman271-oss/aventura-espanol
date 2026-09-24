@@ -2986,6 +2986,7 @@ function buildCoach() {
   if (learned.length < 3) {
     body.innerHTML = "<p class='prog-empty'>Do a bit of daily practice first, then your coach will spot your weak words and topics and tell you what to focus on. 🌱</p>";
     renderRegionTile();
+    renderSilentTile();
     renderReminderTile();
     return;
   }
@@ -3033,6 +3034,7 @@ function buildCoach() {
     startDaily();
   };
   renderRegionTile();
+  renderSilentTile();
   renderReminderTile();
 }
 
@@ -3060,6 +3062,32 @@ function renderRegionTile() {
    ============================================================ */
 function getReminder() { try { return JSON.parse(localStorage.getItem("aventura_reminder")) || { on: false, time: "19:00" }; } catch (e) { return { on: false, time: "19:00" }; } }
 function setReminder(r) { try { localStorage.setItem("aventura_reminder", JSON.stringify(r)); } catch (e) {} }
+
+/* ---- Silent mode: no audio (speaker) and no mic-only exercises, for
+   practising somewhere you can't play sound or speak out loud. ---- */
+function getSilent() { try { return localStorage.getItem("aventura_silent") === "1"; } catch (e) { return false; } }
+function setSilent(on) { try { localStorage.setItem("aventura_silent", on ? "1" : "0"); } catch (e) {} }
+
+/* Hide the mic/speaker-only free-play exercises when silent mode is on. */
+function applySilentUI() {
+  const silent = getSilent();
+  const speakBtn = $("speakModeBtn");
+  if (speakBtn) speakBtn.classList.toggle("hidden", silent);
+  const listenBtn = document.querySelector('#home [data-mode="listen"]');
+  if (listenBtn) listenBtn.classList.toggle("hidden", silent);
+}
+
+function renderSilentTile() {
+  const on = getSilent();
+  const tile = document.createElement("div");
+  tile.className = "coach-tile";
+  tile.innerHTML =
+    "<h3>🔇 Silent mode</h3>" +
+    "<label style='display:flex;gap:8px;align-items:center;'><input type='checkbox' id='silentOn'" + (on ? " checked" : "") + "/> Practise without sound or mic</label>" +
+    "<p style='opacity:.7;font-size:.8rem;margin-top:8px;line-height:1.4;'>Turns off spoken audio and skips the speaking and listening exercises, so you can study in class, on the bus, or anywhere quiet.</p>";
+  $("coachBody").appendChild(tile);
+  $("silentOn").onchange = (e) => { setSilent(e.target.checked); applySilentUI(); };
+}
 
 function renderReminderTile() {
   const r = getReminder();
@@ -4089,16 +4117,23 @@ function buildSession() {
    reviews lean on production/listening (harder = a truer signal). */
 function pickMode(item) {
   const card = item.card;
+  const silent = getSilent();
   if (item.kind === "new") return Math.random() < 0.5 ? "es2en" : "en2es";
   const reps = store.cards[card.id] ? store.cards[card.id].reps : 0;
   const canCloze = hasSentence(card.cat, card.es);
   const r = Math.random();
+  let mode;
   // Output first: once a word is at all known, sometimes make the user say it.
-  if (SPEECH_OK && reps >= 1 && r < 0.25) return "speak";
+  if (SPEECH_OK && !silent && reps >= 1 && r < 0.25) mode = "speak";
   // Then context recall: practise known words inside a sentence.
-  if (canCloze && reps >= 2 && r < 0.55) return r < 0.30 ? "clozetype" : "cloze";
-  if (reps >= 3) return r < 0.5 ? "type" : (r < 0.8 ? "listen" : "en2es");
-  return r < 0.4 ? "listen" : (r < 0.75 ? "en2es" : "es2en");
+  else if (canCloze && reps >= 2 && r < 0.55) mode = r < 0.30 ? "clozetype" : "cloze";
+  else if (reps >= 3) mode = r < 0.5 ? "type" : (r < 0.8 ? "listen" : "en2es");
+  else mode = r < 0.4 ? "listen" : (r < 0.75 ? "en2es" : "es2en");
+  // Silent mode: never require the speaker (listen) or the mic (speak).
+  if (silent && (mode === "speak" || mode === "listen")) {
+    mode = (canCloze && Math.random() < 0.5) ? "cloze" : (Math.random() < 0.5 ? "type" : "es2en");
+  }
+  return mode;
 }
 
 /* Grade the answer just given during an SRS session, update the schedule,
@@ -4579,6 +4614,7 @@ function speakLang() { return (REGIONS[getRegion()] || REGIONS.co).tts; }
 function regionAi() { return (REGIONS[getRegion()] || REGIONS.co).ai; }
 
 function speak(text, langOverride, rateOverride, onend) {
+  if (getSilent()) { if (onend) setTimeout(onend, 200); return; } // silent mode: no audio
   if (!("speechSynthesis" in window)) { if (onend) setTimeout(onend, 400); return; }
   try {
     speechSynthesis.cancel();
@@ -5377,6 +5413,7 @@ repairUserCards();  // backfill any saved cards missing a meaning/emoji
 applyUserCards();   // fold any saved user cards into the decks before first render
 buildChips();
 wireFolds();
+applySilentUI();
 show("home");
 try { scheduleReminder(); } catch (e) {}   // re-arm the daily reminder if enabled
 
