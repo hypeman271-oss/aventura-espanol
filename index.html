@@ -2473,15 +2473,28 @@ function addWordCard(es, en, emoji, sentenceEs, sentenceEn) {
   return true;
 }
 
+/* Undo an add — e.g. the user tapped "Add to My Cards" by accident.
+   Removes the user card and its review schedule entry. Returns false if
+   there was no such card to remove. */
+function removeUserCard(es) {
+  es = (es || "").trim();
+  const before = (store.userCards || []).length;
+  store.userCards = (store.userCards || []).filter(c => !sameEs(c.es, es));
+  if (store.userCards.length === before) return false;
+  delete store.cards[MY_CARDS_CAT + "||" + es];
+  applyUserCards();
+  saveStore();
+  return true;
+}
+
 function showWordTip(el, word, ctx) {
   const tip = $("wordTip");
   const g = glossFor(word);
   const clean = cleanWord(word) || word;
   let html = "<div><b>" + escapeHtml(clean) + "</b> — " + escapeHtml(g || "not in the dictionary") + "</div>";
   if (!g && ctx && ctx.en) html += "<div class='wt-sent'>Sentence: " + escapeHtml(ctx.en) + "</div>";
-  const already = userCardExists(clean);
-  html += "<button class='wt-add' " + (already ? "disabled" : "") + ">" +
-    (already ? "✓ In My Cards" : "➕ Add to My Cards") + "</button>";
+  html += "<button class='wt-add'>" +
+    (userCardExists(clean) ? "✓ In My Cards — tap to undo" : "➕ Add to My Cards") + "</button>";
   tip.innerHTML = html;
   tip.hidden = false;
   const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -2491,11 +2504,12 @@ function showWordTip(el, word, ctx) {
   tip.style.left = left + "px";
   tip.style.top = top + "px";
 
+  // Tapping toggles: add the word, or undo an accidental add.
   const addBtn = tip.querySelector(".wt-add");
-  if (addBtn && !already) addBtn.onclick = () => {
-    if (addWordCard(clean, g || "", emojiFor(clean), ctx && ctx.es, ctx && ctx.en)) {
-      addBtn.textContent = "✓ Added to My Cards"; addBtn.disabled = true;
-    }
+  if (addBtn) addBtn.onclick = () => {
+    if (userCardExists(clean)) removeUserCard(clean);
+    else addWordCard(clean, g || "", emojiFor(clean), ctx && ctx.es, ctx && ctx.en);
+    addBtn.textContent = userCardExists(clean) ? "✓ In My Cards — tap to undo" : "➕ Add to My Cards";
   };
   // Dismiss on an outside tap; interactive so keep it up longer.
   clearTimeout(showWordTip._t);
@@ -5199,18 +5213,24 @@ function resolveAnswer(isRight, correctText) {
     state.index++; advance = nextQuestion;
   }
 
-  // Offer to save this word to My Cards (translation is already shown now).
+  // Offer to save this word to My Cards — tapping again undoes it (in case
+  // it was added by accident).
   const acb = $("addCardBtn");
-  if (userCardExists(w[0])) {
-    acb.textContent = "✓ In My Cards"; acb.disabled = true; acb.classList.remove("hidden");
-  } else {
-    acb.textContent = "➕ Add to My Cards"; acb.disabled = false; acb.classList.remove("hidden");
-    acb.onclick = () => {
+  acb.disabled = false; acb.classList.remove("hidden");
+  const refreshAddBtn = () => {
+    acb.textContent = userCardExists(w[0]) ? "✓ In My Cards — tap to undo" : "➕ Add to My Cards";
+  };
+  refreshAddBtn();
+  acb.onclick = () => {
+    if (userCardExists(w[0])) {
+      removeUserCard(w[0]);
+    } else {
       const se = state.sentence ? state.sentence.full : "";
       const sen = state.sentence ? state.sentence.en : "";
-      if (addWordCard(w[0], w[1], w[2], se, sen)) { acb.textContent = "✓ Added to My Cards"; acb.disabled = true; }
-    };
-  }
+      addWordCard(w[0], w[1], w[2], se, sen);
+    }
+    refreshAddBtn();
+  };
 
   // Offer an on-demand grammar explanation for this card.
   const eb = $("explainBtn");
