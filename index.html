@@ -1340,6 +1340,14 @@ const VOCAB = {
     ["descargar","to download","⬇️"],["la aplicación","app","📲"],["la pantalla","screen","🖥️"],
     ["el plan","plan","📋"],["la recarga","top-up","💳"],["conectarse","to connect","🔗"],
     ["el correo","email","📧"],["la red","network","🕸️"],["el cargador","charger","🔌"]
+  ],
+  "Doctor Visit 🏥": [
+    ["la cita","appointment","📅"],["el síntoma","symptom","🤒"],["la inyección","injection / shot","💉"],
+    ["la vacuna","vaccine","🧪"],["la sangre","blood","🩸"],["la radiografía","x-ray","🩻"],
+    ["el diagnóstico","diagnosis","📋"],["la pastilla","pill","💊"],["la cirugía","surgery","🔪"],
+    ["la herida","wound / injury","🩹"],["mareado","dizzy","😵‍💫"],["la náusea","nausea","🤢"],
+    ["respirar","to breathe","🫁"],["la presión","blood pressure","🩺"],["la consulta","office visit","🏥"],
+    ["el seguro","insurance","📄"],["recuperarse","to recover","💪"],["la garganta","throat","👅"]
   ]
 };
 
@@ -1740,7 +1748,25 @@ const SENTENCES = {
   "Phone & Internet 📱||conectarse": ["No puedo ___ al wifi.", "conectarse", "I can't connect to the wifi."],
   "Phone & Internet 📱||el correo": ["Te escribí un ___ ayer.", "correo", "I wrote you an email yesterday."],
   "Phone & Internet 📱||la red": ["Esta ___ es muy lenta.", "red", "This network is very slow."],
-  "Phone & Internet 📱||el cargador": ["¿Me prestas el ___?", "cargador", "Can you lend me the charger?"]
+  "Phone & Internet 📱||el cargador": ["¿Me prestas el ___?", "cargador", "Can you lend me the charger?"],
+  "Doctor Visit 🏥||la cita": ["Tengo una ___ con el médico mañana.", "cita", "I have an appointment with the doctor tomorrow."],
+  "Doctor Visit 🏥||el síntoma": ["El dolor de cabeza es un ___.", "síntoma", "The headache is a symptom."],
+  "Doctor Visit 🏥||la inyección": ["La enfermera me puso una ___.", "inyección", "The nurse gave me a shot."],
+  "Doctor Visit 🏥||la vacuna": ["Me pusieron la ___ contra la gripe.", "vacuna", "They gave me the flu vaccine."],
+  "Doctor Visit 🏥||la sangre": ["El doctor me sacó ___ para el examen.", "sangre", "The doctor took blood for the test."],
+  "Doctor Visit 🏥||la radiografía": ["Me hicieron una ___ del brazo.", "radiografía", "They took an x-ray of my arm."],
+  "Doctor Visit 🏥||el diagnóstico": ["El médico me dio el ___.", "diagnóstico", "The doctor gave me the diagnosis."],
+  "Doctor Visit 🏥||la pastilla": ["Tomo una ___ cada ocho horas.", "pastilla", "I take a pill every eight hours."],
+  "Doctor Visit 🏥||la cirugía": ["Necesito una ___ en la rodilla.", "cirugía", "I need surgery on my knee."],
+  "Doctor Visit 🏥||la herida": ["Me limpiaron la ___ del brazo.", "herida", "They cleaned the wound on my arm."],
+  "Doctor Visit 🏥||mareado": ["Me siento ___ y débil.", "mareado", "I feel dizzy and weak."],
+  "Doctor Visit 🏥||la náusea": ["Tengo ___ desde la mañana.", "náusea", "I've had nausea since this morning."],
+  "Doctor Visit 🏥||respirar": ["Me cuesta ___ por la nariz.", "respirar", "It's hard for me to breathe through my nose."],
+  "Doctor Visit 🏥||la presión": ["El médico me tomó la ___.", "presión", "The doctor took my blood pressure."],
+  "Doctor Visit 🏥||la consulta": ["La ___ del doctor abre a las ocho.", "consulta", "The doctor's office opens at eight."],
+  "Doctor Visit 🏥||el seguro": ["Mi ___ médico cubre la cita.", "seguro", "My health insurance covers the appointment."],
+  "Doctor Visit 🏥||recuperarse": ["Necesita descansar para ___.", "recuperarse", "You need to rest to recover."],
+  "Doctor Visit 🏥||la garganta": ["Me duele la ___ al tragar.", "garganta", "My throat hurts when I swallow."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1900,6 +1926,10 @@ const WORD_GLOSS = {
   acabaron: "ran out / finished", "bajé": "I downloaded / got", "dejé": "I left",
   "escribí": "I wrote", ilimitado: "unlimited", lenta: "slow", mando: "I send",
   nueva: "new", "olvidé": "I forgot", prestas: "(you) lend", "teléfono": "phone", texto: "text",
+  // ---- words from the Doctor Visit sentences ----
+  contra: "against", cubre: "covers", descansar: "to rest", doctor: "doctor",
+  "débil": "weak", hicieron: "they did / made", horas: "hours", limpiaron: "they cleaned",
+  pusieron: "they gave / put", rodilla: "knee", tragar: "to swallow",
   // ---- words from the expanded Travel sentences ----
   antes: "before", bus: "bus", cambio: "I change / exchange", ciudad: "city",
   fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
@@ -4585,7 +4615,7 @@ function inFocus(cat) { return focusAll() || cat === selectedCategory; }
    one long row. Keys must match VOCAB keys exactly (emoji included). */
 const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
-  ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺"]],
+  ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺", "Doctor Visit 🏥"]],
   ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱"]],
   ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
