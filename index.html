@@ -1364,6 +1364,14 @@ const VOCAB = {
     ["el bigote","mustache","👨"],["afeitar","to shave","🪒"],["recortar","to trim","✂️"],
     ["el flequillo","bangs","💇"],["las patillas","sideburns","🧔"],["teñir","to dye","🎨"],
     ["el espejo","mirror","🪞"],["el peine","comb","🪮"],["el secador","hair dryer","💨"]
+  ],
+  "Gym & Exercise 🏋️": [
+    ["el gimnasio","gym","🏋️"],["entrenar","to work out","💪"],["el ejercicio","exercise","🤸"],
+    ["las pesas","weights","🏋️"],["la caminadora","treadmill","🏃"],["correr","to run","🏃"],
+    ["estirar","to stretch","🧘"],["el músculo","muscle","💪"],["el sudor","sweat","💦"],
+    ["la rutina","routine","📋"],["levantar","to lift","🏋️"],["la fuerza","strength","🦾"],
+    ["la resistencia","stamina","🔋"],["el entrenador","trainer","🧑‍🏫"],["la sentadilla","squat","🦵"],
+    ["el descanso","rest","😴"],["cansado","tired","😓"],["en forma","in shape / fit","✅"]
   ]
 };
 
@@ -1818,7 +1826,25 @@ const SENTENCES = {
   "Haircut 💇||teñir": ["Quiero ___ el pelo de negro.", "teñir", "I want to dye my hair black."],
   "Haircut 💇||el espejo": ["Me miro en el ___.", "espejo", "I look at myself in the mirror."],
   "Haircut 💇||el peine": ["Pásame el ___, por favor.", "peine", "Pass me the comb, please."],
-  "Haircut 💇||el secador": ["El ___ hace mucho ruido.", "secador", "The hair dryer makes a lot of noise."]
+  "Haircut 💇||el secador": ["El ___ hace mucho ruido.", "secador", "The hair dryer makes a lot of noise."],
+  "Gym & Exercise 🏋️||el gimnasio": ["Voy al ___ tres veces por semana.", "gimnasio", "I go to the gym three times a week."],
+  "Gym & Exercise 🏋️||entrenar": ["Me gusta ___ por la mañana.", "entrenar", "I like to work out in the morning."],
+  "Gym & Exercise 🏋️||el ejercicio": ["El ___ es bueno para la salud.", "ejercicio", "Exercise is good for your health."],
+  "Gym & Exercise 🏋️||las pesas": ["Levanto ___ los lunes.", "pesas", "I lift weights on Mondays."],
+  "Gym & Exercise 🏋️||la caminadora": ["Corro en la ___ media hora.", "caminadora", "I run on the treadmill for half an hour."],
+  "Gym & Exercise 🏋️||correr": ["Me gusta ___ en el parque.", "correr", "I like to run in the park."],
+  "Gym & Exercise 🏋️||estirar": ["Hay que ___ antes de entrenar.", "estirar", "You have to stretch before working out."],
+  "Gym & Exercise 🏋️||el músculo": ["Me duele el ___ de la pierna.", "músculo", "My leg muscle hurts."],
+  "Gym & Exercise 🏋️||el sudor": ["Termino lleno de ___.", "sudor", "I finish covered in sweat."],
+  "Gym & Exercise 🏋️||la rutina": ["Sigo una ___ de pesas.", "rutina", "I follow a weights routine."],
+  "Gym & Exercise 🏋️||levantar": ["Puedo ___ cincuenta kilos.", "levantar", "I can lift fifty kilos."],
+  "Gym & Exercise 🏋️||la fuerza": ["El ejercicio da ___.", "fuerza", "Exercise gives you strength."],
+  "Gym & Exercise 🏋️||la resistencia": ["Corriendo gano ___.", "resistencia", "By running I gain stamina."],
+  "Gym & Exercise 🏋️||el entrenador": ["El ___ me ayuda con la rutina.", "entrenador", "The trainer helps me with the routine."],
+  "Gym & Exercise 🏋️||la sentadilla": ["Hago veinte ___ cada día.", "sentadilla", "I do twenty squats every day."],
+  "Gym & Exercise 🏋️||el descanso": ["Necesito un ___ entre series.", "descanso", "I need a rest between sets."],
+  "Gym & Exercise 🏋️||cansado": ["Termino muy ___ del gimnasio.", "cansado", "I finish very tired from the gym."],
+  "Gym & Exercise 🏋️||en forma": ["Quiero ponerme ___.", "en forma", "I want to get in shape."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1990,6 +2016,10 @@ const WORD_GLOSS = {
   arregla: "fixes / tidies", corta: "cuts", corto: "short", crecer: "to grow",
   "dejó": "let / grew", "déjame": "leave me", largas: "long", lava: "washes",
   navaja: "razor / blade", puntas: "ends / tips",
+  // ---- words from the Gym & Exercise sentences ----
+  corriendo: "running / by running", corro: "I run", da: "gives", kilos: "kilos",
+  lleno: "full / covered", lunes: "Mondays", media: "half", pierna: "leg",
+  ponerme: "to get / put myself", series: "sets", sigo: "I follow", termino: "I finish",
   // ---- words from the expanded Travel sentences ----
   antes: "before", bus: "bus", cambio: "I change / exchange", ciudad: "city",
   fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
@@ -4690,7 +4720,7 @@ function inFocus(cat) { return focusAll() || cat === selectedCategory; }
 const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
   ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺", "Doctor Visit 🏥", "Pharmacy 💊"]],
-  ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱"]],
+  ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱", "Gym & Exercise 🏋️"]],
   ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Haircut 💇", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
   ["🚨 Emergencies", ["Earthquake 🌎", "Crime & Safety 🚔"]]
