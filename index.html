@@ -2042,6 +2042,57 @@ function glossFor(word) {
   return VOCAB_WORD_EN[w] || WORD_GLOSS[w] || VOCAB_WORD_EN[na] || WORD_GLOSS[na] || null;
 }
 
+/* Recognise a conjugated verb form and report its tense + person, so a
+   long-press on e.g. "compró" shows "bought — preterite (past)" instead of
+   accidentally matching the present "compro". Uses the built-in CONJUG table
+   for irregulars, then regular -ar/-er/-ir endings gated on the infinitive
+   being a word we can already translate (avoids false positives). */
+const TENSE_NAMES = { present: "present", preterite: "preterite (past)", imperfect: "imperfect (past)", future: "future", subjunctive: "subjunctive" };
+function englishInfOf(inf) { return VOCAB_WORD_EN[inf] || WORD_GLOSS[inf] || null; }
+function conjugationInfo(word) {
+  const w = cleanWord(word);
+  if (!w || w.length < 3) return null;
+  // 1) Exact match in the conjugation table (covers irregular verbs precisely).
+  for (const v of CONJUG) {
+    for (const t of ["present", "preterite", "imperfect", "future", "subjunctive"]) {
+      const i = (v[t] || []).indexOf(w);
+      if (i >= 0) return { inf: v.inf, en: v.en, tense: t, person: i };
+    }
+  }
+  // 2) Future = whole infinitive + ending.
+  const FUT = [["emos", 3], ["éis", 4], ["án", 5], ["é", 0], ["ás", 1], ["á", 2]];
+  for (const [end, p] of FUT) {
+    if (w.endsWith(end)) {
+      const inf = w.slice(0, w.length - end.length);
+      if (/(ar|er|ir)$/.test(inf) && englishInfOf(inf)) return { inf, en: englishInfOf(inf), tense: "future", person: p };
+    }
+  }
+  // 3) Regular preterite / imperfect endings (distinctive, low false-positive).
+  const AR = s => [s + "ar"], ERIR = s => [s + "er", s + "ir"];
+  const RULES = [
+    ["aron", "preterite", 5, AR], ["asteis", "preterite", 4, AR], ["aste", "preterite", 1, AR], ["ó", "preterite", 2, AR], ["é", "preterite", 0, AR],
+    ["ieron", "preterite", 5, ERIR], ["isteis", "preterite", 4, ERIR], ["iste", "preterite", 1, ERIR], ["ió", "preterite", 2, ERIR], ["í", "preterite", 0, ERIR],
+    ["ábamos", "imperfect", 3, AR], ["abais", "imperfect", 4, AR], ["abas", "imperfect", 1, AR], ["aban", "imperfect", 5, AR], ["aba", "imperfect", 2, AR],
+    ["íamos", "imperfect", 3, ERIR], ["íais", "imperfect", 4, ERIR], ["ías", "imperfect", 1, ERIR], ["ían", "imperfect", 5, ERIR], ["ía", "imperfect", 2, ERIR]
+  ];
+  for (const [end, tense, p, mk] of RULES) {
+    if (w.endsWith(end) && w.length - end.length >= 2) {
+      const stem = w.slice(0, w.length - end.length);
+      for (const inf of mk(stem)) { const e = englishInfOf(inf); if (e) return { inf, en: e, tense, person: p }; }
+    }
+  }
+  return null;
+}
+/* A richer gloss for the long-press tooltip: verb forms show tense + person. */
+function richGloss(word) {
+  const c = conjugationInfo(word);
+  if (c) {
+    const ppl = (c.tense === "imperfect" && c.person === 2) ? "yo / él / ella" : CONJ_PRON[c.person];
+    return c.en + " · " + TENSE_NAMES[c.tense] + " (" + ppl + ") — from " + c.inf;
+  }
+  return glossFor(word);
+}
+
 /* Emoji "pictures" for common Spanish words not in the built-in decks, so
    words the user adds still get a helpful image (falls back to 📝). */
 const WORD_EMOJI = {
@@ -2549,7 +2600,7 @@ function removeUserCard(es) {
 
 function showWordTip(el, word, ctx) {
   const tip = $("wordTip");
-  const g = glossFor(word);
+  const g = richGloss(word);
   const clean = cleanWord(word) || word;
   let html = "<div><b>" + escapeHtml(clean) + "</b> — " + escapeHtml(g || "not in the dictionary") + "</div>";
   if (!g && ctx && ctx.en) html += "<div class='wt-sent'>Sentence: " + escapeHtml(ctx.en) + "</div>";
