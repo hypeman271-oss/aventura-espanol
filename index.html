@@ -1348,6 +1348,14 @@ const VOCAB = {
     ["la herida","wound / injury","🩹"],["mareado","dizzy","😵‍💫"],["la náusea","nausea","🤢"],
     ["respirar","to breathe","🫁"],["la presión","blood pressure","🩺"],["la consulta","office visit","🏥"],
     ["el seguro","insurance","📄"],["recuperarse","to recover","💪"],["la garganta","throat","👅"]
+  ],
+  "Pharmacy 💊": [
+    ["la farmacia","pharmacy","💊"],["la droguería","drugstore (Col.)","🏪"],["el remedio","remedy / medicine","🧴"],
+    ["el jarabe","syrup","🍯"],["la crema","cream","🧴"],["la dosis","dose","🥄"],
+    ["la caja","box","📦"],["el genérico","generic","🏷️"],["la marca","brand","®️"],
+    ["el mostrador","counter","🛒"],["el farmaceuta","pharmacist (Col.)","🧑‍⚕️"],["la aspirina","aspirin","💊"],
+    ["el antibiótico","antibiotic","💊"],["la venda","bandage","🩹"],["el termómetro","thermometer","🌡️"],
+    ["el algodón","cotton","☁️"],["el gotero","dropper","💧"],["vencido","expired","📅"]
   ]
 };
 
@@ -1766,7 +1774,25 @@ const SENTENCES = {
   "Doctor Visit 🏥||la consulta": ["La ___ del doctor abre a las ocho.", "consulta", "The doctor's office opens at eight."],
   "Doctor Visit 🏥||el seguro": ["Mi ___ médico cubre la cita.", "seguro", "My health insurance covers the appointment."],
   "Doctor Visit 🏥||recuperarse": ["Necesita descansar para ___.", "recuperarse", "You need to rest to recover."],
-  "Doctor Visit 🏥||la garganta": ["Me duele la ___ al tragar.", "garganta", "My throat hurts when I swallow."]
+  "Doctor Visit 🏥||la garganta": ["Me duele la ___ al tragar.", "garganta", "My throat hurts when I swallow."],
+  "Pharmacy 💊||la farmacia": ["Voy a la ___ por unas pastillas.", "farmacia", "I'm going to the pharmacy for some pills."],
+  "Pharmacy 💊||la droguería": ["La ___ de la esquina está abierta.", "droguería", "The drugstore on the corner is open."],
+  "Pharmacy 💊||el remedio": ["Este ___ es para la tos.", "remedio", "This medicine is for a cough."],
+  "Pharmacy 💊||el jarabe": ["El niño toma ___ para la gripe.", "jarabe", "The child takes syrup for the flu."],
+  "Pharmacy 💊||la crema": ["Ponte esta ___ en la herida.", "crema", "Put this cream on the wound."],
+  "Pharmacy 💊||la dosis": ["La ___ es una pastilla al día.", "dosis", "The dose is one pill a day."],
+  "Pharmacy 💊||la caja": ["Compré una ___ de pastillas.", "caja", "I bought a box of pills."],
+  "Pharmacy 💊||el genérico": ["El ___ es más barato.", "genérico", "The generic is cheaper."],
+  "Pharmacy 💊||la marca": ["Prefiero esta ___ de medicina.", "marca", "I prefer this brand of medicine."],
+  "Pharmacy 💊||el mostrador": ["Pregunta en el ___ por tu receta.", "mostrador", "Ask at the counter for your prescription."],
+  "Pharmacy 💊||el farmaceuta": ["El ___ me explicó cómo tomarla.", "farmaceuta", "The pharmacist explained how to take it."],
+  "Pharmacy 💊||la aspirina": ["Tomo una ___ para el dolor.", "aspirina", "I take an aspirin for the pain."],
+  "Pharmacy 💊||el antibiótico": ["El médico me recetó un ___.", "antibiótico", "The doctor prescribed me an antibiotic."],
+  "Pharmacy 💊||la venda": ["Me pusieron una ___ en el brazo.", "venda", "They put a bandage on my arm."],
+  "Pharmacy 💊||el termómetro": ["Uso el ___ para medir la fiebre.", "termómetro", "I use the thermometer to measure the fever."],
+  "Pharmacy 💊||el algodón": ["Limpia la herida con ___.", "algodón", "Clean the wound with cotton."],
+  "Pharmacy 💊||el gotero": ["Usa el ___ para las gotas.", "gotero", "Use the dropper for the drops."],
+  "Pharmacy 💊||vencido": ["Ese remedio ya está ___.", "vencido", "That medicine is already expired."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1930,6 +1956,10 @@ const WORD_GLOSS = {
   contra: "against", cubre: "covers", descansar: "to rest", doctor: "doctor",
   "débil": "weak", hicieron: "they did / made", horas: "hours", limpiaron: "they cleaned",
   pusieron: "they gave / put", rodilla: "knee", tragar: "to swallow",
+  // ---- words from the Pharmacy sentences ----
+  abierta: "open", "compré": "I bought", "explicó": "explained", gotas: "drops",
+  limpia: "clean (it)", medir: "to measure", pastillas: "pills", ponte: "put on (yourself)",
+  pregunta: "ask", "recetó": "prescribed", tomarla: "to take it", unas: "some", usa: "use (it)",
   // ---- words from the expanded Travel sentences ----
   antes: "before", bus: "bus", cambio: "I change / exchange", ciudad: "city",
   fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
@@ -4615,7 +4645,7 @@ function inFocus(cat) { return focusAll() || cat === selectedCategory; }
    one long row. Keys must match VOCAB keys exactly (emoji included). */
 const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
-  ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺", "Doctor Visit 🏥"]],
+  ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺", "Doctor Visit 🏥", "Pharmacy 💊"]],
   ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱"]],
   ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
