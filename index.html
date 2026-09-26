@@ -1356,6 +1356,14 @@ const VOCAB = {
     ["el mostrador","counter","🛒"],["el farmaceuta","pharmacist (Col.)","🧑‍⚕️"],["la aspirina","aspirin","💊"],
     ["el antibiótico","antibiotic","💊"],["la venda","bandage","🩹"],["el termómetro","thermometer","🌡️"],
     ["el algodón","cotton","☁️"],["el gotero","dropper","💧"],["vencido","expired","📅"]
+  ],
+  "Haircut 💇": [
+    ["la peluquería","hair salon","💈"],["la barbería","barbershop","💈"],["el peluquero","hairdresser","💇"],
+    ["el barbero","barber","🧔"],["el corte","haircut","✂️"],["las tijeras","scissors","✂️"],
+    ["la máquina","clippers","🔌"],["el pelo","hair","💇"],["la barba","beard","🧔"],
+    ["el bigote","mustache","👨"],["afeitar","to shave","🪒"],["recortar","to trim","✂️"],
+    ["el flequillo","bangs","💇"],["las patillas","sideburns","🧔"],["teñir","to dye","🎨"],
+    ["el espejo","mirror","🪞"],["el peine","comb","🪮"],["el secador","hair dryer","💨"]
   ]
 };
 
@@ -1792,7 +1800,25 @@ const SENTENCES = {
   "Pharmacy 💊||el termómetro": ["Uso el ___ para medir la fiebre.", "termómetro", "I use the thermometer to measure the fever."],
   "Pharmacy 💊||el algodón": ["Limpia la herida con ___.", "algodón", "Clean the wound with cotton."],
   "Pharmacy 💊||el gotero": ["Usa el ___ para las gotas.", "gotero", "Use the dropper for the drops."],
-  "Pharmacy 💊||vencido": ["Ese remedio ya está ___.", "vencido", "That medicine is already expired."]
+  "Pharmacy 💊||vencido": ["Ese remedio ya está ___.", "vencido", "That medicine is already expired."],
+  "Haircut 💇||la peluquería": ["Voy a la ___ el sábado.", "peluquería", "I'm going to the hair salon on Saturday."],
+  "Haircut 💇||la barbería": ["La ___ abre a las nueve.", "barbería", "The barbershop opens at nine."],
+  "Haircut 💇||el peluquero": ["El ___ me lava el pelo.", "peluquero", "The hairdresser washes my hair."],
+  "Haircut 💇||el barbero": ["El ___ me arregla la barba.", "barbero", "The barber fixes my beard."],
+  "Haircut 💇||el corte": ["Quiero un ___ más corto.", "corte", "I want a shorter haircut."],
+  "Haircut 💇||las tijeras": ["Usa las ___ con cuidado.", "tijeras", "Use the scissors carefully."],
+  "Haircut 💇||la máquina": ["Me corta con la ___.", "máquina", "He cuts my hair with the clippers."],
+  "Haircut 💇||el pelo": ["Tengo el ___ muy largo.", "pelo", "My hair is very long."],
+  "Haircut 💇||la barba": ["Me dejé crecer la ___.", "barba", "I let my beard grow."],
+  "Haircut 💇||el bigote": ["Se dejó el ___ este mes.", "bigote", "He grew a mustache this month."],
+  "Haircut 💇||afeitar": ["Prefiero ___ con navaja.", "afeitar", "I prefer to shave with a razor."],
+  "Haircut 💇||recortar": ["¿Me puede ___ las puntas?", "recortar", "Can you trim the ends?"],
+  "Haircut 💇||el flequillo": ["No me gusta el ___.", "flequillo", "I don't like bangs."],
+  "Haircut 💇||las patillas": ["Déjame las ___ largas.", "patillas", "Leave my sideburns long."],
+  "Haircut 💇||teñir": ["Quiero ___ el pelo de negro.", "teñir", "I want to dye my hair black."],
+  "Haircut 💇||el espejo": ["Me miro en el ___.", "espejo", "I look at myself in the mirror."],
+  "Haircut 💇||el peine": ["Pásame el ___, por favor.", "peine", "Pass me the comb, please."],
+  "Haircut 💇||el secador": ["El ___ hace mucho ruido.", "secador", "The hair dryer makes a lot of noise."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1960,6 +1986,10 @@ const WORD_GLOSS = {
   abierta: "open", "compré": "I bought", "explicó": "explained", gotas: "drops",
   limpia: "clean (it)", medir: "to measure", pastillas: "pills", ponte: "put on (yourself)",
   pregunta: "ask", "recetó": "prescribed", tomarla: "to take it", unas: "some", usa: "use (it)",
+  // ---- words from the Haircut sentences ----
+  arregla: "fixes / tidies", corta: "cuts", corto: "short", crecer: "to grow",
+  "dejó": "let / grew", "déjame": "leave me", largas: "long", lava: "washes",
+  navaja: "razor / blade", puntas: "ends / tips",
   // ---- words from the expanded Travel sentences ----
   antes: "before", bus: "bus", cambio: "I change / exchange", ciudad: "city",
   fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
@@ -4661,7 +4691,7 @@ const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
   ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺", "Doctor Visit 🏥", "Pharmacy 💊"]],
   ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱"]],
-  ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Weather & Seasons 🌤️"]],
+  ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Haircut 💇", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
   ["🚨 Emergencies", ["Earthquake 🌎", "Crime & Safety 🚔"]]
 ];
