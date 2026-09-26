@@ -1332,6 +1332,14 @@ const VOCAB = {
     ["el préstamo","loan","📃"],["la deuda","debt","⛓️"],["el interés","interest","📈"],
     ["la transferencia","transfer","🔁"],["la firma","signature","✍️"],["el billete","bill / banknote","💵"],
     ["la moneda","coin","🪙"],["el cheque","check","🧾"],["la sucursal","branch","🏢"]
+  ],
+  "Phone & Internet 📱": [
+    ["el celular","cell phone","📱"],["el internet","internet","🌐"],["la señal","signal","📶"],
+    ["los datos","data","📊"],["el wifi","wifi","📡"],["la clave","password","🔑"],
+    ["la llamada","call","📞"],["el mensaje","message","💬"],["cargar","to charge","🔋"],
+    ["descargar","to download","⬇️"],["la aplicación","app","📲"],["la pantalla","screen","🖥️"],
+    ["el plan","plan","📋"],["la recarga","top-up","💳"],["conectarse","to connect","🔗"],
+    ["el correo","email","📧"],["la red","network","🕸️"],["el cargador","charger","🔌"]
   ]
 };
 
@@ -1714,7 +1722,25 @@ const SENTENCES = {
   "Banking 🏦||el billete": ["Pagué con un ___ de cincuenta mil.", "billete", "I paid with a fifty thousand bill."],
   "Banking 🏦||la moneda": ["Encontré una ___ en el piso.", "moneda", "I found a coin on the floor."],
   "Banking 🏦||el cheque": ["Me pagaron con un ___.", "cheque", "They paid me with a check."],
-  "Banking 🏦||la sucursal": ["La ___ del banco está cerrada.", "sucursal", "The bank branch is closed."]
+  "Banking 🏦||la sucursal": ["La ___ del banco está cerrada.", "sucursal", "The bank branch is closed."],
+  "Phone & Internet 📱||el celular": ["Dejé mi ___ en la casa.", "celular", "I left my cell phone at home."],
+  "Phone & Internet 📱||el internet": ["No hay ___ en el edificio.", "internet", "There's no internet in the building."],
+  "Phone & Internet 📱||la señal": ["Aquí no tengo ___.", "señal", "I don't have a signal here."],
+  "Phone & Internet 📱||los datos": ["Se me acabaron los ___.", "datos", "I ran out of data."],
+  "Phone & Internet 📱||el wifi": ["¿Cuál es la clave del ___?", "wifi", "What's the wifi password?"],
+  "Phone & Internet 📱||la clave": ["Olvidé la ___ del correo.", "clave", "I forgot the email password."],
+  "Phone & Internet 📱||la llamada": ["Te hago una ___ más tarde.", "llamada", "I'll give you a call later."],
+  "Phone & Internet 📱||el mensaje": ["Te mando un ___ de texto.", "mensaje", "I'll send you a text message."],
+  "Phone & Internet 📱||cargar": ["Necesito ___ el celular.", "cargar", "I need to charge the phone."],
+  "Phone & Internet 📱||descargar": ["Voy a ___ una película.", "descargar", "I'm going to download a movie."],
+  "Phone & Internet 📱||la aplicación": ["Bajé una ___ nueva.", "aplicación", "I downloaded a new app."],
+  "Phone & Internet 📱||la pantalla": ["Se rompió la ___ del teléfono.", "pantalla", "The phone screen broke."],
+  "Phone & Internet 📱||el plan": ["Tengo un ___ de datos ilimitado.", "plan", "I have an unlimited data plan."],
+  "Phone & Internet 📱||la recarga": ["Hice una ___ de diez mil.", "recarga", "I topped up ten thousand."],
+  "Phone & Internet 📱||conectarse": ["No puedo ___ al wifi.", "conectarse", "I can't connect to the wifi."],
+  "Phone & Internet 📱||el correo": ["Te escribí un ___ ayer.", "correo", "I wrote you an email yesterday."],
+  "Phone & Internet 📱||la red": ["Esta ___ es muy lenta.", "red", "This network is very slow."],
+  "Phone & Internet 📱||el cargador": ["¿Me prestas el ___?", "cargador", "Can you lend me the charger?"]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -1870,6 +1896,10 @@ const WORD_GLOSS = {
   nadie: "nobody / anyone", pagando: "paying", pagaron: "they paid", "pagué": "I paid",
   "pedí": "I asked for / requested", piso: "floor", plata: "money / cash (Col.)",
   sacar: "to take out / withdraw", saco: "I take out / withdraw", viaje: "trip",
+  // ---- words from the Phone & Internet sentences ----
+  acabaron: "ran out / finished", "bajé": "I downloaded / got", "dejé": "I left",
+  "escribí": "I wrote", ilimitado: "unlimited", lenta: "slow", mando: "I send",
+  nueva: "new", "olvidé": "I forgot", prestas: "(you) lend", "teléfono": "phone", texto: "text",
   // ---- words from the expanded Travel sentences ----
   antes: "before", bus: "bus", cambio: "I change / exchange", ciudad: "city",
   fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
@@ -4556,7 +4586,7 @@ function inFocus(cat) { return focusAll() || cat === selectedCategory; }
 const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
   ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺"]],
-  ["🏠 Home Life", ["Roommates 🏠"]],
+  ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱"]],
   ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
   ["🚨 Emergencies", ["Earthquake 🌎", "Crime & Safety 🚔"]]
