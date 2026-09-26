@@ -4675,6 +4675,9 @@ function setRegion(r) { try { localStorage.setItem("aventura_region", r); } catc
 function speakLang() { return (REGIONS[getRegion()] || REGIONS.co).tts; }
 function regionAi() { return (REGIONS[getRegion()] || REGIONS.co).ai; }
 
+let _voices = [];
+function loadVoices() { try { _voices = speechSynthesis.getVoices() || []; } catch (e) { _voices = []; } }
+
 function speak(text, langOverride, rateOverride, onend) {
   if (getSilent()) { if (onend) setTimeout(onend, 200); return; } // silent mode: no audio
   if (!("speechSynthesis" in window)) { if (onend) setTimeout(onend, 400); return; }
@@ -4685,7 +4688,7 @@ function speak(text, langOverride, rateOverride, onend) {
     u.lang = lang;
     u.rate = rateOverride || 0.9;
     // Prefer an exact regional voice, then any voice for that language, then any Spanish voice.
-    const voices = speechSynthesis.getVoices();
+    const voices = _voices.length ? _voices : speechSynthesis.getVoices();
     const base = lang.slice(0, 2).toLowerCase();
     const v = voices.find(x => x.lang && x.lang.toLowerCase() === lang.toLowerCase())
       || voices.find(x => x.lang && x.lang.toLowerCase().startsWith(base));
@@ -4694,8 +4697,29 @@ function speak(text, langOverride, rateOverride, onend) {
     speechSynthesis.speak(u);
   } catch(e) { if (onend) setTimeout(onend, 400); }
 }
-// Warm up voices list
-if ("speechSynthesis" in window) { speechSynthesis.onvoiceschanged = () => {}; }
+
+/* Prime the speech engine on the first user gesture. The very first utterance
+   on a page has cold-start latency (the engine + voice list initialize), which
+   is why the first spoken word used to lag. A silent warm-up utterance now
+   absorbs that delay before any exercise reads a word aloud. */
+let _ttsWarmed = false;
+function warmUpSpeech() {
+  if (_ttsWarmed || !("speechSynthesis" in window)) return;
+  _ttsWarmed = true;
+  try {
+    loadVoices();
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;            // inaudible
+    u.lang = speakLang();
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+if ("speechSynthesis" in window) {
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+  ["pointerdown", "keydown", "touchstart"].forEach(ev =>
+    document.addEventListener(ev, warmUpSpeech, { once: true, capture: true }));
+}
 
 /* ============================================================
    SPEECH RECOGNITION  (output practice — say it aloud)
