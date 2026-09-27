@@ -83,9 +83,10 @@
     box-shadow: 0 12px 40px rgba(0,0,0,0.3);
   }
 
-  /* Exercise screens: drop the "card in a window" look so the flashcard and
-     answers sit natively on the app background. */
-  #game .panel {
+  /* Activity/exercise screens: drop the "card in a window" look so content
+     sits natively on the app background. Home keeps its foldable cards
+     (.panel.fold), which this rule intentionally excludes. */
+  .panel:not(.fold) {
     background: none;
     backdrop-filter: none;
     border: none;
