@@ -1384,6 +1384,14 @@ const VOCAB = {
     ["la rutina","routine","📋"],["levantar","to lift","🏋️"],["la fuerza","strength","🦾"],
     ["la resistencia","stamina","🔋"],["el entrenador","trainer","🧑‍🏫"],["la sentadilla","squat","🦵"],
     ["el descanso","rest","😴"],["cansado","tired","😓"],["en forma","in shape / fit","✅"]
+  ],
+  "Food Delivery 🛵": [
+    ["el domicilio","home delivery (Col.)","🛵"],["el pedido","order","🧾"],["la aplicación","app","📲"],
+    ["el repartidor","delivery person","🛵"],["la dirección","address","📍"],["el restaurante","restaurant","🍴"],
+    ["el menú","menu","📋"],["la promoción","deal / promo","🏷️"],["el combo","combo meal","🍔"],
+    ["la propina","tip","💵"],["el domiciliario","delivery driver (Col.)","🏍️"],["entregar","to deliver","📦"],
+    ["la orden","order","🧾"],["gratis","free","🆓"],["el empaque","packaging","📦"],
+    ["caliente","hot","🔥"],["cancelar","to cancel","❌"],["calificar","to rate","⭐"]
   ]
 };
 
@@ -1856,7 +1864,25 @@ const SENTENCES = {
   "Gym & Exercise 🏋️||la sentadilla": ["Hago veinte ___ cada día.", "sentadilla", "I do twenty squats every day."],
   "Gym & Exercise 🏋️||el descanso": ["Necesito un ___ entre series.", "descanso", "I need a rest between sets."],
   "Gym & Exercise 🏋️||cansado": ["Termino muy ___ del gimnasio.", "cansado", "I finish very tired from the gym."],
-  "Gym & Exercise 🏋️||en forma": ["Quiero ponerme ___.", "en forma", "I want to get in shape."]
+  "Gym & Exercise 🏋️||en forma": ["Quiero ponerme ___.", "en forma", "I want to get in shape."],
+  "Food Delivery 🛵||el domicilio": ["Pido la comida a ___.", "domicilio", "I order the food for delivery."],
+  "Food Delivery 🛵||el pedido": ["Mi ___ llega en treinta minutos.", "pedido", "My order arrives in thirty minutes."],
+  "Food Delivery 🛵||la aplicación": ["Pido comida por la ___.", "aplicación", "I order food through the app."],
+  "Food Delivery 🛵||el repartidor": ["El ___ ya está en camino.", "repartidor", "The delivery person is on the way."],
+  "Food Delivery 🛵||la dirección": ["Escribí mal la ___.", "dirección", "I wrote the address wrong."],
+  "Food Delivery 🛵||el restaurante": ["Ese ___ tiene envío gratis.", "restaurante", "That restaurant has free delivery."],
+  "Food Delivery 🛵||el menú": ["Miro el ___ en la aplicación.", "menú", "I look at the menu in the app."],
+  "Food Delivery 🛵||la promoción": ["Hoy hay una ___ de pizza.", "promoción", "Today there's a pizza deal."],
+  "Food Delivery 🛵||el combo": ["Pedí un ___ con papas.", "combo", "I ordered a combo with fries."],
+  "Food Delivery 🛵||la propina": ["Le dejé una buena ___.", "propina", "I left him a good tip."],
+  "Food Delivery 🛵||el domiciliario": ["El ___ toca el timbre.", "domiciliario", "The delivery driver rings the bell."],
+  "Food Delivery 🛵||entregar": ["Van a ___ el pedido pronto.", "entregar", "They're going to deliver the order soon."],
+  "Food Delivery 🛵||la orden": ["Confirmé mi ___ por el celular.", "orden", "I confirmed my order on the phone."],
+  "Food Delivery 🛵||gratis": ["El envío es ___ hoy.", "gratis", "Delivery is free today."],
+  "Food Delivery 🛵||el empaque": ["El ___ mantiene la comida caliente.", "empaque", "The packaging keeps the food hot."],
+  "Food Delivery 🛵||caliente": ["La pizza llegó ___.", "caliente", "The pizza arrived hot."],
+  "Food Delivery 🛵||cancelar": ["Tuve que ___ el pedido.", "cancelar", "I had to cancel the order."],
+  "Food Delivery 🛵||calificar": ["Voy a ___ al restaurante.", "calificar", "I'm going to rate the restaurant."]
 };
 
 const QUESTIONS_PER_ROUND = 10;
@@ -2032,6 +2058,9 @@ const WORD_GLOSS = {
   corriendo: "running / by running", corro: "I run", da: "gives", kilos: "kilos",
   lleno: "full / covered", lunes: "Mondays", media: "half", pierna: "leg",
   ponerme: "to get / put myself", series: "sets", sigo: "I follow", termino: "I finish",
+  // ---- words from the Food Delivery sentences ----
+  camino: "way / on the way", comida: "food", "confirmé": "I confirmed", "envío": "delivery / shipping",
+  mal: "badly / wrong", mantiene: "keeps / maintains", pronto: "soon", timbre: "doorbell", tuve: "I had",
   // ---- words from the expanded Travel sentences ----
   antes: "before", bus: "bus", cambio: "I change / exchange", ciudad: "city",
   fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
@@ -4812,7 +4841,7 @@ const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
   ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺", "Doctor Visit 🏥", "Pharmacy 💊"]],
   ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱", "Gym & Exercise 🏋️"]],
-  ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Haircut 💇", "Weather & Seasons 🌤️"]],
+  ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Food Delivery 🛵", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Haircut 💇", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
   ["🚨 Emergencies", ["Earthquake 🌎", "Crime & Safety 🚔"]]
 ];
