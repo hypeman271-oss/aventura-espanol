@@ -5180,6 +5180,8 @@ function renderQuestion() {
   $("clozeTools").classList.add("hidden");
   answersWrap.innerHTML = "";
   $("promptWord").style.fontSize = ""; // reset (cloze sentences shrink it)
+  // Clear any prior tap-to-replay wiring on the prompt (set only in Listen mode).
+  ["promptEmoji", "promptWord", "promptCard"].forEach(id => { $(id).onclick = null; $(id).style.cursor = ""; });
 
   if (mode === "cloze" || mode === "clozetype") {
     // Comprehensible input: show the sentence with a blank; hear it spoken.
@@ -5227,9 +5229,13 @@ function renderQuestion() {
     // Prompt = audio only, answers = Spanish words
     $("promptLabel").textContent = "Listen, then choose:";
     $("promptEmoji").textContent = "🔊";
-    $("promptWord").textContent = "Tap 🔊 to hear it";
+    $("promptWord").textContent = "Tap to hear it 🔊";
     answersWrap.classList.remove("hidden");
     buildChoices("es");
+    // Make the whole prompt card tappable to replay the word (before and after
+    // answering) — not just the small speaker button.
+    $("promptCard").onclick = (e) => { if (e.target.closest("#speakBtn")) return; if (state.current) speak(state.current[0]); };
+    $("promptCard").style.cursor = "pointer";
     speak(word[0]);
   } else if (mode === "en2es") {
     // Prompt = English, answers = Spanish
