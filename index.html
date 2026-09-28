@@ -623,6 +623,8 @@
   .song-line .lw:hover { text-decoration: underline; }
   .song-line .lw.whi { background: rgba(0,0,0,0.25); color: #fff; border-radius: 5px; padding: 0 3px; }
   .song-line.active .lw.whi { background: var(--ink); color: #ffd84d; }
+  .song-line.in-loop { border-left: 3px solid var(--accent2); padding-left: 8px; background: rgba(255,255,255,0.05); }
+  .song-line.loop-pick { outline: 2px dashed var(--accent); outline-offset: -2px; }
   .song-blank { height: 10px; }
 
   /* ---- Ask a Tutor ---- */
@@ -1123,6 +1125,9 @@
           <button class="pl-btn" id="songPrev" title="Previous line">⏮</button>
           <button class="pl-btn pl-play" id="songPlayBtn" title="Play / Pause">▶️</button>
           <button class="pl-btn" id="songNext" title="Next line">⏭</button>
+        </div>
+        <div style="text-align:center;margin:2px 0 4px;">
+          <button class="sc-chip" id="songLoopBtn">🔁 Loop a section</button>
         </div>
         <div class="pl-opts" style="justify-content:center;flex-wrap:wrap;">
           <button class="sc-chip" id="songTranslateBtn">🌐 Translate</button>
@@ -3728,7 +3733,7 @@ function openSong(id) {
   const s = getSongs().find(x => x.id === id);
   if (!s) return openSongs();
   songStop();
-  songState = { lines: s.lines.slice(), translations: s.translations || null, showTr: s.showTr !== false, i: 0, playing: false, timer: null, gen: 0, rate: songState.rate || 0.9, id: s.id };
+  songState = { lines: s.lines.slice(), translations: s.translations || null, showTr: s.showTr !== false, i: 0, playing: false, timer: null, gen: 0, rate: songState.rate || 0.9, id: s.id, loopA: null, loopB: null, loopSelect: 0 };
   $("songPlayTitle").textContent = "🎵 " + s.title;
   $("songPlayArtist").textContent = s.artist || "";
   $("songPlayStatus").textContent = "";
@@ -3744,7 +3749,30 @@ function openSong(id) {
   $("songPlay").classList.remove("hidden");
   renderSongLines();
   updateSongTrBtn();
+  updateSongLoopBtn();
   songAutoGloss(s); // fill in meanings for any words not yet in the dictionary
+}
+
+/* A–B section loop: tap the button, then tap the first and last lines of the
+   part you want to repeat. Playing then loops just that section. */
+function updateSongLoopBtn() {
+  const b = $("songLoopBtn");
+  if (!b) return;
+  if (songState.loopSelect === 1) b.textContent = "① Tap the first line";
+  else if (songState.loopSelect === 2) b.textContent = "② Tap the last line";
+  else if (songState.loopA != null) b.textContent = "🔁 Loop " + (songState.loopA + 1) + "–" + (songState.loopB + 1) + " ✕";
+  else b.textContent = "🔁 Loop a section";
+}
+function songLoopToggle() {
+  if (songState.loopA != null || songState.loopSelect) {
+    // Clear any loop / cancel selection.
+    songState.loopA = songState.loopB = null; songState.loopSelect = 0;
+    $("songPlayStatus").textContent = "";
+  } else {
+    songState.loopSelect = 1;
+    $("songPlayStatus").textContent = "Tap the first line of the section to loop.";
+  }
+  updateSongLoopBtn(); renderSongLines();
 }
 
 /* Automatically look up the meanings of words in this song that the app
@@ -3789,9 +3817,10 @@ function persistSongField(id, field, val) {
 function renderSongLines() {
   const wrap = $("songLines");
   wrap.innerHTML = "";
+  const inLoop = (idx) => songState.loopA != null && idx >= songState.loopA && idx <= songState.loopB;
   songState.lines.forEach((line, idx) => {
     const div = document.createElement("div");
-    div.className = "song-line";
+    div.className = "song-line" + (inLoop(idx) ? " in-loop" : "") + (songState.loopSelect && idx === songState.loopA ? " loop-pick" : "");
     div.dataset.i = idx;
     const tr = (songState.translations && songState.translations[idx]) || "";
     const es = document.createElement("div");
@@ -3825,7 +3854,21 @@ function songStop() { songState.playing = false; songBump(); releaseWakeLock(); 
 function songClearVideo() { if ($("songVideo")) $("songVideo").innerHTML = ""; }
 
 function songGoLine(idx, speakIt) {
-  songState.i = Math.max(0, Math.min(idx, songState.lines.length - 1));
+  idx = Math.max(0, Math.min(idx, songState.lines.length - 1));
+  // While picking a loop section, a line tap sets the bounds instead of playing.
+  if (songState.loopSelect === 1) {
+    songState.loopA = idx; songState.loopSelect = 2;
+    $("songPlayStatus").textContent = "Now tap the last line of the section.";
+    updateSongLoopBtn(); renderSongLines(); return;
+  }
+  if (songState.loopSelect === 2) {
+    songState.loopB = idx;
+    if (songState.loopB < songState.loopA) { const t = songState.loopA; songState.loopA = songState.loopB; songState.loopB = t; }
+    songState.loopSelect = 0; songState.i = songState.loopA;
+    $("songPlayStatus").textContent = "Looping lines " + (songState.loopA + 1) + "–" + (songState.loopB + 1) + ". Press ▶️ to play.";
+    updateSongLoopBtn(); renderSongLines(); return;
+  }
+  songState.i = idx;
   if (songState.playing) { songBump(); songPlayStep(); }
   else { songBump(); highlightSongLine(); if (speakIt) songSpeakCurrent(null); }
 }
@@ -3876,7 +3919,13 @@ function songPlayStep() {
   const advance = () => {
     if (advanced || !songState.playing || songState.gen !== gen) return;
     advanced = true;
-    if (songState.i >= songState.lines.length - 1) { songPause(); return; }
+    // If a section loop is set, jump back to its start at the end of the section.
+    const loopOn = songState.loopA != null;
+    const end = loopOn ? songState.loopB : songState.lines.length - 1;
+    if (songState.i >= end) {
+      if (loopOn) { songState.i = songState.loopA; songPlayStep(); return; }
+      songPause(); return;
+    }
     songState.i++;
     songPlayStep();
   };
@@ -3887,6 +3936,8 @@ function songPlayStep() {
 
 function songPlay() {
   if (!songState.lines.length) return;
+  // If a section loop is set and we're outside it, start at the loop's first line.
+  if (songState.loopA != null && (songState.i < songState.loopA || songState.i > songState.loopB)) songState.i = songState.loopA;
   songState.playing = true;
   $("songPlayBtn").textContent = "⏸";
   requestWakeLock();
@@ -6196,6 +6247,7 @@ $("songNext").onclick = () => songGoLine(songState.i + 1, true);
 $("songSpeed").oninput = (e) => { songState.rate = parseFloat(e.target.value) || 0.9; $("songSpeedVal").textContent = songState.rate.toFixed(2).replace(/0$/, "") + "×"; };
 $("songSpeed").onchange = () => { if (songState.playing) { songBump(); songPlayStep(); } };
 $("songTranslateBtn").onclick = songTranslate;
+$("songLoopBtn").onclick = songLoopToggle;
 $("songVocabBtn").onclick = songSaveVocab;
 $("songEditBtn").onclick = () => showSongForm(songState.id);
 $("songDeleteBtn").onclick = () => { if (confirm("Delete this song?")) songDelete(); };
