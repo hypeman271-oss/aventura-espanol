@@ -1106,6 +1106,7 @@
         <p class="section-title">🎵 Add a song</p>
         <input id="songTitle" class="mc-input" placeholder="Song title — e.g. Me Voy" autocomplete="off" />
         <input id="songArtist" class="mc-input" placeholder="Artist — e.g. Julieta Venegas" autocomplete="off" style="margin-top:8px;" />
+        <input id="songYoutube" class="mc-input" placeholder="YouTube link (optional) — paste the video URL" autocomplete="off" style="margin-top:8px;" />
         <textarea id="songLyrics" class="mc-input" placeholder="Paste the lyrics here — one line per line…" style="height:220px;margin-top:8px;resize:vertical;"></textarea>
         <div id="songFormStatus" class="ai-status"></div>
         <div class="btn-row">
@@ -1117,6 +1118,7 @@
       <div id="songPlay" class="hidden">
         <div id="songPlayTitle" style="font-weight:800;font-size:1.2rem;text-align:center;"></div>
         <div id="songPlayArtist" style="opacity:.7;font-size:.9rem;text-align:center;margin-bottom:6px;"></div>
+        <div id="songVideo" style="margin:8px 0;"></div>
         <div class="pl-controls" style="margin:12px 0 6px;">
           <button class="pl-btn" id="songPrev" title="Previous line">⏮</button>
           <button class="pl-btn pl-play" id="songPlayBtn" title="Play / Pause">▶️</button>
@@ -3654,6 +3656,7 @@ let songEditId = null;
 
 function openSongs() {
   songStop();
+  if ($("songVideo")) $("songVideo").innerHTML = ""; // stop any playing embed
   $("songForm").classList.add("hidden");
   $("songPlay").classList.add("hidden");
   $("songsList").classList.remove("hidden");
@@ -3681,6 +3684,7 @@ function showSongForm(editId) {
   const s = songEditId != null ? getSongs().find(x => x.id === songEditId) : null;
   $("songTitle").value = s ? (s.title || "") : "";
   $("songArtist").value = s ? (s.artist || "") : "";
+  $("songYoutube").value = s && s.youtube ? ("https://youtu.be/" + s.youtube) : "";
   $("songLyrics").value = s ? (s.lines || []).join("\n") : "";
   $("songFormStatus").textContent = "";
   $("songsList").classList.add("hidden");
@@ -3688,18 +3692,32 @@ function showSongForm(editId) {
   $("songForm").classList.remove("hidden");
 }
 
+/* Pull the 11-char video id out of any YouTube URL (or accept a bare id). */
+function ytId(s) {
+  s = (s || "").trim();
+  if (!s) return "";
+  if (/^[\w-]{11}$/.test(s)) return s;
+  const m = s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/v\/)([\w-]{11})/);
+  return m ? m[1] : "";
+}
+
 function saveSong() {
   const title = $("songTitle").value.trim();
   const artist = $("songArtist").value.trim();
+  const youtube = ytId($("songYoutube").value);
   const lines = $("songLyrics").value.split("\n").map(l => l.trim()).filter(l => l.length);
   if (!title) { $("songFormStatus").textContent = "Please add a song title."; return; }
   if (!lines.length) { $("songFormStatus").textContent = "Please paste some lyrics."; return; }
   const list = getSongs();
   if (songEditId != null) {
     const s = list.find(x => x.id === songEditId);
-    if (s) { s.title = title; s.artist = artist; s.lines = lines; s.translations = null; s.glossed = false; } // lyrics changed → re-translate & re-gloss
+    if (s) {
+      const lyricsChanged = (s.lines || []).join("\n") !== lines.join("\n");
+      s.title = title; s.artist = artist; s.youtube = youtube; s.lines = lines;
+      if (lyricsChanged) { s.translations = null; s.glossed = false; } // re-translate & re-gloss only if the words changed
+    }
   } else {
-    list.push({ id: "s" + Date.now(), title, artist, lines, translations: null });
+    list.push({ id: "s" + Date.now(), title, artist, youtube, lines, translations: null });
   }
   setSongs(list);
   songEditId = null;
@@ -3710,17 +3728,22 @@ function openSong(id) {
   const s = getSongs().find(x => x.id === id);
   if (!s) return openSongs();
   songStop();
-  songState = { lines: s.lines.slice(), translations: s.translations || null, i: 0, playing: false, timer: null, gen: 0, rate: songState.rate || 0.9, id: s.id };
+  songState = { lines: s.lines.slice(), translations: s.translations || null, showTr: s.showTr !== false, i: 0, playing: false, timer: null, gen: 0, rate: songState.rate || 0.9, id: s.id };
   $("songPlayTitle").textContent = "🎵 " + s.title;
   $("songPlayArtist").textContent = s.artist || "";
   $("songPlayStatus").textContent = "";
   $("songSpeed").value = songState.rate;
   $("songSpeedVal").textContent = songState.rate.toFixed(2).replace(/0$/, "") + "×";
   $("songPlayBtn").textContent = "▶️";
+  // Embedded YouTube player (official embed — nothing is downloaded or rehosted).
+  $("songVideo").innerHTML = s.youtube
+    ? "<iframe width='100%' height='200' src='https://www.youtube-nocookie.com/embed/" + s.youtube + "' title='YouTube video' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen loading='lazy' style='border:none;border-radius:12px;'></iframe>"
+    : "";
   $("songsList").classList.add("hidden");
   $("songForm").classList.add("hidden");
   $("songPlay").classList.remove("hidden");
   renderSongLines();
+  updateSongTrBtn();
   songAutoGloss(s); // fill in meanings for any words not yet in the dictionary
 }
 
@@ -3770,13 +3793,14 @@ function renderSongLines() {
     const div = document.createElement("div");
     div.className = "song-line";
     div.dataset.i = idx;
+    const tr = (songState.translations && songState.translations[idx]) || "";
     const es = document.createElement("div");
-    renderLookupSentence(es, line, { es: line, en: (songState.translations && songState.translations[idx]) || "" });
+    renderLookupSentence(es, line, { es: line, en: tr });
     div.appendChild(es);
-    if (songState.translations && songState.translations[idx]) {
+    if (songState.showTr && tr) {
       const en = document.createElement("span");
       en.className = "song-en";
-      en.textContent = songState.translations[idx];
+      en.textContent = tr;
       div.appendChild(en);
     }
     div.onclick = () => songGoLine(idx, true);
@@ -3798,6 +3822,7 @@ function songBump() {
   clearTimeout(songState.timer);
 }
 function songStop() { songState.playing = false; songBump(); releaseWakeLock(); if ($("songPlayBtn")) $("songPlayBtn").textContent = "▶️"; }
+function songClearVideo() { if ($("songVideo")) $("songVideo").innerHTML = ""; }
 
 function songGoLine(idx, speakIt) {
   songState.i = Math.max(0, Math.min(idx, songState.lines.length - 1));
@@ -3876,13 +3901,22 @@ function songPause() {
 }
 function songTogglePlay() { songState.playing ? songPause() : songPlay(); }
 
+/* Button label reflects state: generate (once) → then a free show/hide toggle. */
+function updateSongTrBtn() {
+  const b = $("songTranslateBtn");
+  if (!b) return;
+  b.textContent = !songState.translations ? "🌐 Translate"
+    : (songState.showTr ? "🙈 Hide translation" : "👁 Show translation");
+}
+
 function songTranslate() {
   const status = $("songPlayStatus");
   if (!songState.lines.length) return;
-  if (songState.translations) { // toggle off
-    songState.translations = null;
-    const list = getSongs(); const s = list.find(x => x.id === songState.id); if (s) { s.translations = null; setSongs(list); }
-    renderSongLines(); return;
+  if (songState.translations) {
+    // Already stored — just show/hide it. No API call, translation is kept.
+    songState.showTr = !songState.showTr;
+    persistSongField(songState.id, "showTr", songState.showTr);
+    renderSongLines(); updateSongTrBtn(); return;
   }
   if (!navigator.onLine) { status.textContent = "Translation needs an internet connection."; return; }
   if (!getApiKey()) { status.textContent = "Add your API key in My Cards → ⚙️ first."; return; }
@@ -3899,8 +3933,9 @@ function songTranslate() {
       let arr = null; try { arr = JSON.parse(text); } catch (e) { const m = text.match(/\[[\s\S]*\]/); if (m) { try { arr = JSON.parse(m[0]); } catch (e2) {} } }
       if (!Array.isArray(arr)) throw new Error("Couldn't translate — try again.");
       songState.translations = arr;
-      const list = getSongs(); const s = list.find(x => x.id === songState.id); if (s) { s.translations = arr; setSongs(list); }
-      renderSongLines(); status.textContent = "";
+      songState.showTr = true;
+      const list = getSongs(); const s = list.find(x => x.id === songState.id); if (s) { s.translations = arr; s.showTr = true; setSongs(list); }
+      renderSongLines(); updateSongTrBtn(); status.textContent = "";
     })
     .catch(e => { status.textContent = e.message || "Something went wrong."; });
 }
@@ -6151,7 +6186,7 @@ $("storyPlay").onclick = () => { if (story && story.es) speak(story.es); };
 $("storyNewBtn").onclick = openStory;
 $("storyQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
 $("openSongsBtn").onclick = openSongs;
-$("songsQuitBtn").onclick = () => { songStop(); show("home"); };
+$("songsQuitBtn").onclick = () => { songStop(); songClearVideo(); show("home"); };
 $("songAddBtn").onclick = () => showSongForm(null);
 $("songSaveBtn").onclick = saveSong;
 $("songCancelBtn").onclick = openSongs;
