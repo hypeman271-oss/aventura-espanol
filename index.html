@@ -621,6 +621,8 @@
   .song-line .song-en { display: block; font-size: 0.85rem; opacity: 0.7; margin-top: 2px; }
   .song-line.active .song-en { opacity: 0.85; }
   .song-line .lw:hover { text-decoration: underline; }
+  .song-line .lw.whi { background: rgba(0,0,0,0.25); color: #fff; border-radius: 5px; padding: 0 3px; }
+  .song-line.active .lw.whi { background: var(--ink); color: #ffd84d; }
   .song-blank { height: 10px; }
 
   /* ---- Ask a Tutor ---- */
@@ -3746,14 +3748,50 @@ function songStop() { songState.playing = false; songBump(); releaseWakeLock(); 
 function songGoLine(idx, speakIt) {
   songState.i = Math.max(0, Math.min(idx, songState.lines.length - 1));
   if (songState.playing) { songBump(); songPlayStep(); }
-  else { highlightSongLine(); if (speakIt) { songBump(); speak(songState.lines[songState.i]); } }
+  else { songBump(); highlightSongLine(); if (speakIt) songSpeakCurrent(null); }
+}
+
+/* Speak the current line and light up each word as it's sung. Uses the
+   speech engine's word-boundary events when available, with a time-based
+   fallback (some phones don't fire boundary events). onDone fires at the
+   end of the line. */
+function songSpeakCurrent(onDone) {
+  const idx = songState.i;
+  const line = songState.lines[idx];
+  highlightSongLine();
+  $("songLines").querySelectorAll(".lw.whi").forEach(s => s.classList.remove("whi"));
+  const lineEl = $("songLines").querySelectorAll(".song-line")[idx];
+  const spans = lineEl ? [...lineEl.querySelectorAll(".lw")] : [];
+  // char offset of each word span within the line text
+  const offsets = []; let pos = 0;
+  spans.forEach(sp => { const w = sp.textContent; const at = line.indexOf(w, pos); offsets.push(at >= 0 ? at : pos); pos = (at >= 0 ? at : pos) + w.length; });
+  const gen = songState.gen;
+  const hiIndex = (k) => { if (songState.gen !== gen) return; spans.forEach((s, j) => s.classList.toggle("whi", j === k)); };
+  const hiAtChar = (ci) => { let k = 0; for (let j = 0; j < offsets.length; j++) { if (offsets[j] <= ci) k = j; else break; } hiIndex(k); };
+
+  let gotBoundary = false, fbTimer = null, fbWord = 0;
+  const startFallback = () => {
+    if (!spans.length) return;
+    const per = Math.max(180, speakEstimateMs(line) / (spans.length + 1));
+    const tick = () => {
+      if (gotBoundary || songState.gen !== gen || fbWord >= spans.length) return;
+      hiIndex(fbWord); fbWord++;
+      fbTimer = setTimeout(tick, per);
+    };
+    tick();
+  };
+  const fbStart = setTimeout(() => { if (!gotBoundary) startFallback(); }, 260);
+
+  speak(line, null, songState.rate,
+    () => { clearTimeout(fbStart); clearTimeout(fbTimer); if (songState.gen === gen) spans.forEach(s => s.classList.remove("whi")); if (onDone) onDone(); },
+    (e) => { gotBoundary = true; clearTimeout(fbTimer); if (e && typeof e.charIndex === "number") hiAtChar(e.charIndex); }
+  );
 }
 
 function songPlayStep() {
   if (!songState.playing) return;
   const line = songState.lines[songState.i];
   if (line == null) { songPause(); return; }
-  highlightSongLine();
   const gen = songState.gen;
   let advanced = false;
   const advance = () => {
@@ -3763,9 +3801,9 @@ function songPlayStep() {
     songState.i++;
     songPlayStep();
   };
-  // Advance when the line finishes (real onend), or by an estimate as a fallback.
-  speak(line, null, songState.rate, () => setTimeout(advance, 350));
-  songState.timer = setTimeout(advance, speakEstimateMs(line) + 400);
+  // Speak with word highlight; advance on line end, or by an estimate fallback.
+  songSpeakCurrent(() => setTimeout(advance, 350));
+  songState.timer = setTimeout(advance, speakEstimateMs(line) + 500);
 }
 
 function songPlay() {
@@ -5195,7 +5233,7 @@ function regionAi() { return (REGIONS[getRegion()] || REGIONS.co).ai; }
 let _voices = [];
 function loadVoices() { try { _voices = speechSynthesis.getVoices() || []; } catch (e) { _voices = []; } }
 
-function speak(text, langOverride, rateOverride, onend) {
+function speak(text, langOverride, rateOverride, onend, onboundary) {
   if (getSilent()) { if (onend) setTimeout(onend, 200); return; } // silent mode: no audio
   if (!("speechSynthesis" in window)) { if (onend) setTimeout(onend, 400); return; }
   try {
@@ -5211,6 +5249,7 @@ function speak(text, langOverride, rateOverride, onend) {
       || voices.find(x => x.lang && x.lang.toLowerCase().startsWith(base));
     if (v) u.voice = v;
     if (onend) { u.onend = onend; u.onerror = onend; }
+    if (onboundary) u.onboundary = onboundary; // word-by-word highlight (song sing-along)
     speechSynthesis.speak(u);
   } catch(e) { if (onend) setTimeout(onend, 400); }
 }
