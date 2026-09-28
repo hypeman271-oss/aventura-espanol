@@ -1124,6 +1124,7 @@
         </div>
         <div class="pl-opts" style="justify-content:center;flex-wrap:wrap;">
           <button class="sc-chip" id="songTranslateBtn">🌐 Translate</button>
+          <button class="sc-chip" id="songVocabBtn">📇 Save words</button>
           <button class="sc-chip" id="songEditBtn">✏️ Edit</button>
           <button class="sc-chip" id="songDeleteBtn">🗑️ Delete</button>
         </div>
@@ -3857,6 +3858,54 @@ function songDelete() {
   openSongs();
 }
 
+/* Turn a song into flashcards: pull the useful vocabulary out of its lyrics
+   and add each word to My Cards (which makes it part of your dictionary and
+   daily practice). Words the built-in dictionary already knows are added
+   instantly offline; the rest need the AI (your API key) to define them. */
+function songSaveVocab() {
+  const status = $("songPlayStatus");
+  if (!songState.lines.length) return;
+  // Offline / no-key path: add only words we can already define.
+  if (!navigator.onLine || !getApiKey()) {
+    const STOP = new Set("el la los las un una unos unas y o u a de del en con por para que se me te le lo les nos mi mis tu tus su sus no si sí es son está están soy eres al lo".split(" "));
+    const seen = new Set(), toAdd = [];
+    songState.lines.forEach(line => line.split(/\s+/).forEach(tok => {
+      const w = cleanWord(tok); if (!w || w.length < 3 || seen.has(w) || STOP.has(w)) return; seen.add(w);
+      const g = glossFor(w); if (g && !userCardExists(w)) toAdd.push([w, g]);
+    }));
+    let n = 0; toAdd.forEach(([es, en]) => { if (addWordCard(es, en, emojiFor(es))) n++; });
+    status.textContent = n
+      ? ("Added " + n + " known word" + (n > 1 ? "s" : "") + " to My Cards. Add your API key in ⚙️ to capture the rest with meanings.")
+      : "Add your API key in My Cards → ⚙️ to pull vocabulary with meanings from this song.";
+    return;
+  }
+  status.textContent = "📇 Finding words…";
+  $("songVocabBtn").disabled = true;
+  const sys = "You extract study vocabulary from Spanish song lyrics for a learner. Given a JSON array of Spanish lines, return ONLY a JSON array of at most 30 objects {\"es\":\"<base form of a useful word or short phrase>\",\"en\":\"<concise English meaning in this context>\"}. Use dictionary/base forms (infinitives for verbs, singular nouns with article el/la). Skip trivial words (articles, pronouns, basic prepositions) and duplicates. Prefer words a learner would want to study.";
+  const body = { model: getApiModel(), max_tokens: 2000, thinking: { type: "disabled" }, output_config: { effort: "low" }, system: sys + " " + regionAi(), messages: [{ role: "user", content: JSON.stringify(songState.lines) }] };
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body)
+  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+    .then(data => {
+      const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      let arr = null; try { arr = JSON.parse(text); } catch (e) { const m = text.match(/\[[\s\S]*\]/); if (m) { try { arr = JSON.parse(m[0]); } catch (e2) {} } }
+      if (!Array.isArray(arr)) throw new Error("Couldn't read the words — try again.");
+      let added = 0, dup = 0;
+      arr.forEach(o => {
+        if (!o || !o.es || !o.en) return;
+        if (userCardExists(String(o.es).trim())) { dup++; return; }
+        if (addWordCard(String(o.es).trim(), String(o.en).trim(), emojiFor(o.es))) added++;
+      });
+      status.textContent = added
+        ? ("✓ Added " + added + " word" + (added > 1 ? "s" : "") + " to My Cards" + (dup ? " (" + dup + " already saved)" : "") + ".")
+        : (dup ? "All those words are already in My Cards." : "No new words found.");
+    })
+    .catch(e => { status.textContent = e.message || "Something went wrong."; })
+    .finally(() => { $("songVocabBtn").disabled = false; });
+}
+
 /* ============================================================
    WORD GAMES — Scramble, el/la Race, Wordle, Word Search (offline)
    ============================================================ */
@@ -6059,6 +6108,7 @@ $("songNext").onclick = () => songGoLine(songState.i + 1, true);
 $("songSpeed").oninput = (e) => { songState.rate = parseFloat(e.target.value) || 0.9; $("songSpeedVal").textContent = songState.rate.toFixed(2).replace(/0$/, "") + "×"; };
 $("songSpeed").onchange = () => { if (songState.playing) { songBump(); songPlayStep(); } };
 $("songTranslateBtn").onclick = songTranslate;
+$("songVocabBtn").onclick = songSaveVocab;
 $("songEditBtn").onclick = () => showSongForm(songState.id);
 $("songDeleteBtn").onclick = () => { if (confirm("Delete this song?")) songDelete(); };
 $("plPlay").onclick = playerToggle;
