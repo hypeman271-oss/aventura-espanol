@@ -2174,7 +2174,7 @@ function glossFor(word) {
    for irregulars, then regular -ar/-er/-ir endings gated on the infinitive
    being a word we can already translate (avoids false positives). */
 const TENSE_NAMES = { present: "present", preterite: "preterite (past)", imperfect: "imperfect (past)", future: "future", subjunctive: "subjunctive" };
-function englishInfOf(inf) { return VOCAB_WORD_EN[inf] || WORD_GLOSS[inf] || null; }
+function englishInfOf(inf) { return VOCAB_WORD_EN[inf] || WORD_GLOSS[inf] || USER_GLOSS[inf] || null; }
 function conjugationInfo(word) {
   const w = cleanWord(word);
   if (!w || w.length < 3) return null;
@@ -3740,7 +3740,7 @@ function songAutoGloss(song) {
   if (!unknown.length) { song.glossed = true; persistSongField(song.id, "glossed", true); return; }
   if (!navigator.onLine || !getApiKey()) return; // nothing to do offline / without a key
   status.textContent = "🔎 Looking up " + unknown.length + " word" + (unknown.length > 1 ? "s" : "") + "…";
-  const sys = "You are a Spanish→English dictionary for a learner reading song lyrics. Given a JSON array of Spanish words as they appear in lyrics, return ONLY a JSON object mapping each word (lowercased, exactly as given) to a short English meaning (1–4 words) fitting typical song usage. Include every word.";
+  const sys = "You are a Spanish→English dictionary for a learner reading song lyrics. Given a JSON array of Spanish words as they appear in lyrics, return ONLY a JSON object mapping each word (lowercased, exactly as given) to a short English meaning. For a conjugated verb in any tense other than the simple present, format the value as \"<short English meaning> · <tense> of <infinitive>\", where <tense> is one of: preterite (past), imperfect (past), future, conditional, present subjunctive, imperfect subjunctive, present perfect. For everything else (nouns, adjectives, present-tense verbs, adverbs), give just a 1–4 word meaning. Include every word.";
   const body = { model: getApiModel(), max_tokens: 2500, thinking: { type: "disabled" }, output_config: { effort: "low" }, system: sys + " " + regionAi(), messages: [{ role: "user", content: JSON.stringify(unknown) }] };
   fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
