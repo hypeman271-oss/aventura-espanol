@@ -1140,7 +1140,7 @@
           <label for="songSpeed">🐢 Speed <span id="songSpeedVal">0.9×</span> 🐇</label>
           <input type="range" id="songSpeed" min="0.5" max="1.2" step="0.05" value="0.9" />
         </div>
-        <div class="pl-speed" id="songLoopSpeedRow" style="display:none;">
+        <div class="pl-speed" id="songLoopSpeedRow">
           <label for="songLoopSpeed">🔁 Loop speed <span id="songLoopSpeedVal">0.7×</span></label>
           <input type="range" id="songLoopSpeed" min="0.4" max="1.0" step="0.05" value="0.7" />
         </div>
@@ -3777,10 +3777,8 @@ function updateSongLoopBtn() {
   else if (songState.loopSelect === 2) b.textContent = "② Tap the last line";
   else if (songState.loopA != null) b.textContent = "🔁 Loop " + (songState.loopA + 1) + "–" + (songState.loopB + 1) + " ✕";
   else b.textContent = "🔁 Loop a section";
-  // The loop-speed slider only makes sense while a section loop is set.
-  const row = $("songLoopSpeedRow");
-  if (row) {
-    row.style.display = (songState.loopA != null) ? "" : "none";
+  // Keep the loop-speed slider on screen; reflect the current loop rate.
+  if ($("songLoopSpeed")) {
     const r = songState.loopRate || 0.7;
     $("songLoopSpeed").value = r;
     $("songLoopSpeedVal").textContent = r.toFixed(2).replace(/0$/, "") + "×";
@@ -5502,6 +5500,8 @@ const SPEECH_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 /* Spanish number words 0–100 → value, so the speak exercise can match a
    spoken number that the recognizer transcribed as digits (e.g. it hears
    "19" when you say "diecinueve"). */
+// Spanish number words → value. Hundreds are standalone words; mil/millón are
+// multipliers handled by the parser below.
 const NUM_DIRECT = {
   cero: 0, uno: 1, un: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6,
   siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14,
@@ -5509,7 +5509,8 @@ const NUM_DIRECT = {
   veintiuno: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25,
   veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30,
   cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90,
-  cien: 100, ciento: 100
+  cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400,
+  quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900
 };
 // English number words + common homophones, in case the device's speech
 // engine transcribes spoken Spanish numbers in English (e.g. "two"/"to" for "dos").
@@ -5517,28 +5518,51 @@ const NUM_EN = {
   zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
   nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
   sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30,
-  forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100
+  forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90
 };
 const NUM_HOMO = { to: 2, too: 2, won: 1, for: 4, fore: 4, ate: 8, sex: 6, oh: 0 };
+
+/* Parse a spelled-out Spanish number (0 – millions), handling the mil / millón
+   multipliers and standalone hundreds. e.g. "cuatrocientos" → 400,
+   "cuatrocientos cincuenta" → 450, "dos mil" → 2000, "cien mil" → 100000. */
+function spanishNumber(s) {
+  const toks = s.split(/\s+/).filter(t => t && t !== "y");
+  if (!toks.length) return null;
+  let total = 0, current = 0, used = false;
+  for (const t of toks) {
+    if (t === "mil") { current = current === 0 ? 1 : current; total += current * 1000; current = 0; used = true; }
+    else if (t === "millon" || t === "millones") { current = current === 0 ? 1 : current; total += current * 1000000; current = 0; used = true; }
+    else if (NUM_DIRECT[t] != null) { current += NUM_DIRECT[t]; used = true; }
+    else return null; // a non-number word → not a number
+  }
+  return used ? total + current : null;
+}
+/* Same for English words: "four hundred" → 400, "four hundred fifty" → 450. */
+function englishNumber(s) {
+  const toks = s.split(/\s+/).filter(t => t && t !== "and");
+  if (!toks.length) return null;
+  let total = 0, current = 0, used = false;
+  for (const t of toks) {
+    if (t === "hundred") { current = current === 0 ? 1 : current; current *= 100; used = true; }
+    else if (t === "thousand") { current = current === 0 ? 1 : current; total += current * 1000; current = 0; used = true; }
+    else if (t === "million") { current = current === 0 ? 1 : current; total += current * 1000000; current = 0; used = true; }
+    else if (NUM_EN[t] != null) { current += NUM_EN[t]; used = true; }
+    else return null;
+  }
+  return used ? total + current : null;
+}
 function wordToNumber(s) {
   s = (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/-/g, " ").trim();
   if (!s) return null;
-  const nospace = s.replace(/\s+/g, "");
-  if (NUM_DIRECT[s] != null) return NUM_DIRECT[s];
-  if (NUM_DIRECT[nospace] != null) return NUM_DIRECT[nospace]; // "dieci nueve" → diecinueve
-  if (NUM_EN[s] != null) return NUM_EN[s];
   if (NUM_HOMO[s] != null) return NUM_HOMO[s];
-  if (s === "one hundred" || s === "a hundred") return 100;
-  if (s.includes(" y ")) {                                     // "treinta y uno" → 30 + 1
-    const parts = s.split(" y ").map(p => NUM_DIRECT[p.trim()]);
-    if (parts.every(p => p != null)) return parts.reduce((a, b) => a + b, 0);
-  }
-  const toks = s.split(/\s+/).map(x => NUM_DIRECT[x] != null ? NUM_DIRECT[x] : NUM_EN[x]);
-  if (toks.length > 1 && toks.every(x => x != null)) return toks.reduce((a, b) => a + b, 0); // "twenty one", "veinti uno"
+  const nospace = s.replace(/\s+/g, "");
+  if (NUM_DIRECT[nospace] != null) return NUM_DIRECT[nospace]; // "dieci nueve" → diecinueve
+  const sp = spanishNumber(s); if (sp != null) return sp;
+  const en = englishNumber(s); if (en != null) return en;
   return null;
 }
 function asNumber(s) {
-  s = (s || "").toLowerCase().replace(/[.,!?;:¿¡"']/g, "").trim();
+  s = (s || "").toLowerCase().replace(/[.,!?;:¿¡"']/g, "").replace(/,/g, "").trim();
   if (/^\d+$/.test(s)) return parseInt(s, 10);
   return wordToNumber(s);
 }
