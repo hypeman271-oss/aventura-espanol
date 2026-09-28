@@ -614,6 +614,7 @@
   /* ---- Songs (sing along) ---- */
   .song-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 12px 14px; margin: 8px 0; cursor: pointer; }
   .song-item .song-meta { font-weight: 700; }
+  .song-actions { display: flex; gap: 4px; flex: 0 0 auto; }
   .song-item .song-sub { opacity: 0.65; font-size: 0.85rem; font-weight: 500; }
   .song-line { padding: 8px 10px; border-radius: 10px; margin: 2px 0; cursor: pointer; transition: background 0.15s ease; }
   .song-line:hover { background: rgba(255,255,255,0.06); }
@@ -1138,6 +1139,10 @@
         <div class="pl-speed">
           <label for="songSpeed">🐢 Speed <span id="songSpeedVal">0.9×</span> 🐇</label>
           <input type="range" id="songSpeed" min="0.5" max="1.2" step="0.05" value="0.9" />
+        </div>
+        <div class="pl-speed" id="songLoopSpeedRow" style="display:none;">
+          <label for="songLoopSpeed">🔁 Loop speed <span id="songLoopSpeedVal">0.7×</span></label>
+          <input type="range" id="songLoopSpeed" min="0.4" max="1.0" step="0.05" value="0.7" />
         </div>
         <div id="songPlayStatus" class="ai-status" style="text-align:center;"></div>
         <div id="songLines" style="margin-top:12px;"></div>
@@ -3678,9 +3683,19 @@ function renderSongList() {
     const div = document.createElement("div");
     div.className = "song-item";
     div.innerHTML = "<div><div class='song-meta'>🎵 " + escapeHtml(s.title || "Untitled") + "</div>" +
-      (s.artist ? "<div class='song-sub'>" + escapeHtml(s.artist) + "</div>" : "") + "</div><div style='opacity:.6;'>▶️</div>";
-    div.onclick = () => openSong(s.id);
+      (s.artist ? "<div class='song-sub'>" + escapeHtml(s.artist) + "</div>" : "") +
+      (s.youtube ? "<div class='song-sub'>▶️ video</div>" : "") + "</div>" +
+      "<div class='song-actions'>" +
+        "<button class='mc-icon' data-song-edit='" + s.id + "' title='Edit (add YouTube, lyrics)'>✏️</button>" +
+        "<button class='mc-icon' data-song-del='" + s.id + "' title='Delete'>🗑️</button>" +
+      "</div>";
+    div.onclick = (e) => { if (e.target.closest("[data-song-edit]") || e.target.closest("[data-song-del]")) return; openSong(s.id); };
     wrap.appendChild(div);
+  });
+  wrap.querySelectorAll("[data-song-edit]").forEach(b => b.onclick = () => showSongForm(b.dataset.songEdit));
+  wrap.querySelectorAll("[data-song-del]").forEach(b => b.onclick = () => {
+    const s = getSongs().find(x => x.id === b.dataset.songDel);
+    if (s && confirm("Delete “" + (s.title || "this song") + "”?")) { setSongs(getSongs().filter(x => x.id !== b.dataset.songDel)); renderSongList(); }
   });
 }
 
@@ -3733,7 +3748,7 @@ function openSong(id) {
   const s = getSongs().find(x => x.id === id);
   if (!s) return openSongs();
   songStop();
-  songState = { lines: s.lines.slice(), translations: s.translations || null, showTr: s.showTr !== false, i: 0, playing: false, timer: null, gen: 0, rate: songState.rate || 0.9, id: s.id, loopA: null, loopB: null, loopSelect: 0 };
+  songState = { lines: s.lines.slice(), translations: s.translations || null, showTr: s.showTr !== false, i: 0, playing: false, timer: null, gen: 0, rate: songState.rate || 0.9, loopRate: songState.loopRate || 0.7, id: s.id, loopA: null, loopB: null, loopSelect: 0 };
   $("songPlayTitle").textContent = "🎵 " + s.title;
   $("songPlayArtist").textContent = s.artist || "";
   $("songPlayStatus").textContent = "";
@@ -3762,6 +3777,14 @@ function updateSongLoopBtn() {
   else if (songState.loopSelect === 2) b.textContent = "② Tap the last line";
   else if (songState.loopA != null) b.textContent = "🔁 Loop " + (songState.loopA + 1) + "–" + (songState.loopB + 1) + " ✕";
   else b.textContent = "🔁 Loop a section";
+  // The loop-speed slider only makes sense while a section loop is set.
+  const row = $("songLoopSpeedRow");
+  if (row) {
+    row.style.display = (songState.loopA != null) ? "" : "none";
+    const r = songState.loopRate || 0.7;
+    $("songLoopSpeed").value = r;
+    $("songLoopSpeedVal").textContent = r.toFixed(2).replace(/0$/, "") + "×";
+  }
 }
 function songLoopToggle() {
   if (songState.loopA != null || songState.loopSelect) {
@@ -3891,10 +3914,12 @@ function songSpeakCurrent(onDone) {
   const hiIndex = (k) => { if (songState.gen !== gen) return; spans.forEach((s, j) => s.classList.toggle("whi", j === k)); };
   const hiAtChar = (ci) => { let k = 0; for (let j = 0; j < offsets.length; j++) { if (offsets[j] <= ci) k = j; else break; } hiIndex(k); };
 
+  // Inside a section loop, play at the slower loop speed.
+  const rate = songState.loopA != null ? (songState.loopRate || 0.7) : songState.rate;
   let gotBoundary = false, fbTimer = null, fbWord = 0;
   const startFallback = () => {
     if (!spans.length) return;
-    const per = Math.max(180, speakEstimateMs(line) / (spans.length + 1));
+    const per = Math.max(180, (speakEstimateMs(line) * (0.9 / rate)) / (spans.length + 1));
     const tick = () => {
       if (gotBoundary || songState.gen !== gen || fbWord >= spans.length) return;
       hiIndex(fbWord); fbWord++;
@@ -3904,7 +3929,7 @@ function songSpeakCurrent(onDone) {
   };
   const fbStart = setTimeout(() => { if (!gotBoundary) startFallback(); }, 260);
 
-  speak(line, null, songState.rate,
+  speak(line, null, rate,
     () => { clearTimeout(fbStart); clearTimeout(fbTimer); if (songState.gen === gen) spans.forEach(s => s.classList.remove("whi")); if (onDone) onDone(); },
     (e) => { gotBoundary = true; clearTimeout(fbTimer); if (e && typeof e.charIndex === "number") hiAtChar(e.charIndex); }
   );
@@ -3929,9 +3954,11 @@ function songPlayStep() {
     songState.i++;
     songPlayStep();
   };
-  // Speak with word highlight; advance on line end, or by an estimate fallback.
+  // Speak with word highlight; advance on line end, or by an estimate fallback
+  // (stretched for the slower loop speed so the line isn't cut off).
+  const rate = songState.loopA != null ? (songState.loopRate || 0.7) : songState.rate;
   songSpeakCurrent(() => setTimeout(advance, 350));
-  songState.timer = setTimeout(advance, speakEstimateMs(line) + 500);
+  songState.timer = setTimeout(advance, speakEstimateMs(line) * (0.9 / rate) + 500);
 }
 
 function songPlay() {
@@ -6246,6 +6273,8 @@ $("songPrev").onclick = () => songGoLine(songState.i - 1, true);
 $("songNext").onclick = () => songGoLine(songState.i + 1, true);
 $("songSpeed").oninput = (e) => { songState.rate = parseFloat(e.target.value) || 0.9; $("songSpeedVal").textContent = songState.rate.toFixed(2).replace(/0$/, "") + "×"; };
 $("songSpeed").onchange = () => { if (songState.playing) { songBump(); songPlayStep(); } };
+$("songLoopSpeed").oninput = (e) => { songState.loopRate = parseFloat(e.target.value) || 0.7; $("songLoopSpeedVal").textContent = songState.loopRate.toFixed(2).replace(/0$/, "") + "×"; };
+$("songLoopSpeed").onchange = () => { if (songState.playing && songState.loopA != null) { songBump(); songPlayStep(); } };
 $("songTranslateBtn").onclick = songTranslate;
 $("songLoopBtn").onclick = songLoopToggle;
 $("songVocabBtn").onclick = songSaveVocab;
