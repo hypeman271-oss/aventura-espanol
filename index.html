@@ -5225,6 +5225,44 @@ function wireGoals() {
   };
 }
 
+/* Activity chart data at a chosen time scale (days / weeks / months / years).
+   Each bucket sums that period's new + reviews + activity counts. */
+let progActScale = "days";
+const DOW = ["S", "M", "T", "W", "T", "F", "S"];
+const MON_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dayCount(d) { return d ? ((d.new || 0) + (d.reviews || 0) + (d.activity || 0)) : 0; }
+function activityBuckets(scale) {
+  const hist = store.meta.history || {};
+  const now = Date.now();
+  const out = [];
+  if (scale === "weeks") {
+    for (let w = 11; w >= 0; w--) {
+      const ref = new Date(now - w * 7 * DAY);
+      const sunday = new Date(ref); sunday.setDate(ref.getDate() - ref.getDay()); sunday.setHours(0, 0, 0, 0);
+      let sum = 0; for (let dd = 0; dd < 7; dd++) sum += dayCount(hist[dateKey(sunday.getTime() + dd * DAY)]);
+      out.push({ label: (sunday.getMonth() + 1) + "/" + sunday.getDate(), count: sum });
+    }
+  } else if (scale === "months") {
+    const base = new Date(now);
+    for (let m = 11; m >= 0; m--) {
+      const dt = new Date(base.getFullYear(), base.getMonth() - m, 1);
+      const prefix = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-";
+      let sum = 0; Object.keys(hist).forEach(k => { if (k.indexOf(prefix) === 0) sum += dayCount(hist[k]); });
+      out.push({ label: MON_ABBR[dt.getMonth()], count: sum });
+    }
+  } else if (scale === "years") {
+    const y0 = new Date(now).getFullYear();
+    for (let y = 4; y >= 0; y--) {
+      const prefix = (y0 - y) + "-";
+      let sum = 0; Object.keys(hist).forEach(k => { if (k.indexOf(prefix) === 0) sum += dayCount(hist[k]); });
+      out.push({ label: String(y0 - y), count: sum });
+    }
+  } else { // days
+    for (let i = 13; i >= 0; i--) { const ts = now - i * DAY; out.push({ label: DOW[new Date(ts).getDay()], count: dayCount(hist[dateKey(ts)]) }); }
+  }
+  return out;
+}
+
 function buildProgress() {
   const now = Date.now();
   const body = $("progBody");
@@ -5252,7 +5290,6 @@ function buildProgress() {
   });
   const acc = seen ? Math.round(correct / seen * 100) : 0;
   const COL = { learning: "#e67e22", familiar: "#f1c40f", strong: "#3498db", mastered: "#2ecc71" };
-  const DOW = ["S", "M", "T", "W", "T", "F", "S"];
 
   // Stat tiles
   const tileP = (num, lbl) => '<div class="dash-tile"><div class="dnum">' + num + '</div><div class="dlbl">' + lbl + '</div></div>';
@@ -5285,11 +5322,14 @@ function buildProgress() {
     '<div class="bar-col"><div class="bar-val">' + (val || "") + '</div>' +
     '<div class="bar' + (val ? "" : " empty") + '" style="height:' + (val ? Math.max(6, height) : 4) + '%;"></div>' +
     '<div class="bar-lbl">' + lbl + '</div></div>';
-  const act = [];
-  for (let i = 13; i >= 0; i--) { const ts = now - i * DAY; const d = hist[dateKey(ts)]; act.push({ ts, count: d ? ((d.new || 0) + (d.reviews || 0) + (d.activity || 0)) : 0 }); }
+  const act = activityBuckets(progActScale);
   const actMax = Math.max(1, ...act.map(d => d.count));
   const actChart = '<div class="chart">' +
-    act.map(d => barCol(d.count, Math.round(d.count / actMax * 100), DOW[new Date(d.ts).getDay()])).join("") + '</div>';
+    act.map(d => barCol(d.count, Math.round(d.count / actMax * 100), d.label)).join("") + '</div>';
+  const actScales = [["days", "Days"], ["weeks", "Weeks"], ["months", "Months"], ["years", "Years"]];
+  const actScaleSel = '<div class="sc-diff" style="flex-wrap:wrap;margin-bottom:8px;">' +
+    actScales.map(([v, l]) => '<button class="sc-chip' + (v === progActScale ? " selected" : "") + '" data-actscale="' + v + '">' + l + '</button>').join("") + '</div>';
+  const actTitle = { days: "last 14 days", weeks: "last 12 weeks", months: "last 12 months", years: "last 5 years" }[progActScale];
 
   // Review forecast, next 7 days
   const fc = [0, 0, 0, 0, 0, 0, 0];
@@ -5303,9 +5343,10 @@ function buildProgress() {
     '<div class="dash-stats">' + tiles + '</div>' +
     '<div class="prog-section"><h3>Mastery — ' + learned + ' word' + (learned > 1 ? "s" : "") + '</h3>' + masteryBar + legend + '</div>' +
     '<div class="prog-section"><h3>By topic</h3>' + cats + '</div>' +
-    '<div class="prog-section"><h3>Activity — last 14 days</h3>' + actChart + '</div>' +
+    '<div class="prog-section"><h3>Activity — ' + actTitle + '</h3>' + actScaleSel + actChart + '</div>' +
     '<div class="prog-section"><h3>Reviews coming up</h3>' + fcChart + '</div>';
   wireGoals();
+  body.querySelectorAll("[data-actscale]").forEach(b => b.onclick = () => { progActScale = b.dataset.actscale; buildProgress(); });
 }
 
 /* ============================================================
