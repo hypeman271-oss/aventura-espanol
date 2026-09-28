@@ -611,6 +611,18 @@
   .pl-speed #plSpeedVal { font-weight: 700; opacity: 1; }
   .pl-speed input[type="range"] { width: 100%; accent-color: var(--accent); height: 26px; cursor: pointer; }
 
+  /* ---- Songs (sing along) ---- */
+  .song-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 12px 14px; margin: 8px 0; cursor: pointer; }
+  .song-item .song-meta { font-weight: 700; }
+  .song-item .song-sub { opacity: 0.65; font-size: 0.85rem; font-weight: 500; }
+  .song-line { padding: 8px 10px; border-radius: 10px; margin: 2px 0; cursor: pointer; transition: background 0.15s ease; }
+  .song-line:hover { background: rgba(255,255,255,0.06); }
+  .song-line.active { background: var(--accent); color: var(--ink); font-weight: 700; }
+  .song-line .song-en { display: block; font-size: 0.85rem; opacity: 0.7; margin-top: 2px; }
+  .song-line.active .song-en { opacity: 0.85; }
+  .song-line .lw:hover { text-decoration: underline; }
+  .song-blank { height: 10px; }
+
   /* ---- Ask a Tutor ---- */
   .tutor-log { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; max-height: 52vh; overflow-y: auto; }
   .tutor-msg { white-space: pre-wrap; }
@@ -717,6 +729,10 @@
       <button class="btn accent2" id="openStoryBtn">
         <span class="emoji">📖</span>
         <span>Reading<small>A short story at your level (AI)</small></span>
+      </button>
+      <button class="btn accent2" id="openSongsBtn">
+        <span class="emoji">🎵</span>
+        <span>Songs<small>Sing along to your own songs' lyrics</small></span>
       </button>
       </div>
     </div>
@@ -1068,6 +1084,54 @@
           <div id="storyEn" style="opacity:0.7;font-size:0.92rem;line-height:1.5;margin-top:14px;border-top:1px dashed rgba(0,0,0,0.15);padding-top:12px;"></div>
         </div>
         <button class="btn primary center" id="storyNewBtn" style="margin-top:14px;">🔁 New story</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SONGS (sing along) ============ -->
+  <div id="songs" class="hidden">
+    <button class="back-link" id="songsQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <div id="songsList">
+        <p class="section-title">🎵 Songs — sing along</p>
+        <p class="sc-intro">Learn Spanish with songs you love. Add a song's lyrics, then sing along: tap any line to hear it, long-press a word for its meaning, and press ▶️ to follow the words line by line.</p>
+        <div id="songItems"></div>
+        <button class="btn primary center" id="songAddBtn" style="margin-top:12px;">➕ Add a song</button>
+        <p class="footer-note" style="margin-top:14px;">Paste lyrics you already have (from the album sleeve or a lyrics site). This app doesn't fetch lyrics for you.</p>
+      </div>
+
+      <div id="songForm" class="hidden">
+        <p class="section-title">🎵 Add a song</p>
+        <input id="songTitle" class="mc-input" placeholder="Song title — e.g. Me Voy" autocomplete="off" />
+        <input id="songArtist" class="mc-input" placeholder="Artist — e.g. Julieta Venegas" autocomplete="off" style="margin-top:8px;" />
+        <textarea id="songLyrics" class="mc-input" placeholder="Paste the lyrics here — one line per line…" style="height:220px;margin-top:8px;resize:vertical;"></textarea>
+        <div id="songFormStatus" class="ai-status"></div>
+        <div class="btn-row">
+          <button class="btn primary center" id="songSaveBtn">💾 Save</button>
+          <button class="btn center" id="songCancelBtn" style="background:rgba(255,255,255,0.15);color:#fff;">Cancel</button>
+        </div>
+      </div>
+
+      <div id="songPlay" class="hidden">
+        <div id="songPlayTitle" style="font-weight:800;font-size:1.2rem;text-align:center;"></div>
+        <div id="songPlayArtist" style="opacity:.7;font-size:.9rem;text-align:center;margin-bottom:6px;"></div>
+        <div class="pl-controls" style="margin:12px 0 6px;">
+          <button class="pl-btn" id="songPrev" title="Previous line">⏮</button>
+          <button class="pl-btn pl-play" id="songPlayBtn" title="Play / Pause">▶️</button>
+          <button class="pl-btn" id="songNext" title="Next line">⏭</button>
+        </div>
+        <div class="pl-opts" style="justify-content:center;flex-wrap:wrap;">
+          <button class="sc-chip" id="songTranslateBtn">🌐 Translate</button>
+          <button class="sc-chip" id="songEditBtn">✏️ Edit</button>
+          <button class="sc-chip" id="songDeleteBtn">🗑️ Delete</button>
+        </div>
+        <div class="pl-speed">
+          <label for="songSpeed">🐢 Speed <span id="songSpeedVal">0.9×</span> 🐇</label>
+          <input type="range" id="songSpeed" min="0.5" max="1.2" step="0.05" value="0.9" />
+        </div>
+        <div id="songPlayStatus" class="ai-status" style="text-align:center;"></div>
+        <div id="songLines" style="margin-top:12px;"></div>
+        <p class="cloze-hint" style="text-align:center;">💡 Tap a line to hear it · long-press a word for its meaning</p>
       </div>
     </div>
   </div>
@@ -3562,6 +3626,200 @@ function storyGenerate() {
 let story = {};
 
 /* ============================================================
+   SONGS — sing along to lyrics the learner pastes in.
+   The app never fetches or stores lyrics itself; the user supplies
+   the words for a song they want to study.
+   ============================================================ */
+function getSongs() { try { return JSON.parse(localStorage.getItem("aventura_songs") || "[]"); } catch (e) { return []; } }
+function setSongs(list) { try { localStorage.setItem("aventura_songs", JSON.stringify(list)); } catch (e) {} }
+
+let songState = { lines: [], i: 0, playing: false, timer: null, gen: 0, rate: 0.9, id: null, translations: null };
+let songEditId = null;
+
+function openSongs() {
+  songStop();
+  $("songForm").classList.add("hidden");
+  $("songPlay").classList.add("hidden");
+  $("songsList").classList.remove("hidden");
+  renderSongList();
+  show("songs");
+}
+
+function renderSongList() {
+  const list = getSongs();
+  const wrap = $("songItems");
+  if (!list.length) { wrap.innerHTML = "<p class='mc-empty'>No songs yet — add one to start singing along 🎤</p>"; return; }
+  wrap.innerHTML = "";
+  list.forEach(s => {
+    const div = document.createElement("div");
+    div.className = "song-item";
+    div.innerHTML = "<div><div class='song-meta'>🎵 " + escapeHtml(s.title || "Untitled") + "</div>" +
+      (s.artist ? "<div class='song-sub'>" + escapeHtml(s.artist) + "</div>" : "") + "</div><div style='opacity:.6;'>▶️</div>";
+    div.onclick = () => openSong(s.id);
+    wrap.appendChild(div);
+  });
+}
+
+function showSongForm(editId) {
+  songEditId = (editId != null) ? editId : null;
+  const s = songEditId != null ? getSongs().find(x => x.id === songEditId) : null;
+  $("songTitle").value = s ? (s.title || "") : "";
+  $("songArtist").value = s ? (s.artist || "") : "";
+  $("songLyrics").value = s ? (s.lines || []).join("\n") : "";
+  $("songFormStatus").textContent = "";
+  $("songsList").classList.add("hidden");
+  $("songPlay").classList.add("hidden");
+  $("songForm").classList.remove("hidden");
+}
+
+function saveSong() {
+  const title = $("songTitle").value.trim();
+  const artist = $("songArtist").value.trim();
+  const lines = $("songLyrics").value.split("\n").map(l => l.trim()).filter(l => l.length);
+  if (!title) { $("songFormStatus").textContent = "Please add a song title."; return; }
+  if (!lines.length) { $("songFormStatus").textContent = "Please paste some lyrics."; return; }
+  const list = getSongs();
+  if (songEditId != null) {
+    const s = list.find(x => x.id === songEditId);
+    if (s) { s.title = title; s.artist = artist; s.lines = lines; s.translations = null; } // lyrics changed → drop stale translation
+  } else {
+    list.push({ id: "s" + Date.now(), title, artist, lines, translations: null });
+  }
+  setSongs(list);
+  songEditId = null;
+  openSongs();
+}
+
+function openSong(id) {
+  const s = getSongs().find(x => x.id === id);
+  if (!s) return openSongs();
+  songStop();
+  songState = { lines: s.lines.slice(), translations: s.translations || null, i: 0, playing: false, timer: null, gen: 0, rate: songState.rate || 0.9, id: s.id };
+  $("songPlayTitle").textContent = "🎵 " + s.title;
+  $("songPlayArtist").textContent = s.artist || "";
+  $("songPlayStatus").textContent = "";
+  $("songSpeed").value = songState.rate;
+  $("songSpeedVal").textContent = songState.rate.toFixed(2).replace(/0$/, "") + "×";
+  $("songPlayBtn").textContent = "▶️";
+  $("songsList").classList.add("hidden");
+  $("songForm").classList.add("hidden");
+  $("songPlay").classList.remove("hidden");
+  renderSongLines();
+}
+
+function renderSongLines() {
+  const wrap = $("songLines");
+  wrap.innerHTML = "";
+  songState.lines.forEach((line, idx) => {
+    const div = document.createElement("div");
+    div.className = "song-line";
+    div.dataset.i = idx;
+    const es = document.createElement("div");
+    renderLookupSentence(es, line, { es: line, en: (songState.translations && songState.translations[idx]) || "" });
+    div.appendChild(es);
+    if (songState.translations && songState.translations[idx]) {
+      const en = document.createElement("span");
+      en.className = "song-en";
+      en.textContent = songState.translations[idx];
+      div.appendChild(en);
+    }
+    div.onclick = () => songGoLine(idx, true);
+    wrap.appendChild(div);
+  });
+  highlightSongLine();
+}
+
+function highlightSongLine() {
+  const wrap = $("songLines");
+  [...wrap.querySelectorAll(".song-line")].forEach((el, idx) => el.classList.toggle("active", idx === songState.i));
+  const active = wrap.querySelector(".song-line.active");
+  if (active) active.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+function songBump() {
+  songState.gen = (songState.gen || 0) + 1;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  clearTimeout(songState.timer);
+}
+function songStop() { songState.playing = false; songBump(); releaseWakeLock(); if ($("songPlayBtn")) $("songPlayBtn").textContent = "▶️"; }
+
+function songGoLine(idx, speakIt) {
+  songState.i = Math.max(0, Math.min(idx, songState.lines.length - 1));
+  if (songState.playing) { songBump(); songPlayStep(); }
+  else { highlightSongLine(); if (speakIt) { songBump(); speak(songState.lines[songState.i]); } }
+}
+
+function songPlayStep() {
+  if (!songState.playing) return;
+  const line = songState.lines[songState.i];
+  if (line == null) { songPause(); return; }
+  highlightSongLine();
+  const gen = songState.gen;
+  let advanced = false;
+  const advance = () => {
+    if (advanced || !songState.playing || songState.gen !== gen) return;
+    advanced = true;
+    if (songState.i >= songState.lines.length - 1) { songPause(); return; }
+    songState.i++;
+    songPlayStep();
+  };
+  // Advance when the line finishes (real onend), or by an estimate as a fallback.
+  speak(line, null, songState.rate, () => setTimeout(advance, 350));
+  songState.timer = setTimeout(advance, speakEstimateMs(line) + 400);
+}
+
+function songPlay() {
+  if (!songState.lines.length) return;
+  songState.playing = true;
+  $("songPlayBtn").textContent = "⏸";
+  requestWakeLock();
+  songBump();
+  songPlayStep();
+}
+function songPause() {
+  songState.playing = false;
+  songBump();
+  releaseWakeLock();
+  $("songPlayBtn").textContent = "▶️";
+}
+function songTogglePlay() { songState.playing ? songPause() : songPlay(); }
+
+function songTranslate() {
+  const status = $("songPlayStatus");
+  if (!songState.lines.length) return;
+  if (songState.translations) { // toggle off
+    songState.translations = null;
+    const list = getSongs(); const s = list.find(x => x.id === songState.id); if (s) { s.translations = null; setSongs(list); }
+    renderSongLines(); return;
+  }
+  if (!navigator.onLine) { status.textContent = "Translation needs an internet connection."; return; }
+  if (!getApiKey()) { status.textContent = "Add your API key in My Cards → ⚙️ first."; return; }
+  status.textContent = "🌐 Translating…";
+  const sys = "You translate Spanish song lyrics into natural English for a learner. You are given a JSON array of Spanish lines. Return ONLY a JSON array of the same length, each element the English translation of the line at that index, in order.";
+  const body = { model: getApiModel(), max_tokens: 2500, thinking: { type: "disabled" }, output_config: { effort: "low" }, system: sys + " " + regionAi(), messages: [{ role: "user", content: JSON.stringify(songState.lines) }] };
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body)
+  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+    .then(data => {
+      const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      let arr = null; try { arr = JSON.parse(text); } catch (e) { const m = text.match(/\[[\s\S]*\]/); if (m) { try { arr = JSON.parse(m[0]); } catch (e2) {} } }
+      if (!Array.isArray(arr)) throw new Error("Couldn't translate — try again.");
+      songState.translations = arr;
+      const list = getSongs(); const s = list.find(x => x.id === songState.id); if (s) { s.translations = arr; setSongs(list); }
+      renderSongLines(); status.textContent = "";
+    })
+    .catch(e => { status.textContent = e.message || "Something went wrong."; });
+}
+
+function songDelete() {
+  const list = getSongs().filter(x => x.id !== songState.id);
+  setSongs(list);
+  openSongs();
+}
+
+/* ============================================================
    WORD GAMES — Scramble, el/la Race, Wordle, Word Search (offline)
    ============================================================ */
 
@@ -4824,7 +5082,7 @@ function show(screen) {
   studyFlush();                              // bank time from the screen we're leaving
   currentScreen = screen;
   studyStart = STUDY_SCREENS[screen] ? Date.now() : null;
-  ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach","write","story","scramble","gender","wordle","search"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach","write","story","songs","scramble","gender","wordle","search"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
   if (screen !== "gender" && typeof gen === "object" && gen.timer) { clearInterval(gen.timer); gen.timer = null; }
   if (screen !== "player" && player && player.playing) { player.playing = false; if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); if (typeof releaseWakeLock === "function") releaseWakeLock(); }
   if (screen === "home") buildDashboard();
@@ -5751,6 +6009,19 @@ $("storyGenBtn").onclick = storyGenerate;
 $("storyPlay").onclick = () => { if (story && story.es) speak(story.es); };
 $("storyNewBtn").onclick = openStory;
 $("storyQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("openSongsBtn").onclick = openSongs;
+$("songsQuitBtn").onclick = () => { songStop(); show("home"); };
+$("songAddBtn").onclick = () => showSongForm(null);
+$("songSaveBtn").onclick = saveSong;
+$("songCancelBtn").onclick = openSongs;
+$("songPlayBtn").onclick = songTogglePlay;
+$("songPrev").onclick = () => songGoLine(songState.i - 1, true);
+$("songNext").onclick = () => songGoLine(songState.i + 1, true);
+$("songSpeed").oninput = (e) => { songState.rate = parseFloat(e.target.value) || 0.9; $("songSpeedVal").textContent = songState.rate.toFixed(2).replace(/0$/, "") + "×"; };
+$("songSpeed").onchange = () => { if (songState.playing) { songBump(); songPlayStep(); } };
+$("songTranslateBtn").onclick = songTranslate;
+$("songEditBtn").onclick = () => showSongForm(songState.id);
+$("songDeleteBtn").onclick = () => { if (confirm("Delete this song?")) songDelete(); };
 $("plPlay").onclick = playerToggle;
 $("plNext").onclick = () => playerGoto(player.i + 1);
 $("plPrev").onclick = () => playerGoto(player.i - 1);
