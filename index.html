@@ -2148,11 +2148,24 @@ function stripArticle(s) { return (s || "").replace(/^(el|la|los|las)\s+/i, "");
 function cleanWord(w) { return (w || "").toLowerCase().replace(/^[¿¡"'(«]+|[.,!?;:"')»]+$/g, ""); }
 
 /* Best-effort English gloss for a single Spanish word (offline). */
+/* Words the app has learned meanings for on demand (e.g. auto-looked-up from
+   your songs), so long-press recognises them everywhere. Kept in localStorage. */
+let USER_GLOSS = (function () { try { return JSON.parse(localStorage.getItem("aventura_gloss") || "{}"); } catch (e) { return {}; } })();
+function mergeUserGloss(obj) {
+  let changed = false;
+  Object.keys(obj || {}).forEach(k => {
+    const w = cleanWord(k), v = (obj[k] == null ? "" : String(obj[k])).trim();
+    if (w && v && !USER_GLOSS[w]) { USER_GLOSS[w] = v; changed = true; }
+  });
+  if (changed) { try { localStorage.setItem("aventura_gloss", JSON.stringify(USER_GLOSS)); } catch (e) {} }
+  return changed;
+}
+
 function glossFor(word) {
   const w = cleanWord(word);
   if (!w) return null;
   const na = w.normalize("NFD").replace(/[̀-ͯ]/g, "");
-  return VOCAB_WORD_EN[w] || WORD_GLOSS[w] || VOCAB_WORD_EN[na] || WORD_GLOSS[na] || null;
+  return VOCAB_WORD_EN[w] || WORD_GLOSS[w] || USER_GLOSS[w] || VOCAB_WORD_EN[na] || WORD_GLOSS[na] || USER_GLOSS[na] || null;
 }
 
 /* Recognise a conjugated verb form and report its tense + person, so a
@@ -3684,7 +3697,7 @@ function saveSong() {
   const list = getSongs();
   if (songEditId != null) {
     const s = list.find(x => x.id === songEditId);
-    if (s) { s.title = title; s.artist = artist; s.lines = lines; s.translations = null; } // lyrics changed → drop stale translation
+    if (s) { s.title = title; s.artist = artist; s.lines = lines; s.translations = null; s.glossed = false; } // lyrics changed → re-translate & re-gloss
   } else {
     list.push({ id: "s" + Date.now(), title, artist, lines, translations: null });
   }
@@ -3708,6 +3721,46 @@ function openSong(id) {
   $("songForm").classList.add("hidden");
   $("songPlay").classList.remove("hidden");
   renderSongLines();
+  songAutoGloss(s); // fill in meanings for any words not yet in the dictionary
+}
+
+/* Automatically look up the meanings of words in this song that the app
+   doesn't already know, and add them to the dictionary so long-press works on
+   every word. Runs once per song (cached) and only when an API key is set. */
+function songAutoGloss(song) {
+  if (!song || song.glossed) return;
+  const status = $("songPlayStatus");
+  const seen = new Set(), unknown = [];
+  song.lines.forEach(line => line.split(/\s+/).forEach(tok => {
+    const w = cleanWord(tok);
+    if (!w || w.length < 2 || /^\d+$/.test(w) || seen.has(w)) return;
+    seen.add(w);
+    if (!glossFor(w) && !conjugationInfo(w)) unknown.push(w);
+  }));
+  if (!unknown.length) { song.glossed = true; persistSongField(song.id, "glossed", true); return; }
+  if (!navigator.onLine || !getApiKey()) return; // nothing to do offline / without a key
+  status.textContent = "🔎 Looking up " + unknown.length + " word" + (unknown.length > 1 ? "s" : "") + "…";
+  const sys = "You are a Spanish→English dictionary for a learner reading song lyrics. Given a JSON array of Spanish words as they appear in lyrics, return ONLY a JSON object mapping each word (lowercased, exactly as given) to a short English meaning (1–4 words) fitting typical song usage. Include every word.";
+  const body = { model: getApiModel(), max_tokens: 2500, thinking: { type: "disabled" }, output_config: { effort: "low" }, system: sys + " " + regionAi(), messages: [{ role: "user", content: JSON.stringify(unknown) }] };
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body)
+  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+    .then(data => {
+      const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      let obj = null; try { obj = JSON.parse(text); } catch (e) { const m = text.match(/\{[\s\S]*\}/); if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} } }
+      if (obj && typeof obj === "object") {
+        mergeUserGloss(obj);
+        song.glossed = true; persistSongField(song.id, "glossed", true);
+        status.textContent = "✓ Words ready — long-press any word for its meaning.";
+        setTimeout(() => { if (status.textContent.indexOf("Words ready") >= 0) status.textContent = ""; }, 3000);
+      } else { status.textContent = ""; }
+    })
+    .catch(e => { status.textContent = (e && e.message && e.message.indexOf("key") >= 0) ? e.message : ""; });
+}
+function persistSongField(id, field, val) {
+  const list = getSongs(); const s = list.find(x => x.id === id); if (s) { s[field] = val; setSongs(list); }
 }
 
 function renderSongLines() {
