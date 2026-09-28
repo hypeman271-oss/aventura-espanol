@@ -4486,7 +4486,8 @@ function buildScSetup() {
 }
 
 function scOverlap(a, b) {
-  const A = a.split(/\s+/).filter(Boolean), B = new Set(b.split(/\s+/).filter(Boolean));
+  const clean = t => t.replace(/[.,!?;:¿¡"'()«»…]/g, ""); // ignore punctuation so "gracias." matches "gracias"
+  const A = a.split(/\s+/).map(clean).filter(Boolean), B = new Set(b.split(/\s+/).map(clean).filter(Boolean));
   if (!A.length) return 0;
   let hit = 0; A.forEach(w => { if (B.has(w)) hit++; });
   return hit / Math.max(A.length, B.size);
@@ -4667,23 +4668,39 @@ function scListen() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
   if (!navigator.onLine) { const st = $("scMicStatus"); if (st) st.textContent = "The mic needs a connection — type your reply instead."; return; }
+  // Never stack recognizers — cancel any previous one first.
+  if (sc.recog) { try { sc.recog.onend = null; sc.recog.abort(); } catch (e) {} sc.recog = null; }
   const r = new SR();
-  r.lang = speakLang(); r.interimResults = false; r.maxAlternatives = 5;
+  r.lang = speakLang(); r.interimResults = true; r.maxAlternatives = 5; // interim = more forgiving
   sc.recog = r;
   const st = $("scMicStatus"), mic = $("scMic");
-  if (st) st.textContent = "🎧 Listening…";
+  let got = false, hadError = false;
+  if (st) st.textContent = "🎧 Listening… speak now";
   if (mic) mic.classList.add("listening");
-  try { r.start(); } catch (e) {}
+  try { r.start(); } catch (e) { if (st) st.textContent = "Tap the mic to try again."; return; }
   r.onresult = (e) => {
-    const alts = [];
-    for (let i = 0; i < e.results.length; i++) { const res = e.results[i]; for (let j = 0; j < res.length; j++) alts.push(res[j].transcript); }
+    let finalAlts = null;
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) { finalAlts = []; for (let j = 0; j < e.results[i].length; j++) finalAlts.push(e.results[i][j].transcript); }
+    }
+    if (!finalAlts) return; // interim result — keep listening
+    got = true;
+    if (mic) mic.classList.remove("listening");
     const cur = sc.turns[sc.i], target = normalize(cur.es);
-    const ok = alts.some(a => { const n = normalize(a); return n === target || scOverlap(n, target) >= 0.6; });
-    scResolve(ok, alts[0] || "");
+    const ok = finalAlts.some(a => { const n = normalize(a); return n === target || scOverlap(n, target) >= 0.6; });
+    scResolve(ok, finalAlts[0] || "");
   };
   r.onerror = (e) => {
+    hadError = true;
     if (mic) mic.classList.remove("listening");
-    if (st) st.textContent = e.error === "not-allowed" ? "Mic blocked — type instead." : "Didn't catch that — try again.";
+    if (st) st.textContent = (e.error === "not-allowed" || e.error === "service-not-allowed") ? "Mic blocked — type instead."
+      : (e.error === "no-speech" ? "Didn't hear you — tap the mic and speak a bit louder." : "Didn't catch that — tap the mic to try again.");
+  };
+  r.onend = () => {
+    if (sc.recog === r) sc.recog = null;
+    if (mic) mic.classList.remove("listening");
+    // Stopped with nothing captured: reset so the user can just tap and retry.
+    if (!got && !hadError) { if (st) st.textContent = "Didn't catch that — tap the mic to try again."; }
   };
 }
 
