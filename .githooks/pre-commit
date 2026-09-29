@@ -1,0 +1,26 @@
+#!/bin/sh
+# DRY architecture guard (see CLAUDE.md). Blocks a commit that re-implements a
+# shared helper instead of reusing it. Enabled via: git config core.hooksPath .githooks
+git diff --cached --name-only | grep -q '^index.html$' || exit 0
+src=$(git show :index.html)
+fail=0
+
+# 1) Only listenOnce() may create a speech recogniser.
+recog=$(printf '%s' "$src" | grep -o -e 'new SR()' -e 'new webkitSpeechRecognition(' -e 'new SpeechRecognition(' | wc -l | tr -d ' ')
+if [ "$recog" -gt 1 ]; then
+  echo "pre-commit: $recog speech-recogniser instantiations found - use listenOnce() (CLAUDE.md). Only 1 allowed."
+  fail=1
+fi
+
+# 2) Only aiFetch() may call the Anthropic endpoint.
+ai=$(printf '%s' "$src" | grep -o 'fetch("https://api.anthropic.com' | wc -l | tr -d ' ')
+if [ "$ai" -gt 1 ]; then
+  echo "pre-commit: $ai raw Anthropic fetch calls found - use aiFetch(body) (CLAUDE.md). Only 1 allowed."
+  fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "Commit blocked. Reuse the shared helper. (If this is a deliberate change, update .githooks/pre-commit.)"
+  exit 1
+fi
+exit 0
