@@ -40,6 +40,7 @@ consolidate it as part of the change.
   (meaning, with verb tense/person), `cleanWord`, `stripArticle`,
   `conjugationInfo`. Words live in `VOCAB`; example sentences in `SENTENCES`;
   learned meanings in `USER_GLOSS` / `WORD_GLOSS`; pictures in `WORD_EMOJI`.
+- **Review pager:** `makeRev(backId,nextId)` + `revReset/revPush/revShow/revNext/revBack` - the shared "Back to review earlier steps" controller for every sequential exercise (daily practice, free play, Listening, Scramble, conjugation, tense). Each step registers a restore() closure.
 - **Screens:** `show(screenId)` toggles the fixed list of screen <div>s.
 - **SRS:** `creditReview`, `schedule`, `buildSession`, `saveStore`.
 

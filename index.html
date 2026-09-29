@@ -941,6 +941,7 @@
         <div class="feedback" id="listenFeedback"></div>
         <button class="btn primary center" id="orderCheck">Check</button>
         <button class="btn primary center hidden" id="listenNext">Next →</button>
+        <button class="back-link hidden" id="listenBack" style="display:block;margin:8px auto 0;">← Back (review)</button>
         <button class="back-link" id="orderSkip" style="display:block;margin:8px auto 0;">Skip / show answer</button>
       </div>
       <div id="listenEnd" class="order-end hidden"></div>
@@ -1035,6 +1036,7 @@
         <div id="tenseOptions"></div>
         <div class="feedback" id="tenseFeedback"></div>
         <button class="btn primary center hidden" id="tenseNext">Next →</button>
+        <button class="back-link hidden" id="tenseBack" style="display:block;margin:8px auto 0;">← Back (review)</button>
         <button class="back-link" id="tenseQuit" style="display:block;margin:8px auto 0;">← Back to lessons</button>
       </div>
       <div id="tenseEnd" class="order-end hidden"></div>
@@ -1052,6 +1054,7 @@
         <button class="btn primary center" id="conjSubmit">Check</button>
         <div class="feedback" id="conjFeedback"></div>
         <button class="btn primary center hidden" id="conjNext">Next →</button>
+        <button class="back-link hidden" id="conjBack" style="display:block;margin:8px auto 0;">← Back (review)</button>
         <button class="back-link" id="conjQuit" style="display:block;margin:8px auto 0;">← Back to lessons</button>
       </div>
       <div id="conjEnd" class="order-end hidden"></div>
@@ -1172,6 +1175,7 @@
         <div class="feedback" id="scrFeedback"></div>
         <button class="btn primary center" id="scrCheck">Check</button>
         <button class="btn primary center hidden" id="scrNext">Next →</button>
+        <button class="back-link hidden" id="scrBack" style="display:block;margin:8px auto 0;">← Back (review)</button>
         <button class="back-link" id="scrClear" style="display:block;margin:8px auto 0;">↺ Clear</button>
       </div>
       <div id="scrEnd" class="order-end hidden"></div>
@@ -2636,6 +2640,7 @@ function startListen() {
   $("listenEnd").classList.add("hidden");
   $("listenPlay").classList.remove("hidden");
   show("listen");
+  revReset(listenRev);
   nextListen();
 }
 
@@ -2649,6 +2654,7 @@ function nextListen() {
   $("listenFeedback").textContent = "";
   $("orderCheck").classList.remove("hidden");
   $("listenNext").classList.add("hidden");
+  $("listenBack").classList.add("hidden");
   $("orderSkip").style.display = "block";
   renderOrder();
   speak(s.full);
@@ -2857,11 +2863,14 @@ function orderReveal() {
 function showListenNext() {
   $("orderCheck").classList.add("hidden");
   $("orderSkip").style.display = "none";
-  const nb = $("listenNext");
-  nb.textContent = ord.i >= ord.pool.length ? "See results →" : "Next →";
-  nb.classList.remove("hidden");
-  nb.onclick = nextListen;
-  setTimeout(() => nb.focus(), 30);
+  const answerHtml = $("orderAnswer").innerHTML;
+  const fbHtml = $("listenFeedback").innerHTML, fbColor = $("listenFeedback").style.color;
+  revPush(listenRev, () => {
+    $("orderCheck").classList.add("hidden"); $("orderSkip").style.display = "none"; $("orderBank").innerHTML = "";
+    $("orderAnswer").innerHTML = answerHtml;
+    const f = $("listenFeedback"); f.innerHTML = fbHtml; f.style.color = fbColor;
+  }, ord.i >= ord.pool.length ? "See results →" : "Next →", nextListen);
+  setTimeout(() => $("listenNext").focus(), 30);
 }
 
 function endListen() {
@@ -3250,6 +3259,7 @@ function startConjug() {
   $("grammarHome").classList.add("hidden");
   $("conjEnd").classList.add("hidden");
   $("conjugPlay").classList.remove("hidden");
+  revReset(conjRev);
   nextConjug();
 }
 function nextConjug() {
@@ -3267,6 +3277,7 @@ function nextConjug() {
   inp.value = ""; inp.disabled = false; inp.classList.remove("hidden");
   $("conjSubmit").classList.remove("hidden");
   $("conjNext").classList.add("hidden");
+  $("conjBack").classList.add("hidden");
   setTimeout(() => inp.focus(), 40);
 }
 function checkConjug() {
@@ -3283,10 +3294,13 @@ function checkConjug() {
   $("conjInput").disabled = true;
   $("conjSubmit").classList.add("hidden");
   conj.i++;
-  const nb = $("conjNext");
-  nb.textContent = conj.i >= conj.q.length ? "See results →" : "Next →";
-  nb.classList.remove("hidden");
-  setTimeout(() => nb.focus(), 30);
+  const snap = { label: $("conjLabel").textContent, prompt: $("conjPrompt").textContent, meaning: $("conjMeaning").textContent, fbHtml: $("conjFeedback").innerHTML, fbColor: $("conjFeedback").style.color };
+  revPush(conjRev, () => {
+    $("conjInput").classList.add("hidden"); $("conjSubmit").classList.add("hidden");
+    $("conjLabel").textContent = snap.label; $("conjPrompt").textContent = snap.prompt; $("conjMeaning").textContent = snap.meaning;
+    const f = $("conjFeedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
+  }, conj.i >= conj.q.length ? "See results →" : "Next →", nextConjug);
+  setTimeout(() => $("conjNext").focus(), 30);
 }
 function endConjug() {
   $("conjugPlay").classList.add("hidden");
@@ -3334,6 +3348,7 @@ function startTense() {
   $("grammarHome").classList.add("hidden");
   $("tenseEnd").classList.add("hidden");
   $("tensePlay").classList.remove("hidden");
+  revReset(tenseRev);
   nextTense();
 }
 
@@ -3358,6 +3373,7 @@ function nextTense() {
   $("tenseHint").textContent = verb.inf + " — " + verb.en + "  ·  " + it.clue[1];
   $("tenseFeedback").textContent = "";
   $("tenseNext").classList.add("hidden");
+  $("tenseBack").classList.add("hidden");
 
   const wrap = $("tenseOptions");
   wrap.innerHTML = "";
@@ -3390,10 +3406,13 @@ function pickTense(btn, choice) {
   else { fb.style.color = "var(--bad)"; fb.textContent = "✗ It's: " + c.correct; }
   speak(it.clue[0] + CONJ_PRON[it.p] + " " + c.correct);
   tense.i++;
-  const nb = $("tenseNext");
-  nb.textContent = tense.i >= tense.q.length ? "See results →" : "Next →";
-  nb.classList.remove("hidden");
-  setTimeout(() => nb.focus(), 30);
+  const snap = { sentence: $("tenseSentence").textContent, hint: $("tenseHint").textContent, optionsHtml: $("tenseOptions").innerHTML, fbHtml: $("tenseFeedback").innerHTML, fbColor: $("tenseFeedback").style.color };
+  revPush(tenseRev, () => {
+    $("tenseSentence").textContent = snap.sentence; $("tenseHint").textContent = snap.hint;
+    $("tenseOptions").innerHTML = snap.optionsHtml;
+    const f = $("tenseFeedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
+  }, tense.i >= tense.q.length ? "See results →" : "Next →", nextTense);
+  setTimeout(() => $("tenseNext").focus(), 30);
 }
 
 function endTense() {
@@ -4074,7 +4093,7 @@ function openScramble() {
   if (!pool.length) return;
   scr = { pool, i: 0, score: 0, total: pool.length };
   $("scrEnd").classList.add("hidden"); $("scrPlay").classList.remove("hidden");
-  show("scramble"); nextScramble();
+  show("scramble"); revReset(scrRev); nextScramble();
 }
 function nextScramble() {
   if (scr.i >= scr.pool.length) return endScramble();
@@ -4091,6 +4110,7 @@ function nextScramble() {
   $("scrFeedback").textContent = "";
   $("scrCheck").classList.remove("hidden");
   $("scrNext").classList.add("hidden");
+  $("scrBack").classList.add("hidden");
   renderScramble();
 }
 function renderScramble() {
@@ -4122,7 +4142,13 @@ function checkScramble() {
   creditReview(scr.pool[scr.i].id, ok, true);
   $("scrCheck").classList.add("hidden");
   scr.i++;
-  const nb = $("scrNext"); nb.textContent = scr.i >= scr.pool.length ? "See results →" : "Next →"; nb.classList.remove("hidden"); setTimeout(() => nb.focus(), 30);
+  const snap = { emoji: $("scrEmoji").textContent, clue: $("scrClue").textContent, article: $("scrArticle").textContent, fbHtml: $("scrFeedback").innerHTML, fbColor: $("scrFeedback").style.color };
+  revPush(scrRev, () => {
+    $("scrCheck").classList.add("hidden"); $("scrAnswer").innerHTML = ""; $("scrBank").innerHTML = "";
+    $("scrEmoji").textContent = snap.emoji; $("scrClue").textContent = snap.clue; $("scrArticle").textContent = snap.article;
+    const f = $("scrFeedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
+  }, scr.i >= scr.pool.length ? "See results →" : "Next →", nextScramble);
+  setTimeout(() => $("scrNext").focus(), 30);
 }
 function endScramble() {
   $("scrPlay").classList.add("hidden");
@@ -4988,6 +5014,7 @@ function startDaily() {
     srsStats: { graded: 0, correct: 0, reviewed: 0, newLearned: 0 },
   };
   show("game");
+  revReset(gameRev);
   nextSrsQuestion();
 }
 
@@ -5671,6 +5698,7 @@ function startGame(mode, catOverride) {
     answered: 0,
   };
   show("game");
+  revReset(gameRev);
   nextQuestion();
 }
 
@@ -5695,36 +5723,36 @@ function speakPrompt() {
   else if (state.current) speak(state.current[0]);
 }
 
-/* Review earlier questions in this session. Each answered question is snapshotted
-   in state.reviewLog; Back/Next page through them read-only, and Next past the
-   newest one resumes normal play. */
-function showReview(pos) {
-  const s = state.reviewLog[pos];
-  if (!s) return;
-  ["answers", "typeInput", "submitType", "speakPanel", "clozeTools", "addCardBtn", "explainBtn"].forEach(id => $(id).classList.add("hidden"));
-  $("answers").innerHTML = "";
-  $("promptLabel").textContent = s.label;
-  $("promptEmoji").textContent = s.emoji;
-  $("promptWord").innerHTML = s.wordHtml;
-  $("promptWord").style.fontSize = s.wordFont || "";
-  const fb = $("feedback"); fb.innerHTML = s.fbHtml; fb.style.color = s.fbColor;
-  $("speakBtn").onclick = () => speak(s.sayText);
-  const atLive = pos >= state.reviewLog.length - 1;
-  $("backBtn").classList.toggle("hidden", pos <= 0);
-  const nb = $("nextBtn"); nb.classList.remove("hidden");
-  nb.textContent = atLive ? (state.nextLabel || "Next →") : "Next →";
-  nb.onclick = onNext;
+/* ---- Reusable "review earlier steps" pager for any sequential exercise ----
+   Each answered step registers a restore() closure that redraws it read-only.
+   Back/Next page through them; Next past the newest calls liveAdvance to resume
+   live play. One implementation for daily practice, free play, Listening,
+   Scramble, the conjugation drill and the tense exercise. */
+function makeRev(backId, nextId) { return { log: [], pos: -1, backId, nextId, liveLabel: "Next →", liveAdvance: null }; }
+function revReset(rev) { rev.log = []; rev.pos = -1; }
+function revPush(rev, restore, liveLabel, liveAdvance) {
+  rev.log.push(restore); rev.pos = rev.log.length - 1;
+  rev.liveLabel = liveLabel; rev.liveAdvance = liveAdvance;
+  const nb = $(rev.nextId); nb.textContent = liveLabel; nb.classList.remove("hidden"); nb.onclick = () => revNext(rev);
+  if (rev.backId) $(rev.backId).classList.toggle("hidden", rev.log.length <= 1);
 }
-function reviewBack() {
-  if (state.reviewLog && state.reviewPos > 0) { state.reviewPos--; showReview(state.reviewPos); }
+function revShow(rev, pos) {
+  rev.pos = pos;
+  if (rev.log[pos]) rev.log[pos]();
+  const atLive = pos >= rev.log.length - 1;
+  if (rev.backId) $(rev.backId).classList.toggle("hidden", pos <= 0);
+  const nb = $(rev.nextId); nb.classList.remove("hidden");
+  nb.textContent = atLive ? rev.liveLabel : "Next →";
+  nb.onclick = () => revNext(rev);
 }
-function onNext() {
-  if (state.reviewLog && state.reviewPos < state.reviewLog.length - 1) {
-    state.reviewPos++; showReview(state.reviewPos);
-  } else if (state.advance) {
-    state.advance();
-  }
-}
+function revNext(rev) { if (rev.pos < rev.log.length - 1) revShow(rev, rev.pos + 1); else if (rev.liveAdvance) rev.liveAdvance(); }
+function revBack(rev) { if (rev.pos > 0) revShow(rev, rev.pos - 1); }
+
+const gameRev = makeRev("backBtn", "nextBtn");
+const listenRev = makeRev("listenBack", "listenNext");
+const scrRev = makeRev("scrBack", "scrNext");
+const conjRev = makeRev("conjBack", "conjNext");
+const tenseRev = makeRev("tenseBack", "tenseNext");
 
 function renderQuestion() {
   const word = state.current; // [es, en, emoji]
@@ -6003,24 +6031,21 @@ function resolveAnswer(isRight, correctText) {
   eb.onclick = explainCard;
 
   const last = state.srs ? (state.qi >= state.queue.length) : (state.index >= state.deck.length || state.lives <= 0);
-  // Snapshot this answered question so the learner can page back through the
-  // session with the Back button.
-  if (!state.reviewLog) state.reviewLog = [];
-  state.reviewLog.push({
+  const snap = {
     label: $("promptLabel").textContent, emoji: $("promptEmoji").textContent,
     wordHtml: $("promptWord").innerHTML, wordFont: $("promptWord").style.fontSize,
     fbHtml: fb.innerHTML, fbColor: fb.style.color,
     sayText: state.sentence ? state.sentence.full : w[0]
-  });
-  state.reviewPos = state.reviewLog.length - 1;
-  state.advance = advance;
-  state.nextLabel = last ? "See results →" : "Next →";
-  const nb = $("nextBtn");
-  nb.textContent = state.nextLabel;
-  nb.classList.remove("hidden");
-  nb.onclick = onNext;
-  $("backBtn").classList.toggle("hidden", state.reviewLog.length <= 1);
-  setTimeout(() => nb.focus(), 30); // lets Enter/Space advance on desktop
+  };
+  revPush(gameRev, () => {
+    ["answers", "typeInput", "submitType", "speakPanel", "clozeTools", "addCardBtn", "explainBtn"].forEach(id => $(id).classList.add("hidden"));
+    $("answers").innerHTML = "";
+    $("promptLabel").textContent = snap.label; $("promptEmoji").textContent = snap.emoji;
+    $("promptWord").innerHTML = snap.wordHtml; $("promptWord").style.fontSize = snap.wordFont || "";
+    const f = $("feedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
+    $("speakBtn").onclick = () => speak(snap.sayText);
+  }, last ? "See results →" : "Next →", advance);
+  setTimeout(() => $("nextBtn").focus(), 30); // lets Enter/Space advance on desktop
 }
 
 const PRAISE = ["¡Sí! ✓", "¡Correcto! ✓", "¡Muy bien! ✓", "¡Excelente! ✓", "¡Perfecto! ✓"];
@@ -6241,7 +6266,7 @@ document.querySelectorAll("[data-mode]").forEach(btn => {
 });
 
 $("speakBtn").onclick = speakPrompt;
-$("backBtn").onclick = reviewBack;
+$("backBtn").onclick = () => revBack(gameRev);
 $("micBtn").onclick = startListening;
 $("micSkip").onclick = speakGiveUp;
 
@@ -6302,9 +6327,11 @@ $("startConjugBtn").onclick = startConjug;
 $("conjSubmit").onclick = checkConjug;
 $("conjInput").addEventListener("keydown", (e) => { if (e.key === "Enter") checkConjug(); });
 $("conjNext").onclick = nextConjug;
+$("conjBack").onclick = () => revBack(conjRev);
 $("conjQuit").onclick = openGrammar;
 $("startTenseBtn").onclick = startTense;
 $("tenseNext").onclick = nextTense;
+$("tenseBack").onclick = () => revBack(tenseRev);
 $("tenseQuit").onclick = openGrammar;
 $("openCoachBtn").onclick = openCoach;
 $("coachQuitBtn").onclick = () => show("home");
@@ -6313,6 +6340,7 @@ $("coachQuitBtn").onclick = () => show("home");
 $("openScrambleBtn").onclick = openScramble;
 $("scrCheck").onclick = checkScramble;
 $("scrNext").onclick = nextScramble;
+$("scrBack").onclick = () => revBack(scrRev);
 $("scrClear").onclick = () => { if (scr.cur && !scr.cur.done) { scr.cur.answerIds = []; renderScramble(); } };
 $("scrambleQuitBtn").onclick = goHome;
 $("openGenderBtn").onclick = openGender;
@@ -6374,6 +6402,7 @@ $("playerQuitBtn").onclick = () => { playerPause(); show("home"); };
 $("listenReplay").onclick = () => { if (ord.cur) speak(ord.cur.full); };
 $("orderCheck").onclick = checkOrder;
 $("orderSkip").onclick = orderReveal;
+$("listenBack").onclick = () => revBack(listenRev);
 $("listenQuitBtn").onclick = goHome;
 $("openScenarioBtn").onclick = openScenario;
 $("scenarioQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); scAbort(); show("home"); };
