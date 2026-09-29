@@ -5719,8 +5719,14 @@ function nextQuestion() {
    Shared by free-play (nextQuestion) and daily SRS (nextSrsQuestion). */
 /* Re-read the current prompt (word, or the whole sentence in cloze). */
 function speakPrompt() {
-  if (state.sentence) speak(state.sentence.full);
-  else if (state.current) speak(state.current[0]);
+  // Read the prompt that is on screen, in its own language: Spanish for the
+  // cloze sentence and Spanish-prompt modes; English when the prompt shows the
+  // English word (English->Spanish, Type It Out, Speak It) so the speaker
+  // matches the text and does not give away the Spanish answer.
+  if (state.sentence) { speak(state.sentence.full); return; }
+  if (!state.current) return;
+  if (state.mode === "en2es" || state.mode === "type" || state.mode === "speak") speak(state.current[1], "en-US");
+  else speak(state.current[0]);
 }
 
 /* ---- Reusable "review earlier steps" pager for any sequential exercise ----
@@ -5940,6 +5946,9 @@ function checkTyped() {
   $("submitType").disabled = true;
 
   const isRight = guess === answer;
+  // On a correct answer, clear the input and Check button so the reveal fits
+  // on one screen (matches how multiple choice hides the other options).
+  if (isRight) { input.classList.add("hidden"); $("submitType").classList.add("hidden"); }
   speak(state.sentence ? state.sentence.full : state.current[0]);
   resolveAnswer(isRight, target);
 }
