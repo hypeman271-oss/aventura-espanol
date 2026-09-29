@@ -835,6 +835,7 @@
         <button class="btn center hidden" id="addCardBtn" style="background:rgba(255,255,255,0.15);color:#fff;">➕ Add to My Cards</button>
       </div>
       <button class="btn primary center hidden" id="nextBtn">Next →</button>
+      <button class="back-link hidden" id="backBtn" style="display:block;margin:10px auto 0;">← Back (review)</button>
     </div>
   </div>
 
@@ -5688,6 +5689,43 @@ function nextQuestion() {
 
 /* Renders the current question from state.current / state.mode / state.pool.
    Shared by free-play (nextQuestion) and daily SRS (nextSrsQuestion). */
+/* Re-read the current prompt (word, or the whole sentence in cloze). */
+function speakPrompt() {
+  if (state.sentence) speak(state.sentence.full);
+  else if (state.current) speak(state.current[0]);
+}
+
+/* Review earlier questions in this session. Each answered question is snapshotted
+   in state.reviewLog; Back/Next page through them read-only, and Next past the
+   newest one resumes normal play. */
+function showReview(pos) {
+  const s = state.reviewLog[pos];
+  if (!s) return;
+  ["answers", "typeInput", "submitType", "speakPanel", "clozeTools", "addCardBtn", "explainBtn"].forEach(id => $(id).classList.add("hidden"));
+  $("answers").innerHTML = "";
+  $("promptLabel").textContent = s.label;
+  $("promptEmoji").textContent = s.emoji;
+  $("promptWord").innerHTML = s.wordHtml;
+  $("promptWord").style.fontSize = s.wordFont || "";
+  const fb = $("feedback"); fb.innerHTML = s.fbHtml; fb.style.color = s.fbColor;
+  $("speakBtn").onclick = () => speak(s.sayText);
+  const atLive = pos >= state.reviewLog.length - 1;
+  $("backBtn").classList.toggle("hidden", pos <= 0);
+  const nb = $("nextBtn"); nb.classList.remove("hidden");
+  nb.textContent = atLive ? (state.nextLabel || "Next →") : "Next →";
+  nb.onclick = onNext;
+}
+function reviewBack() {
+  if (state.reviewLog && state.reviewPos > 0) { state.reviewPos--; showReview(state.reviewPos); }
+}
+function onNext() {
+  if (state.reviewLog && state.reviewPos < state.reviewLog.length - 1) {
+    state.reviewPos++; showReview(state.reviewPos);
+  } else if (state.advance) {
+    state.advance();
+  }
+}
+
 function renderQuestion() {
   const word = state.current; // [es, en, emoji]
   state.answeredThis = false;
@@ -5716,6 +5754,8 @@ function renderQuestion() {
   $("promptWord").style.fontSize = ""; // reset (cloze sentences shrink it)
   // Clear any prior tap-to-replay wiring on the prompt (set only in Listen mode).
   ["promptEmoji", "promptWord", "promptCard"].forEach(id => { $(id).onclick = null; $(id).style.cursor = ""; });
+  $("backBtn").classList.add("hidden");
+  $("speakBtn").onclick = speakPrompt;
 
   if (mode === "cloze" || mode === "clozetype") {
     // Comprehensible input: show the sentence with a blank; hear it spoken.
@@ -5963,10 +6003,23 @@ function resolveAnswer(isRight, correctText) {
   eb.onclick = explainCard;
 
   const last = state.srs ? (state.qi >= state.queue.length) : (state.index >= state.deck.length || state.lives <= 0);
+  // Snapshot this answered question so the learner can page back through the
+  // session with the Back button.
+  if (!state.reviewLog) state.reviewLog = [];
+  state.reviewLog.push({
+    label: $("promptLabel").textContent, emoji: $("promptEmoji").textContent,
+    wordHtml: $("promptWord").innerHTML, wordFont: $("promptWord").style.fontSize,
+    fbHtml: fb.innerHTML, fbColor: fb.style.color,
+    sayText: state.sentence ? state.sentence.full : w[0]
+  });
+  state.reviewPos = state.reviewLog.length - 1;
+  state.advance = advance;
+  state.nextLabel = last ? "See results →" : "Next →";
   const nb = $("nextBtn");
-  nb.textContent = last ? "See results →" : "Next →";
+  nb.textContent = state.nextLabel;
   nb.classList.remove("hidden");
-  nb.onclick = advance;
+  nb.onclick = onNext;
+  $("backBtn").classList.toggle("hidden", state.reviewLog.length <= 1);
   setTimeout(() => nb.focus(), 30); // lets Enter/Space advance on desktop
 }
 
@@ -6187,10 +6240,8 @@ document.querySelectorAll("[data-mode]").forEach(btn => {
   };
 });
 
-$("speakBtn").onclick = () => {
-  if (state.sentence) speak(state.sentence.full);        // re-read the whole sentence in cloze mode
-  else if (state.current) speak(state.current[0]);        // otherwise just the word
-};
+$("speakBtn").onclick = speakPrompt;
+$("backBtn").onclick = reviewBack;
 $("micBtn").onclick = startListening;
 $("micSkip").onclick = speakGiveUp;
 
