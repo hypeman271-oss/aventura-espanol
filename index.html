@@ -4665,44 +4665,16 @@ function scCheckResponse(text) {
 }
 
 function scListen() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  if (!navigator.onLine) { const st = $("scMicStatus"); if (st) st.textContent = "The mic needs a connection — type your reply instead."; return; }
-  // Never stack recognizers — cancel any previous one first.
-  if (sc.recog) { try { sc.recog.onend = null; sc.recog.abort(); } catch (e) {} sc.recog = null; }
-  const r = new SR();
-  r.lang = speakLang(); r.interimResults = true; r.maxAlternatives = 5; // interim = more forgiving
-  sc.recog = r;
-  const st = $("scMicStatus"), mic = $("scMic");
-  let got = false, hadError = false;
-  if (st) st.textContent = "🎧 Listening… speak now";
-  if (mic) mic.classList.add("listening");
-  try { r.start(); } catch (e) { if (st) st.textContent = "Tap the mic to try again."; return; }
-  r.onresult = (e) => {
-    let finalAlts = null;
-    for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) { finalAlts = []; for (let j = 0; j < e.results[i].length; j++) finalAlts.push(e.results[i][j].transcript); }
+  listenOnce({
+    status: "scMicStatus", micBtn: "scMic",
+    onFinal: (alts) => {
+      const cur = sc.turns[sc.i], target = normalize(cur.es);
+      const ok = alts.some(a => { const n = normalize(a); return n === target || scOverlap(n, target) >= 0.6; });
+      scResolve(ok, alts[0] || "");
     }
-    if (!finalAlts) return; // interim result — keep listening
-    got = true;
-    if (mic) mic.classList.remove("listening");
-    const cur = sc.turns[sc.i], target = normalize(cur.es);
-    const ok = finalAlts.some(a => { const n = normalize(a); return n === target || scOverlap(n, target) >= 0.6; });
-    scResolve(ok, finalAlts[0] || "");
-  };
-  r.onerror = (e) => {
-    hadError = true;
-    if (mic) mic.classList.remove("listening");
-    if (st) st.textContent = (e.error === "not-allowed" || e.error === "service-not-allowed") ? "Mic blocked — type instead."
-      : (e.error === "no-speech" ? "Didn't hear you — tap the mic and speak a bit louder." : "Didn't catch that — tap the mic to try again.");
-  };
-  r.onend = () => {
-    if (sc.recog === r) sc.recog = null;
-    if (mic) mic.classList.remove("listening");
-    // Stopped with nothing captured: reset so the user can just tap and retry.
-    if (!got && !hadError) { if (st) st.textContent = "Didn't catch that — tap the mic to try again."; }
-  };
+  });
 }
+
 
 function scResolve(ok, saidText) {
   const cur = sc.turns[sc.i];
@@ -4738,8 +4710,7 @@ function speakEstimateMs(text) {
 }
 
 function scAbort() {
-  if (sc && sc.recog) { try { sc.recog.abort(); } catch (e) {} }
-  if (chat && chat.recog) { try { chat.recog.abort(); } catch (e) {} }
+  stopListening();
 }
 
 /* ============================================================
@@ -4869,20 +4840,11 @@ function chatRender() {
 }
 
 function chatListen() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  if (!navigator.onLine) { const st = $("chatMicStatus"); if (st) st.textContent = "The mic needs a connection — type instead."; return; }
-  const r = new SR();
-  r.lang = speakLang(); r.interimResults = false; r.maxAlternatives = 3;
-  chat.recog = r;
-  const st = $("chatMicStatus"), mic = $("chatMic");
-  if (st) st.textContent = "🎧 Listening…";
-  if (mic) mic.classList.add("listening");
-  try { r.start(); } catch (e) {}
-  r.onresult = (e) => { chatSend(e.results[0][0].transcript || ""); };
-  r.onerror = () => { if (mic) mic.classList.remove("listening"); if (st) st.textContent = "Didn't catch that — try again or type."; };
+  listenOnce({
+    status: "chatMicStatus", micBtn: "chatMic",
+    onFinal: (alts) => { chatSend(alts[0] || ""); }
+  });
 }
-
 function chatEnd() {
   chat.ended = true;
   scAbort();
@@ -5566,6 +5528,57 @@ if ("speechSynthesis" in window) {
    ============================================================ */
 const SPEECH_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
+/* ---- One shared microphone recogniser for every exercise ----
+   All the boilerplate lives here (detection, offline guard, cancelling any
+   running recogniser, config, the "listening" UI state, transcript extraction,
+   error messages, end-of-speech recovery). Callers only say what to do with the
+   result (onFinal) and which UI to light up -- like speak() does for TTS. */
+let activeRecog = null;
+function stopListening() {
+  if (activeRecog) { try { activeRecog.onend = null; activeRecog.abort(); } catch (e) {} activeRecog = null; }
+}
+function listenOnce(opts) {
+  opts = opts || {};
+  const status = opts.status ? $(opts.status) : null;
+  const micBtn = opts.micBtn ? $(opts.micBtn) : null;
+  const setStatus = (t) => { if (status) status.textContent = t; };
+  const clearMic = () => { if (micBtn) micBtn.classList.remove("listening"); };
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { setStatus("Speech recognition isn't available in this browser."); return null; }
+  if (!navigator.onLine) { setStatus(opts.offlineText || "The mic needs a connection - type your reply instead."); return null; }
+  stopListening(); // never stack recognisers
+  const r = new SR();
+  r.lang = speakLang();
+  r.interimResults = true;                    // partial speech too - more forgiving
+  r.maxAlternatives = opts.maxAlternatives || 5;
+  activeRecog = r;
+  let got = false, hadError = false;
+  setStatus(opts.listeningText || "🎧 Listening - speak now");
+  if (micBtn) micBtn.classList.add("listening");
+  try { r.start(); } catch (e) { clearMic(); activeRecog = null; setStatus("Tap the mic to try again."); return null; }
+  r.onresult = (e) => {
+    let finalAlts = null;
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) { finalAlts = []; for (let j = 0; j < e.results[i].length; j++) finalAlts.push(e.results[i][j].transcript); }
+    }
+    if (!finalAlts) return; // interim - keep listening
+    got = true; clearMic();
+    if (opts.onFinal) opts.onFinal(finalAlts);
+  };
+  r.onerror = (e) => {
+    hadError = true; clearMic();
+    setStatus((e.error === "not-allowed" || e.error === "service-not-allowed") ? "Microphone blocked - allow mic access, or type instead."
+      : (e.error === "no-speech") ? "Didn't hear you - tap the mic and speak a bit louder."
+      : (e.error === "aborted") ? "" : "Try again - tap the mic when ready.");
+  };
+  r.onend = () => {
+    if (activeRecog === r) activeRecog = null;
+    clearMic();
+    if (!got && !hadError) { setStatus(opts.noResultText || "Didn't catch that - tap the mic to try again."); if (opts.onNoResult) opts.onNoResult(); }
+  };
+  return r;
+}
+
 /* Spanish number words 0–100 → value, so the speak exercise can match a
    spoken number that the recognizer transcribed as digits (e.g. it hears
    "19" when you say "diecinueve"). */
@@ -5653,55 +5666,22 @@ function setMic(cls, text) {
 
 function startListening() {
   if (state.answeredThis) return;
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { setMic("idle", "Speech recognition isn't available in this browser."); return; }
-  if (!navigator.onLine) { setMic("idle", "The mic needs a connection — use “show answer” while offline."); return; }
-  // Never stack recognizers — cancel any previous one first.
-  if (state.recog) { try { state.recog.onend = null; state.recog.abort(); } catch (e) {} state.recog = null; }
   const target = state.current[0];
-  const r = new SR();
-  r.lang = speakLang();
-  r.interimResults = true;   // capture partial speech too — more forgiving
-  r.maxAlternatives = 5;
-  state.recog = r;
-  let got = false, hadError = false;
-  setMic("listening", "🎧 Listening… speak now");
-  try { r.start(); } catch (e) { setMic("idle", "Tap the mic to try again."); return; }
-
-  r.onresult = (e) => {
-    let finalAlts = null;
-    for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) { finalAlts = []; for (let j = 0; j < e.results[i].length; j++) finalAlts.push(e.results[i][j].transcript); }
+  listenOnce({
+    status: "micStatus", micBtn: "micBtn",
+    offlineText: "The mic needs a connection — use “show answer” while offline.",
+    onFinal: (alts) => {
+      const heard = alts[0] || "";
+      const ok = alts.some(a => matchesSpoken(a, target));
+      setMic("done", "Heard: “" + heard + "”");
+      speak(target);
+      resolveAnswer(ok, target);
     }
-    if (!finalAlts) return; // interim result — keep listening
-    got = true;
-    const heard = finalAlts[0] || "";
-    const ok = finalAlts.some(a => matchesSpoken(a, target));
-    setMic("done", "Heard: “" + heard + "”");
-    speak(target);
-    resolveAnswer(ok, target);
-  };
-  r.onerror = (e) => {
-    hadError = true;
-    if (e.error === "not-allowed" || e.error === "service-not-allowed")
-      setMic("idle", "Microphone blocked — allow mic access, or use “show answer”.");
-    else if (e.error === "no-speech")
-      setMic("idle", "Didn't hear you — tap the mic and speak a bit louder.");
-    else if (e.error === "aborted")
-      { /* we cancelled it — no message */ }
-    else
-      setMic("idle", "Try again — tap the mic when ready.");
-  };
-  r.onend = () => {
-    if (state.recog === r) state.recog = null;
-    // Recognizer stopped with nothing captured: reset so the user can retry.
-    if (!got && !hadError && !state.answeredThis) setMic("idle", "Didn't catch that — tap the mic to try again.");
-  };
+  });
 }
-
 function speakGiveUp() {
   if (state.answeredThis) return;
-  if (state.recog) { try { state.recog.abort(); } catch (e) {} }
+  stopListening();
   speak(state.current[0]);
   resolveAnswer(false, state.current[0]);
 }
@@ -6275,7 +6255,7 @@ if (!SPEECH_OK) {
   }
 }
 
-function abortRecog() { if (state && state.recog) { try { state.recog.abort(); } catch (e) {} } }
+function abortRecog() { stopListening(); }
 $("quitBtn").onclick = () => { abortRecog(); speechSynthesis && speechSynthesis.cancel(); show("home"); };
 $("memQuitBtn").onclick = () => {
   if (mem.timer) clearInterval(mem.timer);
