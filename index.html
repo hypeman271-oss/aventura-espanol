@@ -1979,8 +1979,14 @@ let state = {};
 const $ = (id) => document.getElementById(id);
 
 /* ---- High score persistence (best-effort) ---- */
-function getHigh() { try { return +localStorage.getItem("aventura_high") || 0; } catch(e){ return 0; } }
-function setHigh(v) { try { localStorage.setItem("aventura_high", v); } catch(e){} }
+/* localStorage helpers: never throw (private mode / blocked storage), and give
+   a default when the key is missing. lsGetJSON/lsSetJSON also (de)serialize. */
+function lsGet(key, def) { try { const v = localStorage.getItem(key); return v === null ? def : v; } catch (e) { return def; } }
+function lsSet(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
+function lsGetJSON(key, def) { try { const v = localStorage.getItem(key); return v == null ? def : JSON.parse(v); } catch (e) { return def; } }
+function lsSetJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+function getHigh() { return +lsGet("aventura_high", "0") || 0; }
+function setHigh(v) { lsSet("aventura_high", v); }
 
 /* ============================================================
    SPACED REPETITION ENGINE  (SM-2, the Anki algorithm)
@@ -2162,14 +2168,14 @@ function cleanWord(w) { return (w || "").toLowerCase().replace(/^[¿¡"'(«]+|[.
 /* Best-effort English gloss for a single Spanish word (offline). */
 /* Words the app has learned meanings for on demand (e.g. auto-looked-up from
    your songs), so long-press recognises them everywhere. Kept in localStorage. */
-let USER_GLOSS = (function () { try { return JSON.parse(localStorage.getItem("aventura_gloss") || "{}"); } catch (e) { return {}; } })();
+let USER_GLOSS = lsGetJSON("aventura_gloss", {});
 function mergeUserGloss(obj) {
   let changed = false;
   Object.keys(obj || {}).forEach(k => {
     const w = cleanWord(k), v = (obj[k] == null ? "" : String(obj[k])).trim();
     if (w && v && !USER_GLOSS[w]) { USER_GLOSS[w] = v; changed = true; }
   });
-  if (changed) { try { localStorage.setItem("aventura_gloss", JSON.stringify(USER_GLOSS)); } catch (e) {} }
+  if (changed) lsSetJSON("aventura_gloss", USER_GLOSS);
   return changed;
 }
 
@@ -2304,7 +2310,7 @@ function loadStore() {
     return s;
   } catch (e) { return blankStore(); }
 }
-function saveStore() { try { localStorage.setItem(SRS_KEY, JSON.stringify(store)); } catch (e) {} }
+function saveStore() { lsSetJSON(SRS_KEY, store); }
 
 /* ============================================================
    MY CARDS  (user-created flashcards from lessons / conversations)
@@ -2445,8 +2451,8 @@ const API_KEY_STORE = "aventura_api_key";
 const API_MODEL_STORE = "aventura_api_model";
 let aiSuggested = [];
 
-function getApiKey() { try { return localStorage.getItem(API_KEY_STORE) || ""; } catch (e) { return ""; } }
-function getApiModel() { try { return localStorage.getItem(API_MODEL_STORE) || "claude-opus-5"; } catch (e) { return "claude-opus-5"; } }
+function getApiKey() { return lsGet(API_KEY_STORE, ""); }
+function getApiModel() { return lsGet(API_MODEL_STORE, "claude-opus-5"); }
 
 /* One place for the Anthropic request boilerplate (endpoint + headers). The
    key is stored only in this browser and sent directly to Anthropic. Callers
@@ -2472,7 +2478,7 @@ function refreshAiSettingsUI() {
 
 function saveAiSettings() {
   const k = $("aiKey").value.trim(), m = $("aiModel").value;
-  try { if (k) localStorage.setItem(API_KEY_STORE, k); localStorage.setItem(API_MODEL_STORE, m); } catch (e) {}
+  if (k) lsSet(API_KEY_STORE, k); lsSet(API_MODEL_STORE, m);
   $("aiKey").value = "";
   $("aiStatus").textContent = (k || getApiKey()) ? "Settings saved ✓" : "Model saved — add a key to generate.";
   $("aiSettings").classList.add("hidden");
@@ -2871,7 +2877,7 @@ function endListen() {
     "<button class='btn primary center' id='listenAgain'>🔁 Again</button>" +
     "<button class='btn center' id='listenHome'>🏠 Menu</button>";
   $("listenAgain").onclick = startListen;
-  $("listenHome").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+  $("listenHome").onclick = goHome;
 }
 
 /* ============================================================
@@ -3204,16 +3210,21 @@ function openGrammar() {
   renderTenseSel();
   show("grammar");
 }
-function renderTenseSel() {
-  const sel = $("conjTenseSel");
-  sel.innerHTML = "";
-  CONJ_TENSES.forEach(([v, l]) => {
+/* Render a row of selectable chips. opts: { label(item), selected(item),
+   onPick(item), className? }. Replaces the many hand-rolled chip loops. */
+function chipRow(container, items, opts) {
+  const el = typeof container === "string" ? $(container) : container;
+  el.innerHTML = "";
+  items.forEach(it => {
     const b = document.createElement("button");
-    b.className = "sc-chip" + (v === conjTense ? " selected" : "");
-    b.textContent = l;
-    b.onclick = () => { conjTense = v; renderTenseSel(); };
-    sel.appendChild(b);
+    b.className = (opts.className || "sc-chip") + (opts.selected(it) ? " selected" : "");
+    b.textContent = opts.label(it);
+    b.onclick = () => opts.onPick(it);
+    el.appendChild(b);
   });
+}
+function renderTenseSel() {
+  chipRow("conjTenseSel", CONJ_TENSES, { label: t => t[1], selected: t => t[0] === conjTense, onPick: t => { conjTense = t[0]; renderTenseSel(); } });
 }
 function renderLessons() {
   $("grammarLessons").innerHTML = GRAMMAR_LESSONS.map((l, i) =>
@@ -3470,26 +3481,19 @@ function renderRegionTile() {
   tile.innerHTML = "<h3>🌎 Spanish variety</h3><div class='region-sel' id='regionSel'></div>" +
     "<p style='opacity:.7;font-size:.8rem;margin-top:8px;line-height:1.4;'>Swipe to see all options. Sets the accent (voice), the AI's dialect (conversations, stories, tutor…), and skips vosotros for Latin American varieties.</p>";
   $("coachBody").appendChild(tile);
-  const sel = tile.querySelector("#regionSel");
-  Object.keys(REGIONS).forEach(k => {
-    const b = document.createElement("button");
-    b.className = "sc-chip" + (k === cur ? " selected" : "");
-    b.textContent = REGIONS[k].name;
-    b.onclick = () => { setRegion(k); buildCoach(); };
-    sel.appendChild(b);
-  });
+  chipRow(tile.querySelector("#regionSel"), Object.keys(REGIONS), { label: k => REGIONS[k].name, selected: k => k === cur, onPick: k => { setRegion(k); buildCoach(); } });
 }
 
 /* ============================================================
    DAILY REMINDER — notification to keep the streak
    ============================================================ */
-function getReminder() { try { return JSON.parse(localStorage.getItem("aventura_reminder")) || { on: false, time: "19:00" }; } catch (e) { return { on: false, time: "19:00" }; } }
-function setReminder(r) { try { localStorage.setItem("aventura_reminder", JSON.stringify(r)); } catch (e) {} }
+function getReminder() { return lsGetJSON("aventura_reminder", null) || { on: false, time: "19:00" }; }
+function setReminder(r) { lsSetJSON("aventura_reminder", r); }
 
 /* ---- Silent mode: no audio (speaker) and no mic-only exercises, for
    practising somewhere you can't play sound or speak out loud. ---- */
-function getSilent() { try { return localStorage.getItem("aventura_silent") === "1"; } catch (e) { return false; } }
-function setSilent(on) { try { localStorage.setItem("aventura_silent", on ? "1" : "0"); } catch (e) {} }
+function getSilent() { return lsGet("aventura_silent", "0") === "1"; }
+function setSilent(on) { lsSet("aventura_silent", on ? "1" : "0"); }
 
 /* Hide the mic/speaker-only free-play exercises when silent mode is on. */
 function applySilentUI() {
@@ -3614,15 +3618,7 @@ function openStory() {
   show("story");
 }
 function renderStoryLevel() {
-  const sel = $("storyLevel");
-  sel.innerHTML = "";
-  [["beginner", "Beginner"], ["intermediate", "Intermediate"]].forEach(([v, l]) => {
-    const b = document.createElement("button");
-    b.className = "sc-chip" + (v === storyLevel ? " selected" : "");
-    b.textContent = l;
-    b.onclick = () => { storyLevel = v; renderStoryLevel(); };
-    sel.appendChild(b);
-  });
+  chipRow("storyLevel", [["beginner", "Beginner"], ["intermediate", "Intermediate"]], { label: l => l[1], selected: l => l[0] === storyLevel, onPick: l => { storyLevel = l[0]; renderStoryLevel(); } });
 }
 function storyGenerate() {
   const topic = $("storyTopic").value.trim() || "everyday life";
@@ -3640,7 +3636,7 @@ function storyGenerate() {
   aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
     .then(data => {
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-      let obj = null; try { obj = JSON.parse(text); } catch (e) { const m = text.match(/\{[\s\S]*\}/); if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} } }
+      const obj = parseAiJson(text);
       if (!obj || !obj.es) throw new Error("Couldn't read the story — try again.");
       story = { es: obj.es, en: obj.en || "" };
       renderLookupSentence($("storyEs"), story.es, { es: story.es, en: story.en });
@@ -3660,8 +3656,8 @@ let story = {};
    The app never fetches or stores lyrics itself; the user supplies
    the words for a song they want to study.
    ============================================================ */
-function getSongs() { try { return JSON.parse(localStorage.getItem("aventura_songs") || "[]"); } catch (e) { return []; } }
-function setSongs(list) { try { localStorage.setItem("aventura_songs", JSON.stringify(list)); } catch (e) {} }
+function getSongs() { return lsGetJSON("aventura_songs", []); }
+function setSongs(list) { lsSetJSON("aventura_songs", list); }
 
 let songState = { lines: [], i: 0, playing: false, timer: null, gen: 0, rate: 0.9, id: null, translations: null };
 let songEditId = null;
@@ -3819,7 +3815,7 @@ function songAutoGloss(song) {
   aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
     .then(data => {
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-      let obj = null; try { obj = JSON.parse(text); } catch (e) { const m = text.match(/\{[\s\S]*\}/); if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} } }
+      const obj = parseAiJson(text);
       if (obj && typeof obj === "object") {
         mergeUserGloss(obj);
         song.glossed = true; persistSongField(song.id, "glossed", true);
@@ -4000,7 +3996,7 @@ function songTranslate() {
   aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
     .then(data => {
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-      let arr = null; try { arr = JSON.parse(text); } catch (e) { const m = text.match(/\[[\s\S]*\]/); if (m) { try { arr = JSON.parse(m[0]); } catch (e2) {} } }
+      const arr = parseAiJson(text);
       if (!Array.isArray(arr)) throw new Error("Couldn't translate — try again.");
       songState.translations = arr;
       songState.showTr = true;
@@ -4044,7 +4040,7 @@ function songSaveVocab() {
   aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
     .then(data => {
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-      let arr = null; try { arr = JSON.parse(text); } catch (e) { const m = text.match(/\[[\s\S]*\]/); if (m) { try { arr = JSON.parse(m[0]); } catch (e2) {} } }
+      const arr = parseAiJson(text);
       if (!Array.isArray(arr)) throw new Error("Couldn't read the words — try again.");
       let added = 0, dup = 0;
       arr.forEach(o => {
@@ -4430,37 +4426,11 @@ function openScenario() {
 }
 
 function buildScSetup() {
-  const mode = $("scMode");
-  mode.innerHTML = "";
-  [["guided", "📋 Guided"], ["live", "💬 Live chat (AI)"]].forEach(([v, l]) => {
-    const b = document.createElement("button");
-    b.className = "sc-chip" + (v === scMode ? " selected" : "");
-    b.textContent = l;
-    b.onclick = () => { scMode = v; buildScSetup(); };
-    mode.appendChild(b);
-  });
-
-  const chips = $("scChips");
-  chips.innerHTML = "";
-  SC_PRESETS.forEach(s => {
-    const b = document.createElement("button");
-    b.className = "sc-chip" + (s === scSelected ? " selected" : "");
-    b.textContent = s;
-    b.onclick = () => { scSelected = s; $("scCustom").value = ""; buildScSetup(); };
-    chips.appendChild(b);
-  });
-
+  chipRow("scMode", [["guided", "📋 Guided"], ["live", "💬 Live chat (AI)"]], { label: x => x[1], selected: x => x[0] === scMode, onPick: x => { scMode = x[0]; buildScSetup(); } });
+  chipRow("scChips", SC_PRESETS, { label: s => s, selected: s => s === scSelected, onPick: s => { scSelected = s; $("scCustom").value = ""; buildScSetup(); } });
   const diff = $("scDiff");
   diff.style.display = scMode === "live" ? "none" : "flex";   // hints only apply to guided
-  diff.innerHTML = "";
-  [["show", "Show hints"], ["hide", "Hide hints (harder)"]].forEach(([v, l]) => {
-    const b = document.createElement("button");
-    b.className = "sc-chip" + (v === scDiff ? " selected" : "");
-    b.textContent = l;
-    b.onclick = () => { scDiff = v; buildScSetup(); };
-    diff.appendChild(b);
-  });
-
+  chipRow(diff, [["show", "Show hints"], ["hide", "Hide hints (harder)"]], { label: x => x[1], selected: x => x[0] === scDiff, onPick: x => { scDiff = x[0]; buildScSetup(); } });
   $("scStartBtn").textContent = scMode === "live" ? "💬 Start live chat" : "▶️ Start conversation";
 }
 
@@ -4697,12 +4667,18 @@ function CHAT_SYSTEM(topic) {
     "Respond with ONLY a JSON object and nothing else, exactly: {\"es\": \"<your Spanish reply>\", \"en\": \"<English translation>\", \"correction\": \"<short tip or empty>\"}.";
 }
 
+/* Parse a JSON object or array out of an AI text reply, tolerating any prose
+   or code fences around it. Returns null if nothing parseable is found. */
+function parseAiJson(text) {
+  if (!text) return null;
+  try { return JSON.parse(text); } catch (e) {}
+  const m = text.match(/[\[{][\s\S]*[\]}]/);
+  if (m) { try { return JSON.parse(m[0]); } catch (e) {} }
+  return null;
+}
+
 function parseChatJSON(text) {
-  let obj = null;
-  try { obj = JSON.parse(text); } catch (e) {
-    const m = text.match(/\{[\s\S]*\}/);
-    if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} }
-  }
+  let obj = parseAiJson(text);
   if (!obj || !obj.es) obj = { es: (text || "").trim() || "…", en: "", correction: "" };
   return { es: obj.es, en: obj.en || "", correction: obj.correction || "" };
 }
@@ -4825,7 +4801,7 @@ function chatEnd() {
     "<button class='btn primary center' id='scAgain'>🔁 New conversation</button>" +
     "<button class='btn center' id='scHome'>🏠 Menu</button>";
   $("scAgain").onclick = () => { $("scEnd").classList.add("hidden"); $("scSetup").classList.remove("hidden"); };
-  $("scHome").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+  $("scHome").onclick = goHome;
 }
 
 function scEnd() {
@@ -4841,7 +4817,7 @@ function scEnd() {
     "<button class='btn primary center' id='scAgain'>🔁 New conversation</button>" +
     "<button class='btn center' id='scHome'>🏠 Menu</button>";
   $("scAgain").onclick = () => { $("scEnd").classList.add("hidden"); $("scSetup").classList.remove("hidden"); };
-  $("scHome").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+  $("scHome").onclick = goHome;
 }
 
 /* Date helpers (local time). */
@@ -5341,7 +5317,7 @@ function show(screen) {
    HOME — build category chips
    ============================================================ */
 // Global topic focus: applies to daily practice, games and activities.
-let selectedCategory = (function () { try { return localStorage.getItem("aventura_focus") || "__all__"; } catch (e) { return "__all__"; } })();
+let selectedCategory = lsGet("aventura_focus", "__all__");
 function focusAll() { return selectedCategory === "__all__"; }
 function inFocus(cat) { return focusAll() || cat === selectedCategory; }
 
@@ -5365,7 +5341,7 @@ function buildChips() {
     chip.textContent = label;
     chip.onclick = () => {
       selectedCategory = cat;
-      try { localStorage.setItem("aventura_focus", cat); } catch (e) {}
+      lsSet("aventura_focus", cat);
       buildChips();
     };
     return chip;
@@ -5398,7 +5374,7 @@ function buildChips() {
 
 /* ---- Collapsible home sections ---- */
 function foldState() {
-  try { return JSON.parse(localStorage.getItem("aventura_folds") || "{}"); } catch (e) { return {}; }
+  return lsGetJSON("aventura_folds", {});
 }
 function wireFolds() {
   const saved = foldState();
@@ -5414,7 +5390,7 @@ function wireFolds() {
         panel.classList.toggle("folded");
         const st = foldState();
         st[key] = panel.classList.contains("folded");
-        try { localStorage.setItem("aventura_folds", JSON.stringify(st)); } catch (e) {}
+        lsSetJSON("aventura_folds", st);
       });
     }
   });
@@ -5434,8 +5410,8 @@ const REGIONS = {
   la: { name: "Latin America 🌎", tts: "es-419", vosotros: false,
         ai: "Use neutral Latin American Spanish. Use ustedes, never vosotros." }
 };
-function getRegion() { try { return REGIONS[localStorage.getItem("aventura_region")] ? localStorage.getItem("aventura_region") : "co"; } catch (e) { return "co"; } }
-function setRegion(r) { try { localStorage.setItem("aventura_region", r); } catch (e) {} }
+function getRegion() { const r = lsGet("aventura_region", "co"); return REGIONS[r] ? r : "co"; }
+function setRegion(r) { lsSet("aventura_region", r); }
 function speakLang() { return (REGIONS[getRegion()] || REGIONS.co).tts; }
 function regionAi() { return (REGIONS[getRegion()] || REGIONS.co).ai; }
 
@@ -5501,6 +5477,14 @@ const SPEECH_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 let activeRecog = null;
 function stopListening() {
   if (activeRecog) { try { activeRecog.onend = null; activeRecog.abort(); } catch (e) {} activeRecog = null; }
+}
+
+/* Leave the current exercise for the home screen: stop the mic and any speech,
+   then show home. Used by every plain "quit to menu" button. */
+function goHome() {
+  stopListening();
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  show("home");
 }
 function listenOnce(opts) {
   opts = opts || {};
@@ -6221,7 +6205,7 @@ if (!SPEECH_OK) {
 }
 
 function abortRecog() { stopListening(); }
-$("quitBtn").onclick = () => { abortRecog(); speechSynthesis && speechSynthesis.cancel(); show("home"); };
+$("quitBtn").onclick = goHome;
 $("memQuitBtn").onclick = () => {
   if (mem.timer) clearInterval(mem.timer);
   speechSynthesis && speechSynthesis.cancel();
@@ -6262,7 +6246,7 @@ $("tutorSendBtn").onclick = () => tutorAsk($("tutorInput").value);
 $("tutorInput").addEventListener("keydown", (e) => { if (e.key === "Enter") tutorAsk($("tutorInput").value); });
 $("tutorQuitBtn").onclick = () => show("home");
 $("openGrammarBtn").onclick = openGrammar;
-$("grammarQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("grammarQuitBtn").onclick = goHome;
 $("startConjugBtn").onclick = startConjug;
 $("conjSubmit").onclick = checkConjug;
 $("conjInput").addEventListener("keydown", (e) => { if (e.key === "Enter") checkConjug(); });
@@ -6279,7 +6263,7 @@ $("openScrambleBtn").onclick = openScramble;
 $("scrCheck").onclick = checkScramble;
 $("scrNext").onclick = nextScramble;
 $("scrClear").onclick = () => { if (scr.cur && !scr.cur.done) { scr.cur.answerIds = []; renderScramble(); } };
-$("scrambleQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("scrambleQuitBtn").onclick = goHome;
 $("openGenderBtn").onclick = openGender;
 $("genderGoBtn").onclick = startGenderRace;
 $("genderEl").onclick = () => answerGender("el");
@@ -6287,11 +6271,11 @@ $("genderLa").onclick = () => answerGender("la");
 $("genderQuitBtn").onclick = () => { if (gen.timer) { clearInterval(gen.timer); gen.timer = null; } show("home"); };
 $("openWordleBtn").onclick = openWordle;
 $("wordleAgain").onclick = openWordle;
-$("wordleQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("wordleQuitBtn").onclick = goHome;
 document.addEventListener("keydown", wordleKeydown);
 $("openSearchBtn").onclick = openSearch;
 $("searchAgain").onclick = openSearch;
-$("searchQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("searchQuitBtn").onclick = goHome;
 $("openMemoryBtn").onclick = startMemory;
 $("openWriteBtn").onclick = openWrite;
 $("writeCheckBtn").onclick = writeCheck;
@@ -6300,7 +6284,7 @@ $("openStoryBtn").onclick = openStory;
 $("storyGenBtn").onclick = storyGenerate;
 $("storyPlay").onclick = () => { if (story && story.es) speak(story.es); };
 $("storyNewBtn").onclick = openStory;
-$("storyQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("storyQuitBtn").onclick = goHome;
 $("openSongsBtn").onclick = openSongs;
 $("songsQuitBtn").onclick = () => { songStop(); songClearVideo(); show("home"); };
 $("songAddBtn").onclick = () => showSongForm(null);
@@ -6339,7 +6323,7 @@ $("playerQuitBtn").onclick = () => { playerPause(); show("home"); };
 $("listenReplay").onclick = () => { if (ord.cur) speak(ord.cur.full); };
 $("orderCheck").onclick = checkOrder;
 $("orderSkip").onclick = orderReveal;
-$("listenQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); show("home"); };
+$("listenQuitBtn").onclick = goHome;
 $("openScenarioBtn").onclick = openScenario;
 $("scenarioQuitBtn").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); scAbort(); show("home"); };
 $("scStartBtn").onclick = scStart;
