@@ -2448,6 +2448,22 @@ let aiSuggested = [];
 function getApiKey() { try { return localStorage.getItem(API_KEY_STORE) || ""; } catch (e) { return ""; } }
 function getApiModel() { try { return localStorage.getItem(API_MODEL_STORE) || "claude-opus-5"; } catch (e) { return "claude-opus-5"; } }
 
+/* One place for the Anthropic request boilerplate (endpoint + headers). The
+   key is stored only in this browser and sent directly to Anthropic. Callers
+   build the request body and handle the response as they need. */
+function aiFetch(body) {
+  return fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": getApiKey(),
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify(body)
+  });
+}
+
 function refreshAiSettingsUI() {
   const has = !!getApiKey();
   if ($("aiModel")) $("aiModel").value = getApiModel();
@@ -2508,16 +2524,7 @@ async function aiSuggestCards(text) {
     }],
     messages: [{ role: "user", content: "Here is my Spanish lesson / conversation text:\n\n" + text }]
   };
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": getApiKey(),
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify(body)
-  });
+  const res = await aiFetch(body);
   if (!res.ok) {
     let msg = "API error " + res.status;
     if (res.status === 401) msg = "Invalid API key — check it in ⚙️ settings.";
@@ -3050,11 +3057,7 @@ async function tutorApiTurn() {
     model: getApiModel(), max_tokens: 1000, thinking: { type: "disabled" }, output_config: { effort: "low" },
     system: sys + " " + regionAi(), messages: tutor.history.map(m => ({ role: m.role, content: m.content }))
   };
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify(body)
-  });
+  const res = await aiFetch(body);
   if (!res.ok) { let m = "API error " + res.status; if (res.status === 401) m = "Invalid API key — check My Cards → ⚙️."; else if (res.status === 429) m = "Rate limited — try again shortly."; throw new Error(m); }
   const data = await res.json();
   return (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim() || "(no answer)";
@@ -3090,11 +3093,7 @@ function explainCard() {
     model: getApiModel(), max_tokens: 400, thinking: { type: "disabled" }, output_config: { effort: "low" },
     system: sys + " " + regionAi(), messages: [{ role: "user", content: "Explain " + item + "." }]
   };
-  fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify(body)
-  }).then(r => r.ok ? r.json() : Promise.reject(new Error("API error " + r.status)))
+  aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error("API error " + r.status)))
     .then(data => {
       const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
       $("feedback").innerHTML += "<div class='explain-box'>💡 " + escapeHtml(txt || "(no explanation)") + "</div>";
@@ -3593,11 +3592,7 @@ function writeCheck() {
     model: getApiModel(), max_tokens: 1200, thinking: { type: "disabled" }, output_config: { effort: "low" },
     system: sys + " " + regionAi(), messages: [{ role: "user", content: text }]
   };
-  fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify(body)
-  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+  aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
     .then(data => {
       const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
       $("writeResult").innerHTML = "<div class='explain-box' style='margin-top:14px;'>" + escapeHtml(txt) + "</div>";
@@ -3642,11 +3637,7 @@ function storyGenerate() {
     model: getApiModel(), max_tokens: 1500, thinking: { type: "disabled" }, output_config: { effort: "low" },
     system: sys + " " + regionAi(), messages: [{ role: "user", content: "Topic: " + topic }]
   };
-  fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify(body)
-  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+  aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
     .then(data => {
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
       let obj = null; try { obj = JSON.parse(text); } catch (e) { const m = text.match(/\{[\s\S]*\}/); if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} } }
@@ -3825,11 +3816,7 @@ function songAutoGloss(song) {
   status.textContent = "🔎 Looking up " + unknown.length + " word" + (unknown.length > 1 ? "s" : "") + "…";
   const sys = "You are a Spanish→English dictionary for a learner reading song lyrics. Given a JSON array of Spanish words as they appear in lyrics, return ONLY a JSON object mapping each word (lowercased, exactly as given) to a short English meaning. For a conjugated verb in any tense other than the simple present, format the value as \"<short English meaning> · <tense> of <infinitive>\", where <tense> is one of: preterite (past), imperfect (past), future, conditional, present subjunctive, imperfect subjunctive, present perfect. For everything else (nouns, adjectives, present-tense verbs, adverbs), give just a 1–4 word meaning. Include every word.";
   const body = { model: getApiModel(), max_tokens: 2500, thinking: { type: "disabled" }, output_config: { effort: "low" }, system: sys + " " + regionAi(), messages: [{ role: "user", content: JSON.stringify(unknown) }] };
-  fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify(body)
-  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+  aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
     .then(data => {
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
       let obj = null; try { obj = JSON.parse(text); } catch (e) { const m = text.match(/\{[\s\S]*\}/); if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} } }
@@ -4010,11 +3997,7 @@ function songTranslate() {
   status.textContent = "🌐 Translating…";
   const sys = "You translate Spanish song lyrics into natural English for a learner. You are given a JSON array of Spanish lines. Return ONLY a JSON array of the same length, each element the English translation of the line at that index, in order.";
   const body = { model: getApiModel(), max_tokens: 2500, thinking: { type: "disabled" }, output_config: { effort: "low" }, system: sys + " " + regionAi(), messages: [{ role: "user", content: JSON.stringify(songState.lines) }] };
-  fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify(body)
-  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+  aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
     .then(data => {
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
       let arr = null; try { arr = JSON.parse(text); } catch (e) { const m = text.match(/\[[\s\S]*\]/); if (m) { try { arr = JSON.parse(m[0]); } catch (e2) {} } }
@@ -4058,11 +4041,7 @@ function songSaveVocab() {
   $("songVocabBtn").disabled = true;
   const sys = "You extract study vocabulary from Spanish song lyrics for a learner. Given a JSON array of Spanish lines, return ONLY a JSON array of at most 30 objects {\"es\":\"<base form of a useful word or short phrase>\",\"en\":\"<concise English meaning in this context>\"}. Use dictionary/base forms (infinitives for verbs, singular nouns with article el/la). Skip trivial words (articles, pronouns, basic prepositions) and duplicates. Prefer words a learner would want to study.";
   const body = { model: getApiModel(), max_tokens: 2000, thinking: { type: "disabled" }, output_config: { effort: "low" }, system: sys + " " + regionAi(), messages: [{ role: "user", content: JSON.stringify(songState.lines) }] };
-  fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify(body)
-  }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
+  aiFetch(body).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? "Invalid API key" : "API error " + r.status)))
     .then(data => {
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
       let arr = null; try { arr = JSON.parse(text); } catch (e) { const m = text.match(/\[[\s\S]*\]/); if (m) { try { arr = JSON.parse(m[0]); } catch (e2) {} } }
@@ -4520,14 +4499,7 @@ async function scGenerate(scenario) {
     }],
     messages: [{ role: "user", content: "Situation: " + scenario }]
   };
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json", "x-api-key": getApiKey(),
-      "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify(body)
-  });
+  const res = await aiFetch(body);
   if (!res.ok) {
     let m = "API error " + res.status;
     if (res.status === 401) m = "Invalid API key — check My Cards → ⚙️.";
@@ -4742,14 +4714,7 @@ async function chatApiTurn() {
     system: CHAT_SYSTEM(chat.topic) + " " + regionAi(),
     messages: chat.history
   };
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json", "x-api-key": getApiKey(),
-      "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify(body)
-  });
+  const res = await aiFetch(body);
   if (!res.ok) {
     let m = "API error " + res.status;
     if (res.status === 401) m = "Invalid API key — check My Cards → ⚙️.";
