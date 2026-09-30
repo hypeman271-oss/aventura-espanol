@@ -6,7 +6,15 @@ so the microphone uses Android's on-device speech recognizer, which has **no
 (`server.url`), so you do NOT rebuild the app for content changes - only rebuild
 if you change native config.
 
-## One-time setup (on your computer)
+## Easiest: build in the cloud (no local setup)
+GitHub can build the APK for you: open the repo's **Actions** tab, choose
+**Build Android APK**, click **Run workflow**. When it finishes, download the
+**aventura-espanol-debug-apk** artifact from that run and install the APK on
+your phone (allow "install from unknown sources"). The workflow generates the
+Android project, adds the mic permission, and builds a debug APK automatically.
+
+## Or build locally (you have Android Studio)
+### One-time setup
 1. Install **Node.js** (nodejs.org) and **Android Studio** (developer.android.com/studio).
 2. Open a terminal in this `native/` folder and run:
 
