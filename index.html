@@ -5504,7 +5504,39 @@ const SPEECH_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
    result (onFinal) and which UI to light up -- like speak() does for TTS. */
 let activeRecog = null;
 function stopListening() {
-  if (activeRecog) { try { activeRecog.onend = null; activeRecog.abort(); } catch (e) {} activeRecog = null; }
+  if (!activeRecog) return;
+  try { if (activeRecog.native) activeRecog.stop(); else { activeRecog.onend = null; activeRecog.abort(); } } catch (e) {}
+  activeRecog = null;
+}
+
+/* When the app runs inside a native shell (Capacitor), use the device's native
+   speech recogniser instead of the browser one. The native recogniser has no
+   "start listening" earcon and works offline. Feature-detected, so the web
+   build on GitHub Pages is completely unaffected. */
+function nativeMic() {
+  return !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()
+    && Capacitor.Plugins && Capacitor.Plugins.SpeechRecognition);
+}
+function nativeListen(opts, setStatus, micBtn, clearMic) {
+  const SR = Capacitor.Plugins.SpeechRecognition;
+  stopListening();
+  activeRecog = { native: true, stop() { try { SR.stop(); } catch (e) {} } };
+  const finish = (alts) => {
+    clearMic();
+    if (activeRecog && activeRecog.native) activeRecog = null;
+    if (alts && alts.length) { if (opts.onFinal) opts.onFinal(alts); }
+    else { setStatus(opts.noResultText || "Didn't catch that - tap the mic to try again."); if (opts.onNoResult) opts.onNoResult(); }
+  };
+  Promise.resolve()
+    .then(() => SR.requestPermissions ? SR.requestPermissions() : null)
+    .then(() => {
+      setStatus(opts.listeningText || "\uD83C\uDFA7 Listening - speak now");
+      if (micBtn) micBtn.classList.add("listening");
+      return SR.start({ language: speakLang(), maxResults: opts.maxAlternatives || 5, partialResults: false, popup: false });
+    })
+    .then((res) => finish(res && res.matches ? res.matches : []))
+    .catch(() => { clearMic(); if (activeRecog && activeRecog.native) activeRecog = null; setStatus("Try again - tap the mic when ready."); });
+  return activeRecog;
 }
 
 /* Leave the current exercise for the home screen: stop the mic and any speech,
@@ -5520,6 +5552,7 @@ function listenOnce(opts) {
   const micBtn = opts.micBtn ? $(opts.micBtn) : null;
   const setStatus = (t) => { if (status) status.textContent = t; };
   const clearMic = () => { if (micBtn) micBtn.classList.remove("listening"); };
+  if (nativeMic()) return nativeListen(opts, setStatus, micBtn, clearMic);
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { setStatus("Speech recognition isn't available in this browser."); return null; }
   if (!navigator.onLine) { setStatus(opts.offlineText || "The mic needs a connection - type your reply instead."); return null; }
