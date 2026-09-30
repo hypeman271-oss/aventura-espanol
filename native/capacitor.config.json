@@ -1,0 +1,9 @@
+{
+  "appId": "com.aventuraespanol.app",
+  "appName": "Aventura Espanol",
+  "webDir": "www",
+  "server": {
+    "url": "https://hypeman271-oss.github.io/aventura-espanol/",
+    "androidScheme": "https"
+  }
+}

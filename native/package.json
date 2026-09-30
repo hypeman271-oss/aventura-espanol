@@ -1,0 +1,14 @@
+{
+  "name": "aventura-espanol-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Native shell for Aventura Espanol (fixes the microphone earcon).",
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/android": "^6.1.0",
+    "@capacitor-community/speech-recognition": "^6.0.0"
+  }
+}

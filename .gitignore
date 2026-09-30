@@ -1,1 +1,4 @@
 .claude/
+native/node_modules/
+native/android/
+native/ios/
