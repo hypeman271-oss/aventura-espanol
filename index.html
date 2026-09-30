@@ -254,6 +254,17 @@
   }
   .speak-btn:hover { background: var(--bg1); }
 
+  /* A second, optional speaker shown only on English-prompt cards. The main
+     speaker reads the card's own language; this hint pronounces the Spanish
+     word/answer for pronunciation help. */
+  .hint-speak-btn {
+    display: block; margin: 14px auto 0; width: fit-content;
+    background: var(--bg2); color: #fff; border: none;
+    padding: 8px 14px; border-radius: 999px;
+    font-size: 0.95rem; cursor: pointer;
+  }
+  .hint-speak-btn:hover { background: var(--bg1); }
+
   .answers { margin-top: 18px; }
   .answer-btn {
     background: var(--card-solid);
@@ -812,6 +823,7 @@
         <div class="prompt-label" id="promptLabel">Spanish</div>
         <div class="prompt-emoji" id="promptEmoji"></div>
         <div class="prompt-word" id="promptWord"></div>
+        <button class="hint-speak-btn hidden" id="hintSpeakBtn" title="Hear it in Spanish">💡🔊 Hear it in Spanish</button>
       </div>
 
       <div id="clozeTools" class="hidden">
@@ -5824,6 +5836,17 @@ function renderQuestion() {
   $("backBtn").classList.add("hidden");
   $("speakBtn").onclick = speakPrompt;
 
+  // English-prompt cards get an extra "hint" speaker that pronounces the
+  // Spanish word (the answer). The main speaker keeps reading the card's own
+  // language via speakPrompt().
+  const hintBtn = $("hintSpeakBtn");
+  if (mode === "en2es" || mode === "type" || mode === "speak") {
+    hintBtn.classList.remove("hidden");
+    hintBtn.onclick = () => speak(word[0]);
+  } else {
+    hintBtn.classList.add("hidden");
+  }
+
   if (mode === "cloze" || mode === "clozetype") {
     // Comprehensible input: show the sentence with a blank; hear it spoken.
     const s = state.sentence;
@@ -6080,7 +6103,7 @@ function resolveAnswer(isRight, correctText) {
     sayText: state.sentence ? state.sentence.full : w[0]
   };
   revPush(gameRev, () => {
-    ["answers", "typeInput", "submitType", "speakPanel", "clozeTools", "addCardBtn", "explainBtn"].forEach(id => $(id).classList.add("hidden"));
+    ["answers", "typeInput", "submitType", "speakPanel", "clozeTools", "addCardBtn", "explainBtn", "hintSpeakBtn"].forEach(id => $(id).classList.add("hidden"));
     $("answers").innerHTML = "";
     $("promptLabel").textContent = snap.label; $("promptEmoji").textContent = snap.emoji;
     $("promptWord").innerHTML = snap.wordHtml; $("promptWord").style.fontSize = snap.wordFont || "";
