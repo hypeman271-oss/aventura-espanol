@@ -5821,24 +5821,39 @@ function speakPrompt() {
    Back/Next page through them; Next past the newest calls liveAdvance to resume
    live play. One implementation for daily practice, free play, Listening,
    Scramble, the conjugation drill and the tense exercise. */
-function makeRev(backId, nextId) { return { log: [], pos: -1, backId, nextId, liveLabel: "Next →", liveAdvance: null }; }
-function revReset(rev) { rev.log = []; rev.pos = -1; }
+function makeRev(backId, nextId) { return { log: [], pos: -1, backId, nextId, liveLabel: "Next →", liveAdvance: null, liveRestore: null }; }
+function revReset(rev) { rev.log = []; rev.pos = -1; rev.liveRestore = null; }
 function revPush(rev, restore, liveLabel, liveAdvance) {
   rev.log.push(restore); rev.pos = rev.log.length - 1;
-  rev.liveLabel = liveLabel; rev.liveAdvance = liveAdvance;
+  rev.liveLabel = liveLabel; rev.liveAdvance = liveAdvance; rev.liveRestore = null;
   const nb = $(rev.nextId); nb.textContent = liveLabel; nb.classList.remove("hidden"); nb.onclick = () => revNext(rev);
   if (rev.backId) $(rev.backId).classList.toggle("hidden", rev.log.length <= 1);
 }
+/* Mark the live (current, not-yet-answered) screen. Back then steps back to
+   review/add earlier cards; Forward returns here via liveRestore(). */
+function revLive(rev, liveRestore) {
+  rev.liveRestore = liveRestore;
+  rev.pos = rev.log.length;
+  if (rev.backId) $(rev.backId).classList.toggle("hidden", rev.log.length === 0);
+}
 function revShow(rev, pos) {
   rev.pos = pos;
+  if (pos >= rev.log.length) { // back to the live screen
+    if (rev.liveRestore) rev.liveRestore();
+    if (rev.backId) $(rev.backId).classList.toggle("hidden", rev.log.length === 0);
+    return;
+  }
   if (rev.log[pos]) rev.log[pos]();
-  const atLive = pos >= rev.log.length - 1;
   if (rev.backId) $(rev.backId).classList.toggle("hidden", pos <= 0);
   const nb = $(rev.nextId); nb.classList.remove("hidden");
-  nb.textContent = atLive ? rev.liveLabel : "Next →";
+  nb.textContent = (pos === rev.log.length - 1 && !rev.liveRestore) ? rev.liveLabel : "Next →";
   nb.onclick = () => revNext(rev);
 }
-function revNext(rev) { if (rev.pos < rev.log.length - 1) revShow(rev, rev.pos + 1); else if (rev.liveAdvance) rev.liveAdvance(); }
+function revNext(rev) {
+  if (rev.pos < rev.log.length - 1) revShow(rev, rev.pos + 1);
+  else if (rev.pos === rev.log.length - 1 && rev.liveRestore) revShow(rev, rev.log.length);
+  else if (rev.liveAdvance) rev.liveAdvance();
+}
 function revBack(rev) { if (rev.pos > 0) revShow(rev, rev.pos - 1); }
 
 const gameRev = makeRev("backBtn", "nextBtn");
@@ -5847,7 +5862,7 @@ const scrRev = makeRev("scrBack", "scrNext");
 const conjRev = makeRev("conjBack", "conjNext");
 const tenseRev = makeRev("tenseBack", "tenseNext");
 
-function renderQuestion() {
+function renderQuestion(skipSpeak) {
   const word = state.current; // [es, en, emoji]
   state.answeredThis = false;
 
@@ -5910,7 +5925,7 @@ function renderQuestion() {
       typeInput.placeholder = "Type the missing word…";
       setTimeout(() => typeInput.focus(), 50);
     }
-    speak(s.full);
+    if (!skipSpeak) speak(s.full);
   } else if (mode === "speak") {
     // Output practice: user says the Spanish word aloud.
     $("promptLabel").textContent = "Say it in Spanish:";
@@ -5942,7 +5957,7 @@ function renderQuestion() {
     // answering) — not just the small speaker button.
     $("promptCard").onclick = (e) => { if (e.target.closest("#speakBtn")) return; if (state.current) speak(state.current[0]); };
     $("promptCard").style.cursor = "pointer";
-    speak(word[0]);
+    if (!skipSpeak) speak(word[0]);
   } else if (mode === "en2es") {
     // Prompt = English, answers = Spanish
     $("promptLabel").textContent = "English";
@@ -5958,6 +5973,9 @@ function renderQuestion() {
     answersWrap.classList.remove("hidden");
     buildChoices("en");
   }
+  // Keep a Back button on the question itself: it steps back to review (and
+  // add/remove) earlier cards, and Forward returns to this live question.
+  revLive(gameRev, () => renderQuestion(true));
 }
 
 function buildChoices(field) {
@@ -6059,6 +6077,20 @@ function normalize(s) {
   return s;
 }
 
+/* Shared "Add / Remove from My Cards" control for a card. Used on the answered
+   screen and when reviewing an earlier card via Back, so flashcards can be
+   managed from either. (DRY: the only place that wires this button.) */
+function wireAddCard(word, sentence) {
+  const acb = $("addCardBtn");
+  acb.disabled = false; acb.classList.remove("hidden");
+  const refresh = () => { acb.textContent = userCardExists(word[0]) ? "✓ In My Cards — tap to undo" : "➕ Add to My Cards"; };
+  refresh();
+  acb.onclick = () => {
+    if (userCardExists(word[0])) removeUserCard(word[0]);
+    else addWordCard(word[0], word[1], word[2], sentence ? sentence.full : "", sentence ? sentence.en : "");
+    refresh();
+  };
+}
 function resolveAnswer(isRight, correctText) {
   state.answered++;
   if (state.mode === "speak") $("micBtn").disabled = true;
@@ -6113,24 +6145,8 @@ function resolveAnswer(isRight, correctText) {
     state.index++; advance = nextQuestion;
   }
 
-  // Offer to save this word to My Cards — tapping again undoes it (in case
-  // it was added by accident).
-  const acb = $("addCardBtn");
-  acb.disabled = false; acb.classList.remove("hidden");
-  const refreshAddBtn = () => {
-    acb.textContent = userCardExists(w[0]) ? "✓ In My Cards — tap to undo" : "➕ Add to My Cards";
-  };
-  refreshAddBtn();
-  acb.onclick = () => {
-    if (userCardExists(w[0])) {
-      removeUserCard(w[0]);
-    } else {
-      const se = state.sentence ? state.sentence.full : "";
-      const sen = state.sentence ? state.sentence.en : "";
-      addWordCard(w[0], w[1], w[2], se, sen);
-    }
-    refreshAddBtn();
-  };
+  // Offer to save this word to My Cards — tapping again undoes it.
+  wireAddCard(w, state.sentence);
 
   // Offer an on-demand grammar explanation for this card.
   const eb = $("explainBtn");
@@ -6142,15 +6158,17 @@ function resolveAnswer(isRight, correctText) {
     label: $("promptLabel").textContent, emoji: $("promptEmoji").textContent,
     wordHtml: $("promptWord").innerHTML, wordFont: $("promptWord").style.fontSize,
     fbHtml: fb.innerHTML, fbColor: fb.style.color,
-    sayText: state.sentence ? state.sentence.full : w[0]
+    sayText: state.sentence ? state.sentence.full : w[0],
+    word: w, sent: state.sentence ? { full: state.sentence.full, en: state.sentence.en } : null
   };
   revPush(gameRev, () => {
-    ["answers", "typeInput", "submitType", "speakPanel", "clozeTools", "addCardBtn", "explainBtn", "hintSpeakBtn"].forEach(id => $(id).classList.add("hidden"));
+    ["answers", "typeInput", "submitType", "speakPanel", "clozeTools", "explainBtn", "hintSpeakBtn"].forEach(id => $(id).classList.add("hidden"));
     $("answers").innerHTML = "";
     $("promptLabel").textContent = snap.label; $("promptEmoji").textContent = snap.emoji;
     $("promptWord").innerHTML = snap.wordHtml; $("promptWord").style.fontSize = snap.wordFont || "";
     const f = $("feedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
     $("speakBtn").onclick = () => speak(snap.sayText);
+    wireAddCard(snap.word, snap.sent); // add/remove this card while reviewing it
   }, last ? "See results →" : "Next →", advance);
   setTimeout(() => $("nextBtn").focus(), 30); // lets Enter/Space advance on desktop
 }
