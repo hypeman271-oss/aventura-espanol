@@ -955,6 +955,7 @@
         <div class="feedback" id="listenFeedback"></div>
         <button class="btn primary center" id="orderCheck">Check</button>
         <button class="btn primary center hidden" id="listenNext">Next →</button>
+        <button class="btn center hidden" id="listenAddBtn" style="background:rgba(255,255,255,0.15);color:#fff;">➕ Add to My Cards</button>
         <button class="back-link hidden" id="listenBack" style="display:block;margin:8px auto 0;">← Back (review)</button>
         <button class="back-link" id="orderSkip" style="display:block;margin:8px auto 0;">Skip / show answer</button>
       </div>
@@ -1050,6 +1051,7 @@
         <div id="tenseOptions"></div>
         <div class="feedback" id="tenseFeedback"></div>
         <button class="btn primary center hidden" id="tenseNext">Next →</button>
+        <button class="btn center hidden" id="tenseAddBtn" style="background:rgba(255,255,255,0.15);color:#fff;">➕ Add to My Cards</button>
         <button class="back-link hidden" id="tenseBack" style="display:block;margin:8px auto 0;">← Back (review)</button>
         <button class="back-link" id="tenseQuit" style="display:block;margin:8px auto 0;">← Back to lessons</button>
       </div>
@@ -1068,6 +1070,7 @@
         <button class="btn primary center" id="conjSubmit">Check</button>
         <div class="feedback" id="conjFeedback"></div>
         <button class="btn primary center hidden" id="conjNext">Next →</button>
+        <button class="btn center hidden" id="conjAddBtn" style="background:rgba(255,255,255,0.15);color:#fff;">➕ Add to My Cards</button>
         <button class="back-link hidden" id="conjBack" style="display:block;margin:8px auto 0;">← Back (review)</button>
         <button class="back-link" id="conjQuit" style="display:block;margin:8px auto 0;">← Back to lessons</button>
       </div>
@@ -1189,6 +1192,7 @@
         <div class="feedback" id="scrFeedback"></div>
         <button class="btn primary center" id="scrCheck">Check</button>
         <button class="btn primary center hidden" id="scrNext">Next →</button>
+        <button class="btn center hidden" id="scrAddBtn" style="background:rgba(255,255,255,0.15);color:#fff;">➕ Add to My Cards</button>
         <button class="back-link hidden" id="scrBack" style="display:block;margin:8px auto 0;">← Back (review)</button>
         <button class="back-link" id="scrClear" style="display:block;margin:8px auto 0;">↺ Clear</button>
       </div>
@@ -2711,12 +2715,13 @@ function nextListen() {
   $("orderCheck").classList.remove("hidden");
   $("listenNext").classList.add("hidden");
   $("listenBack").classList.add("hidden");
+  $("listenAddBtn").classList.add("hidden");
   $("orderSkip").style.display = "block";
   renderOrder();
   speak(s.full);
   revLive(listenRev, () => {
     $("orderCheck").classList.remove("hidden"); $("orderSkip").style.display = "block";
-    $("listenNext").classList.add("hidden"); $("listenFeedback").textContent = "";
+    $("listenNext").classList.add("hidden"); $("listenAddBtn").classList.add("hidden"); $("listenFeedback").textContent = "";
     renderOrder();
   });
 }
@@ -2926,11 +2931,17 @@ function showListenNext() {
   $("orderSkip").style.display = "none";
   const answerHtml = $("orderAnswer").innerHTML;
   const fbHtml = $("listenFeedback").innerHTML, fbColor = $("listenFeedback").style.color;
+  const lnEs = ord.cur ? ord.cur.id.split("||")[1] : "";
+  const lnCard = CARDS.find(x => x.es === lnEs);
+  const lnWord = lnCard ? [lnCard.es, lnCard.en, lnCard.emoji] : [lnEs, glossFor(lnEs) || "", emojiFor(lnEs)];
+  const lnSent = ord.cur ? { full: ord.cur.full, en: ord.cur.en } : null;
   revPush(listenRev, () => {
     $("orderCheck").classList.add("hidden"); $("orderSkip").style.display = "none"; $("orderBank").innerHTML = "";
     $("orderAnswer").innerHTML = answerHtml;
     const f = $("listenFeedback"); f.innerHTML = fbHtml; f.style.color = fbColor;
+    wireAddCard(lnWord, lnSent, "listenAddBtn");
   }, ord.i >= ord.pool.length ? "See results →" : "Next →", nextListen);
+  wireAddCard(lnWord, lnSent, "listenAddBtn");
   setTimeout(() => $("listenNext").focus(), 30);
 }
 
@@ -3339,12 +3350,15 @@ function nextConjug() {
   $("conjSubmit").classList.remove("hidden");
   $("conjNext").classList.add("hidden");
   $("conjBack").classList.add("hidden");
+  $("conjAddBtn").classList.add("hidden");
   setTimeout(() => inp.focus(), 40);
   revLive(conjRev, nextConjug);
 }
 function checkConjug() {
   const c = conj.cur;
   if (!c || c.done) return;
+  const cjVerb = CONJUG[conj.q[conj.i].v];
+  const cjWord = [cjVerb.inf, cjVerb.en, emojiFor(cjVerb.inf)];
   const guess = normalize($("conjInput").value);
   if (!guess) return;
   c.done = true;
@@ -3361,7 +3375,9 @@ function checkConjug() {
     $("conjInput").classList.add("hidden"); $("conjSubmit").classList.add("hidden");
     $("conjLabel").textContent = snap.label; $("conjPrompt").textContent = snap.prompt; $("conjMeaning").textContent = snap.meaning;
     const f = $("conjFeedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
+    wireAddCard(cjWord, null, "conjAddBtn");
   }, conj.i >= conj.q.length ? "See results →" : "Next →", nextConjug);
+  wireAddCard(cjWord, null, "conjAddBtn");
   setTimeout(() => $("conjNext").focus(), 30);
 }
 function endConjug() {
@@ -3436,6 +3452,7 @@ function nextTense() {
   $("tenseFeedback").textContent = "";
   $("tenseNext").classList.add("hidden");
   $("tenseBack").classList.add("hidden");
+  $("tenseAddBtn").classList.add("hidden");
 
   const wrap = $("tenseOptions");
   wrap.innerHTML = "";
@@ -3456,6 +3473,7 @@ function pickTense(btn, choice) {
   c.done = true;
   const it = tense.q[tense.i];
   const verb = CONJUG[it.v];
+  const tnWord = [verb.inf, verb.en, emojiFor(verb.inf)];
   const ok = choice === c.correct;
   const buttons = $("tenseOptions").querySelectorAll("button");
   buttons.forEach(b => {
@@ -3474,7 +3492,9 @@ function pickTense(btn, choice) {
     $("tenseSentence").textContent = snap.sentence; $("tenseHint").textContent = snap.hint;
     $("tenseOptions").innerHTML = snap.optionsHtml;
     const f = $("tenseFeedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
+    wireAddCard(tnWord, null, "tenseAddBtn");
   }, tense.i >= tense.q.length ? "See results →" : "Next →", nextTense);
+  wireAddCard(tnWord, null, "tenseAddBtn");
   setTimeout(() => $("tenseNext").focus(), 30);
 }
 
@@ -4174,9 +4194,10 @@ function nextScramble() {
   $("scrCheck").classList.remove("hidden");
   $("scrNext").classList.add("hidden");
   $("scrBack").classList.add("hidden");
+  $("scrAddBtn").classList.add("hidden");
   renderScramble();
   revLive(scrRev, () => {
-    $("scrCheck").classList.remove("hidden"); $("scrNext").classList.add("hidden");
+    $("scrCheck").classList.remove("hidden"); $("scrNext").classList.add("hidden"); $("scrAddBtn").classList.add("hidden");
     const card = scr.pool[scr.i];
     $("scrEmoji").textContent = card.emoji; $("scrClue").textContent = card.en;
     $("scrArticle").textContent = scr.cur.art ? "(" + scr.cur.art + " …)" : "";
@@ -4210,6 +4231,7 @@ function checkScramble() {
   else { fb.style.color = "var(--bad)"; fb.innerHTML = "✗ It was: <b>" + full + "</b>"; }
   speak(full);
   creditReview(scr.pool[scr.i].id, ok, true);
+  const scCard = scr.pool[scr.i]; const scWord = [scCard.es, scCard.en, scCard.emoji];
   $("scrCheck").classList.add("hidden");
   scr.i++;
   const snap = { emoji: $("scrEmoji").textContent, clue: $("scrClue").textContent, article: $("scrArticle").textContent, fbHtml: $("scrFeedback").innerHTML, fbColor: $("scrFeedback").style.color };
@@ -4217,7 +4239,9 @@ function checkScramble() {
     $("scrCheck").classList.add("hidden"); $("scrAnswer").innerHTML = ""; $("scrBank").innerHTML = "";
     $("scrEmoji").textContent = snap.emoji; $("scrClue").textContent = snap.clue; $("scrArticle").textContent = snap.article;
     const f = $("scrFeedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
+    wireAddCard(scWord, null, "scrAddBtn");
   }, scr.i >= scr.pool.length ? "See results →" : "Next →", nextScramble);
+  wireAddCard(scWord, null, "scrAddBtn");
   setTimeout(() => $("scrNext").focus(), 30);
 }
 function endScramble() {
@@ -6096,8 +6120,8 @@ function normalize(s) {
 /* Shared "Add / Remove from My Cards" control for a card. Used on the answered
    screen and when reviewing an earlier card via Back, so flashcards can be
    managed from either. (DRY: the only place that wires this button.) */
-function wireAddCard(word, sentence) {
-  const acb = $("addCardBtn");
+function wireAddCard(word, sentence, btnId) {
+  const acb = $(btnId || "addCardBtn");
   acb.disabled = false; acb.classList.remove("hidden");
   const refresh = () => { acb.textContent = userCardExists(word[0]) ? "✓ In My Cards — tap to undo" : "➕ Add to My Cards"; };
   refresh();
