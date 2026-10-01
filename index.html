@@ -6151,6 +6151,12 @@ function resolveAnswer(isRight, correctText) {
     $("promptEmoji").textContent = w[2];
   }
 
+  // The Spanish answer is now shown on the card, so the speaker should read it
+  // in Spanish (even on English-prompt cards, where it read the English prompt
+  // before answering). The Spanish "hint" button is redundant now, so hide it.
+  $("speakBtn").onclick = () => speak(state.sentence ? state.sentence.full : w[0]);
+  $("hintSpeakBtn").classList.add("hidden");
+
   if (isRight) {
     state.correct++;
     state.streak++;
