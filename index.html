@@ -1470,6 +1470,14 @@ const VOCAB = {
     ["el antibiótico","antibiotic","💊"],["la venda","bandage","🩹"],["el termómetro","thermometer","🌡️"],
     ["el algodón","cotton","☁️"],["el gotero","dropper","💧"],["vencido","expired","📅"]
   ],
+  "Surgery & Recovery 🤕": [
+    ["el quiste","cyst","🔴"],["el bulto","lump","🥚"],["la nuca","nape (back of head)","🙇"],
+    ["el cráneo","skull","💀"],["la operación","operation","🏥"],["el cirujano","surgeon","🧑‍⚕️"],
+    ["la anestesia","anesthesia","😴"],["el bisturí","scalpel","🔪"],["los puntos","stitches","🧵"],
+    ["la cicatriz","scar","〰️"],["la gasa","gauze","🧻"],["el vendaje","dressing","🩹"],
+    ["la hinchazón","swelling","🎈"],["el analgésico","painkiller","💊"],["la recuperación","recovery","💪"],
+    ["el reposo","bed rest","🛌"],["sanar","to heal","🌱"],["la revisión","follow-up","🔍"]
+  ],
   "Haircut 💇": [
     ["la peluquería","hair salon","💈"],["la barbería","barbershop","💈"],["el peluquero","hairdresser","💇"],
     ["el barbero","barber","🧔"],["el corte","haircut","✂️"],["las tijeras","scissors","✂️"],
@@ -1930,6 +1938,24 @@ const SENTENCES = {
   "Pharmacy 💊||el algodón": ["Limpia la herida con ___.", "algodón", "Clean the wound with cotton."],
   "Pharmacy 💊||el gotero": ["Usa el ___ para las gotas.", "gotero", "Use the dropper for the drops."],
   "Pharmacy 💊||vencido": ["Ese remedio ya está ___.", "vencido", "That medicine is already expired."],
+  "Surgery & Recovery 🤕||el quiste": ["El médico me sacó un ___ de la cabeza.", "quiste", "The doctor removed a cyst from my head."],
+  "Surgery & Recovery 🤕||el bulto": ["Sentí un ___ duro en la nuca.", "bulto", "I felt a hard lump on the back of my neck."],
+  "Surgery & Recovery 🤕||la nuca": ["El quiste estaba en la ___ de la cabeza.", "nuca", "The cyst was on the back of my head."],
+  "Surgery & Recovery 🤕||el cráneo": ["La operación fue cerca del ___.", "cráneo", "The operation was near the skull."],
+  "Surgery & Recovery 🤕||la operación": ["La ___ salió bien.", "operación", "The operation went well."],
+  "Surgery & Recovery 🤕||el cirujano": ["El ___ me explicó todo antes.", "cirujano", "The surgeon explained everything to me beforehand."],
+  "Surgery & Recovery 🤕||la anestesia": ["Con la ___ me dormí rápido.", "anestesia", "With the anesthesia I fell asleep fast."],
+  "Surgery & Recovery 🤕||el bisturí": ["El ___ del cirujano es muy afilado.", "bisturí", "The surgeon's scalpel is very sharp."],
+  "Surgery & Recovery 🤕||los puntos": ["Me pusieron unos ___ en la herida.", "puntos", "They put stitches in the wound."],
+  "Surgery & Recovery 🤕||la cicatriz": ["La ___ en la cabeza es pequeña.", "cicatriz", "The scar on my head is small."],
+  "Surgery & Recovery 🤕||la gasa": ["La enfermera me puso una ___.", "gasa", "The nurse put gauze on me."],
+  "Surgery & Recovery 🤕||el vendaje": ["Tengo un ___ en la cabeza.", "vendaje", "I have a dressing on my head."],
+  "Surgery & Recovery 🤕||la hinchazón": ["La ___ ya está mejor.", "hinchazón", "The swelling is already better."],
+  "Surgery & Recovery 🤕||el analgésico": ["Tomo un ___ para el dolor.", "analgésico", "I take a painkiller for the pain."],
+  "Surgery & Recovery 🤕||la recuperación": ["La ___ fue lenta pero buena.", "recuperación", "The recovery was slow but good."],
+  "Surgery & Recovery 🤕||el reposo": ["Necesito ___ en casa.", "reposo", "I need bed rest at home."],
+  "Surgery & Recovery 🤕||sanar": ["Quiero ___ rápido.", "sanar", "I want to heal fast."],
+  "Surgery & Recovery 🤕||la revisión": ["Tengo una ___ con el cirujano el lunes.", "revisión", "I have a follow-up with the surgeon on Monday."],
   "Haircut 💇||la peluquería": ["Voy a la ___ el sábado.", "peluquería", "I'm going to the hair salon on Saturday."],
   "Haircut 💇||la barbería": ["La ___ abre a las nueve.", "barbería", "The barbershop opens at nine."],
   "Haircut 💇||el peluquero": ["El ___ me lava el pelo.", "peluquero", "The hairdresser washes my hair."],
@@ -2173,7 +2199,9 @@ const WORD_GLOSS = {
   fotos: "photos", hice: "I made / did", llegamos: "we arrive", lleva: "carries / wears",
   mochila: "backpack", muestra: "shows", pasamos: "we pass / go through",
   puntual: "on time / punctual", reviso: "I check", sale: "leaves / goes out",
-  salir: "to leave / go out", temprano: "early", viajar: "to travel"
+  salir: "to leave / go out", temprano: "early", viajar: "to travel",
+  // ---- words from the Surgery & Recovery sentences ----
+  cerca: "near", duro: "hard"
 };
 
 /* Drop a leading Spanish article so cloze options/answers line up. */
@@ -5365,7 +5393,7 @@ function inFocus(cat) { return focusAll() || cat === selectedCategory; }
    one long row. Keys must match VOCAB keys exactly (emoji included). */
 const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
-  ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺", "Doctor Visit 🏥", "Pharmacy 💊"]],
+  ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺", "Doctor Visit 🏥", "Pharmacy 💊", "Surgery & Recovery 🤕"]],
   ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱", "Gym & Exercise 🏋️"]],
   ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Food Delivery 🛵", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Haircut 💇", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
