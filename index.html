@@ -602,6 +602,8 @@
   .sc-line:active { filter: brightness(0.94); }
   .chat-corr { display: block; font-size: 0.8rem; margin-top: 5px; padding-top: 5px; border-top: 1px dashed rgba(0,0,0,0.15); color: #b8860b; }
   .sc-them .chat-corr { color: #7a5c00; }
+  /* On the orange "you" bubble, gold-on-orange is unreadable - use a light tint. */
+  .sc-you .chat-corr { color: #fff3e0; border-top-color: rgba(255,255,255,0.45); }
   #scThinking { text-align: center; opacity: 0.7; font-style: italic; margin: 10px 0; }
 
   /* ---- Listen & Repeat player ---- */
@@ -2712,6 +2714,11 @@ function nextListen() {
   $("orderSkip").style.display = "block";
   renderOrder();
   speak(s.full);
+  revLive(listenRev, () => {
+    $("orderCheck").classList.remove("hidden"); $("orderSkip").style.display = "block";
+    $("listenNext").classList.add("hidden"); $("listenFeedback").textContent = "";
+    renderOrder();
+  });
 }
 
 /* A word tile that taps to place/remove, and long-press (or right-click)
@@ -3333,6 +3340,7 @@ function nextConjug() {
   $("conjNext").classList.add("hidden");
   $("conjBack").classList.add("hidden");
   setTimeout(() => inp.focus(), 40);
+  revLive(conjRev, nextConjug);
 }
 function checkConjug() {
   const c = conj.cur;
@@ -3439,6 +3447,7 @@ function nextTense() {
     b.onclick = () => pickTense(b, opt);
     wrap.appendChild(b);
   });
+  revLive(tenseRev, nextTense);
 }
 
 function pickTense(btn, choice) {
@@ -4166,6 +4175,13 @@ function nextScramble() {
   $("scrNext").classList.add("hidden");
   $("scrBack").classList.add("hidden");
   renderScramble();
+  revLive(scrRev, () => {
+    $("scrCheck").classList.remove("hidden"); $("scrNext").classList.add("hidden");
+    const card = scr.pool[scr.i];
+    $("scrEmoji").textContent = card.emoji; $("scrClue").textContent = card.en;
+    $("scrArticle").textContent = scr.cur.art ? "(" + scr.cur.art + " …)" : "";
+    $("scrFeedback").textContent = ""; renderScramble();
+  });
 }
 function renderScramble() {
   const c = scr.cur, ans = $("scrAnswer"), bank = $("scrBank");
