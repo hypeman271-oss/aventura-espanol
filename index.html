@@ -1474,9 +1474,12 @@ const VOCAB = {
     ["el quiste","cyst","🔴"],["el bulto","lump","🥚"],["la nuca","nape (back of head)","🙇"],
     ["el cráneo","skull","💀"],["la operación","operation","🏥"],["el cirujano","surgeon","🧑‍⚕️"],
     ["la anestesia","anesthesia","😴"],["el bisturí","scalpel","🔪"],["los puntos","stitches","🧵"],
-    ["la cicatriz","scar","〰️"],["la gasa","gauze","🧻"],["el vendaje","dressing","🩹"],
+    ["la cicatriz","scar","〰️"],["la gasa","gauze","🧻"],["la curita","band-aid (Col.)","🩹"],
     ["la hinchazón","swelling","🎈"],["el analgésico","painkiller","💊"],["la recuperación","recovery","💪"],
-    ["el reposo","bed rest","🛌"],["sanar","to heal","🌱"],["la revisión","follow-up","🔍"]
+    ["el reposo","bed rest","🛌"],["sanar","to heal","🌱"],["la revisión","follow-up","🔍"],
+    ["la grasa","fat","🧈"],["benigno","benign","✅"],["la ecografía","ultrasound","📡"],
+    ["el presupuesto","quote / estimate","🧾"],["caro","expensive","💰"],["cobrar","to charge","💳"],
+    ["el sobreprecio","overcharge / markup","📈"],["la estafa","scam / rip-off","⚠️"],["la opinión","opinion","💭"]
   ],
   "Haircut 💇": [
     ["la peluquería","hair salon","💈"],["la barbería","barbershop","💈"],["el peluquero","hairdresser","💇"],
@@ -1949,13 +1952,22 @@ const SENTENCES = {
   "Surgery & Recovery 🤕||los puntos": ["Me pusieron unos ___ en la herida.", "puntos", "They put stitches in the wound."],
   "Surgery & Recovery 🤕||la cicatriz": ["La ___ en la cabeza es pequeña.", "cicatriz", "The scar on my head is small."],
   "Surgery & Recovery 🤕||la gasa": ["La enfermera me puso una ___.", "gasa", "The nurse put gauze on me."],
-  "Surgery & Recovery 🤕||el vendaje": ["Tengo un ___ en la cabeza.", "vendaje", "I have a dressing on my head."],
+  "Surgery & Recovery 🤕||la curita": ["Tengo una ___ grande en la nuca.", "curita", "I have a big band-aid on the back of my head."],
   "Surgery & Recovery 🤕||la hinchazón": ["La ___ ya está mejor.", "hinchazón", "The swelling is already better."],
   "Surgery & Recovery 🤕||el analgésico": ["Tomo un ___ para el dolor.", "analgésico", "I take a painkiller for the pain."],
   "Surgery & Recovery 🤕||la recuperación": ["La ___ fue lenta pero buena.", "recuperación", "The recovery was slow but good."],
   "Surgery & Recovery 🤕||el reposo": ["Necesito ___ en casa.", "reposo", "I need bed rest at home."],
   "Surgery & Recovery 🤕||sanar": ["Quiero ___ rápido.", "sanar", "I want to heal fast."],
   "Surgery & Recovery 🤕||la revisión": ["Tengo una ___ con el cirujano el lunes.", "revisión", "I have a follow-up with the surgeon on Monday."],
+  "Surgery & Recovery 🤕||la grasa": ["El quiste es solo ___, no es grave.", "grasa", "The cyst is just fat, it's not serious."],
+  "Surgery & Recovery 🤕||benigno": ["El bulto es ___, no es peligroso.", "benigno", "The lump is benign, it's not dangerous."],
+  "Surgery & Recovery 🤕||la ecografía": ["Me hicieron una ___ en la consulta.", "ecografía", "They did an ultrasound at the consultation."],
+  "Surgery & Recovery 🤕||el presupuesto": ["El cirujano me dio un ___ muy alto.", "presupuesto", "The surgeon gave me a very high quote."],
+  "Surgery & Recovery 🤕||caro": ["El primer cirujano es muy ___.", "caro", "The first surgeon was very expensive."],
+  "Surgery & Recovery 🤕||cobrar": ["El segundo doctor solo me va a ___ dos millones.", "cobrar", "The second doctor will only charge me two million."],
+  "Surgery & Recovery 🤕||el sobreprecio": ["Me cobraron un ___ por ser gringo.", "sobreprecio", "They charged me an overcharge for being a foreigner."],
+  "Surgery & Recovery 🤕||la estafa": ["Ocho millones por eso es una ___.", "estafa", "Eight million for that is a rip-off."],
+  "Surgery & Recovery 🤕||la opinión": ["Pedí una segunda ___ a otro doctor.", "opinión", "I asked another doctor for a second opinion."],
   "Haircut 💇||la peluquería": ["Voy a la ___ el sábado.", "peluquería", "I'm going to the hair salon on Saturday."],
   "Haircut 💇||la barbería": ["La ___ abre a las nueve.", "barbería", "The barbershop opens at nine."],
   "Haircut 💇||el peluquero": ["El ___ me lava el pelo.", "peluquero", "The hairdresser washes my hair."],
@@ -2201,7 +2213,9 @@ const WORD_GLOSS = {
   puntual: "on time / punctual", reviso: "I check", sale: "leaves / goes out",
   salir: "to leave / go out", temprano: "early", viajar: "to travel",
   // ---- words from the Surgery & Recovery sentences ----
-  cerca: "near", duro: "hard"
+  cerca: "near", duro: "hard", grave: "serious", peligroso: "dangerous",
+  segundo: "second", segunda: "second", otro: "other / another", va: "goes",
+  dos: "two", ocho: "eight", ser: "to be", gringo: "foreigner (Col.)"
 };
 
 /* Drop a leading Spanish article so cloze options/answers line up. */
