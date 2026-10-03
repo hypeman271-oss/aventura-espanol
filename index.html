@@ -5718,21 +5718,34 @@ function listenOnce(opts) {
    "19" when you say "diecinueve"). */
 // Spanish number words → value. Hundreds are standalone words; mil/millón are
 // multipliers handled by the parser below.
-const NUM_DIRECT = {
-  cero: 0, uno: 1, un: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6,
-  siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14,
-  quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20,
-  veintiuno: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25,
-  veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30,
-  cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90,
-  cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400,
-  quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900,
-  // Variants a speech engine may emit for the irregular hundreds.
-  sietecientos: 700, nuevecientos: 900, cincocientos: 500, seicientos: 600,
-  // Feminine one-word forms (e.g. "cuatrocientas") the engine may return.
-  doscientas: 200, trescientas: 300, cuatrocientas: 400, quinientas: 500,
-  seiscientas: 600, setecientas: 700, ochocientas: 800, novecientas: 900
-};
+/* ============================================================
+   NUMBERS - one canonical table for every Spanish number word and its
+   value. The spoken-answer checker and anything that parses a number
+   reference NUM_DIRECT + spanishNumber(); add a word or variant here
+   once and every topic/exercise picks it up. No per-topic number lists. */
+const NUM_DIRECT = (function buildNumbers() {
+  const T = {
+    cero: 0, uno: 1, un: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6,
+    siete: 7, ocho: 8, nueve: 9,
+    diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15,
+    dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19,
+    veinte: 20, veintiuno: 21, veintidos: 22, veintitres: 23, veinticuatro: 24,
+    veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29,
+    treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90,
+    cien: 100, ciento: 100
+  };
+  // Hundreds 200-900: each canonical word plus its feminine form, generated
+  // from this one list, then a few spellings a speech engine may emit.
+  const H = { doscientos: 200, trescientos: 300, cuatrocientos: 400, quinientos: 500,
+              seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900 };
+  const FEMININE = { quinientos: "quinientas" }; // irregular; the rest swap -cientos -> -cientas
+  Object.keys(H).forEach(w => {
+    T[w] = H[w];
+    T[FEMININE[w] || w.replace(/cientos$/, "cientas")] = H[w];
+  });
+  Object.assign(T, { sietecientos: 700, nuevecientos: 900, cincocientos: 500, seicientos: 600 });
+  return T;
+})();
 // English number words + common homophones, in case the device's speech
 // engine transcribes spoken Spanish numbers in English (e.g. "two"/"to" for "dos").
 const NUM_EN = {
@@ -5743,22 +5756,22 @@ const NUM_EN = {
 };
 const NUM_HOMO = { to: 2, too: 2, won: 1, for: 4, fore: 4, ate: 8, sex: 6, oh: 0 };
 
-/* Parse a spelled-out Spanish number (0 – millions), handling the mil / millón
-   multipliers and standalone hundreds. e.g. "cuatrocientos" → 400,
-   "cuatrocientos cincuenta" → 450, "dos mil" → 2000, "cien mil" → 100000. */
+/* Parse a spelled-out Spanish number (0 – billions) from NUM_DIRECT, handling
+   the cien / mil / millón scales. e.g. "cuatrocientos cincuenta" → 450,
+   "dos mil" → 2000, "cien mil" → 100000, "mil millones" → 1000000000. */
 function spanishNumber(s) {
   const toks = s.split(/\s+/).filter(t => t && t !== "y");
   if (!toks.length) return null;
-  let total = 0, current = 0, used = false;
+  let result = 0, total = 0, current = 0, used = false; // result: millions+, total: thousands, current: < 1000
   for (const t of toks) {
-    if (t === "mil") { current = current === 0 ? 1 : current; total += current * 1000; current = 0; used = true; }
-    else if (t === "millon" || t === "millones") { current = current === 0 ? 1 : current; total += current * 1000000; current = 0; used = true; }
-    else if (t === "cien" || t === "ciento" || t === "cientos" || t === "cientas" || t === "100") { current = (current === 0 ? 1 : current) * 100; used = true; }
+    if (t === "mil") { total += (current || 1) * 1000; current = 0; used = true; }
+    else if (t === "millon" || t === "millones") { result += ((total + current) || 1) * 1000000; total = 0; current = 0; used = true; }
+    else if (t === "cien" || t === "ciento" || t === "cientos" || t === "cientas" || t === "100") { current = (current || 1) * 100; used = true; }
     else if (/^\d+$/.test(t)) { current += parseInt(t, 10); used = true; }
     else if (NUM_DIRECT[t] != null) { current += NUM_DIRECT[t]; used = true; }
     else return null; // a non-number word → not a number
   }
-  return used ? total + current : null;
+  return used ? result + total + current : null;
 }
 /* Same for English words: "four hundred" → 400, "four hundred fifty" → 450. */
 function englishNumber(s) {
