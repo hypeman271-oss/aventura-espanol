@@ -5726,7 +5726,9 @@ const NUM_DIRECT = {
   veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30,
   cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90,
   cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400,
-  quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900
+  quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900,
+  // Variants a speech engine may emit for the irregular hundreds.
+  sietecientos: 700, nuevecientos: 900, cincocientos: 500, seicientos: 600
 };
 // English number words + common homophones, in case the device's speech
 // engine transcribes spoken Spanish numbers in English (e.g. "two"/"to" for "dos").
@@ -5748,6 +5750,8 @@ function spanishNumber(s) {
   for (const t of toks) {
     if (t === "mil") { current = current === 0 ? 1 : current; total += current * 1000; current = 0; used = true; }
     else if (t === "millon" || t === "millones") { current = current === 0 ? 1 : current; total += current * 1000000; current = 0; used = true; }
+    else if (t === "cien" || t === "ciento" || t === "cientos" || t === "cientas" || t === "100") { current = (current === 0 ? 1 : current) * 100; used = true; }
+    else if (/^\d+$/.test(t)) { current += parseInt(t, 10); used = true; }
     else if (NUM_DIRECT[t] != null) { current += NUM_DIRECT[t]; used = true; }
     else return null; // a non-number word → not a number
   }
@@ -5788,7 +5792,12 @@ function matchesSpoken(heard, target) {
   if (!h) return false;
   if (h === t || h.includes(t) || t.includes(h)) return true;
   const hn = asNumber(heard), tn = asNumber(target);
-  return hn != null && tn != null && hn === tn; // same number, word vs digits
+  if (hn == null || tn == null) return false;
+  if (hn === tn) return true; // same number, word vs digits
+  // Speech engines often clip a hundreds word to its leading digit
+  // ("setecientos" → "7"), so accept that for a round-hundred target.
+  if (tn >= 200 && tn <= 900 && tn % 100 === 0 && hn === tn / 100) return true;
+  return false;
 }
 
 function setMic(cls, text) {
