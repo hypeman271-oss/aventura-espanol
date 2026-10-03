@@ -4270,7 +4270,7 @@ function openGender() {
   show("gender");
 }
 function startGenderRace() {
-  gen = { pool: shuffle(genderPool()), i: 0, score: 0, time: 45, timer: null };
+  gen = { pool: shuffle(genderPool()), i: 0, score: 0, time: 45, timer: null, wrong: [] };
   $("genderStart").classList.add("hidden");
   $("genderEnd").classList.add("hidden");
   $("genderPlay").classList.remove("hidden");
@@ -4289,7 +4289,10 @@ function answerGender(art) {
   const ok = art === gen.cur.art;
   const fb = $("genderFeedback");
   if (ok) { gen.score++; $("genderScore").textContent = gen.score; fb.style.color = "var(--good)"; fb.textContent = "✓"; }
-  else { fb.style.color = "var(--bad)"; fb.textContent = "✗ " + gen.cur.art + " " + gen.cur.bare; }
+  else {
+    fb.style.color = "var(--bad)"; fb.textContent = "✗ " + gen.cur.art + " " + gen.cur.bare;
+    if (!gen.wrong.some(x => x.bare === gen.cur.bare)) gen.wrong.push(gen.cur);
+  }
   gen.i++;
   setTimeout(nextGender, ok ? 150 : 750);
 }
@@ -4298,8 +4301,22 @@ function endGender() {
   $("genderPlay").classList.add("hidden");
   logActivity(gen.score, gen.score * 5);
   const end = $("genderEnd"); end.classList.remove("hidden");
-  end.innerHTML = "<p class='section-title'>🚻 ¡Tiempo!</p><div class='big-score'>" + gen.score + "</div><p class='result-msg'>correct in 45 seconds</p>" +
-    "<button class='btn primary center' id='genAgain'>🔁 Again</button><button class='btn center' id='genHome'>🏠 Menu</button>";
+  const miss = gen.wrong || [];
+  let html = "<p class='section-title'>🚻 ¡Tiempo!</p><div class='big-score'>" + gen.score + "</div><p class='result-msg'>correct in 45 seconds</p>";
+  if (miss.length) {
+    html += "<p class='section-title' style='margin-top:14px;'>📝 Review these — tap to hear</p><div class='mc-list' style='text-align:left;'>" +
+      miss.map(w =>
+        "<div class='mc-item' data-say=\"" + escapeHtml(w.art + " " + w.bare) + "\" style='cursor:pointer;'>" +
+          "<div class='mc-item-main'><span class='mc-emoji'>" + w.emoji + "</span>" +
+          "<div><div class='mc-es'><b style='color:var(--accent2);'>" + escapeHtml(w.art) + "</b> " + escapeHtml(w.bare) + "</div>" +
+          "<div class='mc-en'>" + escapeHtml(w.en) + "</div></div></div><span class='mc-emoji'>🔊</span></div>"
+      ).join("") + "</div>";
+  } else {
+    html += "<p class='result-msg'>Perfect — no mistakes! 🎉</p>";
+  }
+  html += "<button class='btn primary center' id='genAgain'>🔁 Again</button><button class='btn center' id='genHome'>🏠 Menu</button>";
+  end.innerHTML = html;
+  end.querySelectorAll("[data-say]").forEach(b => b.onclick = () => speak(b.dataset.say));
   $("genAgain").onclick = startGenderRace; $("genHome").onclick = () => show("home");
 }
 
