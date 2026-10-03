@@ -5443,6 +5443,9 @@ document.addEventListener("visibilitychange", () => {
 function show(screen) {
   studyFlush();                              // bank time from the screen we're leaving
   currentScreen = screen;
+  // Cancel any speech (and a pending deferred utterance) from the old screen.
+  if (_speakTimer) { clearTimeout(_speakTimer); _speakTimer = null; }
+  if (window.speechSynthesis) { try { speechSynthesis.cancel(); } catch (e) {} }
   studyStart = STUDY_SCREENS[screen] ? Date.now() : null;
   ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach","write","story","songs","scramble","gender","wordle","search"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
   if (screen !== "gender" && typeof gen === "object" && gen.timer) { clearInterval(gen.timer); gen.timer = null; }
@@ -5555,13 +5558,13 @@ function speakLang() { return (REGIONS[getRegion()] || REGIONS.co).tts; }
 function regionAi() { return (REGIONS[getRegion()] || REGIONS.co).ai; }
 
 let _voices = [];
+let _speakTimer = null;
 function loadVoices() { try { _voices = speechSynthesis.getVoices() || []; } catch (e) { _voices = []; } }
 
 function speak(text, langOverride, rateOverride, onend, onboundary) {
   if (getSilent()) { if (onend) setTimeout(onend, 200); return; } // silent mode: no audio
   if (!("speechSynthesis" in window)) { if (onend) setTimeout(onend, 400); return; }
   try {
-    speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const lang = langOverride || speakLang();
     u.lang = lang;
@@ -5574,7 +5577,17 @@ function speak(text, langOverride, rateOverride, onend, onboundary) {
     if (v) u.voice = v;
     if (onend) { u.onend = onend; u.onerror = onend; }
     if (onboundary) u.onboundary = onboundary; // word-by-word highlight (song sing-along)
-    speechSynthesis.speak(u);
+    // Chromium intermittently DROPS a speak() made in the same tick as cancel(),
+    // and can leave the engine stuck "paused" after a cancel -- both make a tapped
+    // speaker go silent at random. Cancel now, then speak on the next tick after a
+    // resume(), so every tap plays. A newer tap supersedes the pending one.
+    if (_speakTimer) clearTimeout(_speakTimer);
+    speechSynthesis.cancel();
+    _speakTimer = setTimeout(() => {
+      _speakTimer = null;
+      try { speechSynthesis.resume(); speechSynthesis.speak(u); }
+      catch (e) { if (onend) onend(); }
+    }, 55);
   } catch(e) { if (onend) setTimeout(onend, 400); }
 }
 
