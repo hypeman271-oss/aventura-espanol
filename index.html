@@ -4741,7 +4741,7 @@ function scCheckResponse(text) {
   const said = normalize(text);
   if (!said) { const el = $("scTypeInput"); if (el) el.focus(); return; }
   const target = normalize(cur.es);
-  scResolve(said === target || scOverlap(said, target) >= 0.6, text);
+  scResolve(scMatch(said, target), text);
 }
 
 function scListen() {
@@ -4749,7 +4749,7 @@ function scListen() {
     status: "scMicStatus", micBtn: "scMic",
     onFinal: (alts) => {
       const cur = sc.turns[sc.i], target = normalize(cur.es);
-      const ok = alts.some(a => { const n = normalize(a); return n === target || scOverlap(n, target) >= 0.6; });
+      const ok = alts.some(a => scMatch(normalize(a), target));
       scResolve(ok, alts[0] || "");
     }
   });
@@ -5816,6 +5816,38 @@ function matchesSpoken(heard, target) {
   return false;
 }
 
+/* Replace runs of number words/digits in a phrase with their numeric value, so
+   "cuatrocientos cincuenta mil" and "450000" compare equal wherever a number can
+   appear. Uses the one number parser (asNumber / spanishNumber). */
+function canonNumbers(text) {
+  const toks = (text || "").split(/\s+/).filter(Boolean);
+  const out = [];
+  for (let i = 0; i < toks.length;) {
+    let val = null, len = 0;
+    for (let j = i + 1; j <= toks.length; j++) {
+      const n = asNumber(toks.slice(i, j).join(" "));
+      if (n != null) { val = n; len = j - i; }
+    }
+    if (val != null) { out.push(String(val)); i += len; } else { out.push(toks[i]); i++; }
+  }
+  return out.join(" ");
+}
+/* Shared typed-answer check: equal after normalising, or the same number (word
+   vs digits). Used by every "type the answer" exercise. */
+function sameAnswer(a, b) {
+  const na = normalize(a), nb = normalize(b);
+  if (na === nb) return true;
+  const x = asNumber(a), y = asNumber(b);
+  if (x != null && y != null && x === y) return true;
+  return canonNumbers(na) === canonNumbers(nb);
+}
+/* Shared conversation check: whole-line match with numbers treated as equal
+   whether said as words or digits. */
+function scMatch(said, target) {
+  const s = canonNumbers(said), t = canonNumbers(target);
+  return s === t || scOverlap(s, t) >= 0.6;
+}
+
 function setMic(cls, text) {
   const b = $("micBtn");
   b.classList.toggle("listening", cls === "listening");
@@ -6156,7 +6188,7 @@ function checkTyped() {
   input.disabled = true;
   $("submitType").disabled = true;
 
-  const isRight = guess === answer;
+  const isRight = sameAnswer(input.value, target);
   // On a correct answer, clear the input and Check button so the reveal fits
   // on one screen (matches how multiple choice hides the other options).
   if (isRight) { input.classList.add("hidden"); $("submitType").classList.add("hidden"); }
