@@ -6003,10 +6003,40 @@ function asNumber(s) {
   return wordToNumber(s);
 }
 
+/* Spanish "sound key": collapse the spellings that sound identical, because the
+   recognizer writes what it HEARS, not the dictionary spelling. Handles seseo
+   (z/ce/ci = s), b/v, silent h, yeismo (ll = y), g/j, qu/c = k, and ignores
+   word splits/articles -- so "abrazo" still matches "abraso", "abrazo'" or
+   "a braso". No false positives: these letters are genuinely the same sound. */
+function phoneticEs(str) {
+  let x = (str || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  x = x.replace(/[.,!?;:¿¡"'()«»…]/g, "");
+  x = x.replace(/^(el|la|los|las|un|una|unos|unas)\s+/, "");
+  x = x
+    .replace(/h/g, "")
+    .replace(/[vw]/g, "b")
+    .replace(/qu/g, "k")
+    .replace(/gu([ei])/g, "G$1")   // hard g (keep distinct from soft g)
+    .replace(/g([ei])/g, "j$1")    // soft g -> j (same sound)
+    .replace(/G/g, "g")
+    .replace(/c([ei])/g, "s$1")    // ce/ci -> s
+    .replace(/c/g, "k")            // ca/co/cu -> k
+    .replace(/z/g, "s")            // z -> s
+    .replace(/ll/g, "y")           // yeismo
+    .replace(/x/g, "ks")
+    .replace(/\s+/g, "");          // ignore word boundaries
+  return x;
+}
 function matchesSpoken(heard, target) {
   const h = normalize(heard), t = normalize(target);
   if (!h) return false;
   if (h === t || h.includes(t) || t.includes(h)) return true;
+  // Match on how the words SOUND, not how they are spelled (seseo z/c=s, b/v,
+  // silent h, ll=y, g/j, qu/c=k) -- the recognizer writes what it hears, so
+  // "abraso" or "abrazo'" still match "abrazo". Exact sound-key match keeps
+  // real minimal pairs (perro/pero, abuela/abuelo, nino/nina) distinct.
+  const hp = phoneticEs(heard), tp = phoneticEs(target);
+  if (hp && tp && hp === tp) return true;
   const hn = asNumber(heard), tn = asNumber(target);
   if (hn == null || tn == null) return false;
   if (hn === tn) return true; // same number, word vs digits
