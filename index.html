@@ -4917,10 +4917,11 @@ async function scStart() {
 function scBubble(t) {
   const cls = t.speaker === "them" ? "sc-them" : "sc-you";
   const mark = t.result === "ok" ? " ✓" : t.result === "miss" ? " ✗" : "";
+  const scoreTag = (t.score != null) ? "  🗣️ " + t.score + "/100" : "";
   let sub;
   if (t.expected) sub = "Expected: " + escapeHtml(t.expected) + (t.expectedEn ? " — " + escapeHtml(t.expectedEn) : "");
   else sub = escapeHtml(t.en || "");
-  return "<div class='sc-line " + cls + "'>" + escapeHtml(t.es) + mark +
+  return "<div class='sc-line " + cls + "'>" + escapeHtml(t.es) + mark + scoreTag +
     (sub ? "<span class='sc-en'>" + sub + "</span>" : "") + "</div>";
 }
 
@@ -4989,11 +4990,25 @@ function scCheckResponse(text) {
 }
 
 function scListen() {
+  const cur = sc.turns[sc.i];
+  if (cloudSpeechOn() && cur) {
+    assessSpeech({
+      reference: cur.es, status: "scMicStatus", micBtn: "scMic",
+      onResult: (res) => {
+        const target = normalize(cur.es);
+        const matched = res.text && scMatch(normalize(res.text), target);
+        const goodScore = (res.score != null && res.score >= 60);
+        scResolve(!!(matched || goodScore), res.text || "", res.score);
+      },
+      onFail: (m) => { const el = $("scMicStatus"); if (el) el.textContent = m; }
+    });
+    return;
+  }
   listenOnce({
     status: "scMicStatus", micBtn: "scMic",
-    hints: sc.turns[sc.i] ? [sc.turns[sc.i].es] : [],
+    hints: cur ? [cur.es] : [],
     onFinal: (alts) => {
-      const cur = sc.turns[sc.i], target = normalize(cur.es);
+      const target = normalize(cur.es);
       const ok = alts.some(a => scMatch(normalize(a), target));
       scResolve(ok, alts[0] || "");
     }
@@ -5001,7 +5016,7 @@ function scListen() {
 }
 
 
-function scResolve(ok, saidText) {
+function scResolve(ok, saidText, score) {
   const cur = sc.turns[sc.i];
   if (!cur || sc.resolving) return;   // ignore rapid double-taps and end-of-conversation
   sc.resolving = true;
@@ -5014,6 +5029,7 @@ function scResolve(ok, saidText) {
     en: said ? "" : cur.en,
     sayEs: cur.es,                            // the target, for audio replay
     result: ok ? "ok" : "miss",
+    score: (typeof score === "number" ? score : null),
     expected: differs ? cur.es : null,        // show the model line when it differs
     expectedEn: cur.en
   });
