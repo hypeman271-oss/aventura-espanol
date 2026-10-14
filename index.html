@@ -740,6 +740,10 @@
         <span class="emoji">🔤</span>
         <span>Grammar &amp; Verbs<small>Mini-lessons + verb conjugation practice</small></span>
       </button>
+      <button class="btn accent2" id="openConfuseBtn">
+        <span class="emoji">🧩</span>
+        <span>Tricky Words<small>Near-synonyms: clave vs contraseña, por vs para…</small></span>
+      </button>
       <button class="btn accent2" id="openWriteBtn">
         <span class="emoji">✍️</span>
         <span>Writing<small>Write in Spanish, get it corrected (AI)</small></span>
@@ -1226,6 +1230,35 @@
         <div class="feedback" id="genderFeedback"></div>
       </div>
       <div id="genderEnd" class="order-end hidden"></div>
+    </div>
+  </div>
+
+  <!-- ============ TRICKY WORDS (confusables) ============ -->
+  <div id="confuse" class="hidden">
+    <button class="back-link" id="confuseQuitBtn">← Back to menu</button>
+    <div class="panel">
+      <div id="confuseStart" class="order-end">
+        <p class="section-title">🧩 Tricky Words</p>
+        <p class="sc-intro">Near-synonyms that trip people up — <b>clave</b> vs <b>contraseña</b>, <b>por</b> vs <b>para</b>, <b>saber</b> vs <b>conocer</b>… Read the situation and pick the word that fits.</p>
+        <button class="btn primary center" id="confuseGoBtn">▶️ Start</button>
+      </div>
+      <div id="confusePlay" class="hidden">
+        <div class="hud">
+          <span class="pill" id="confuseProg">1/10</span>
+          <span class="pill">✅ <span id="confuseScore">0</span></span>
+        </div>
+        <div class="prompt-card">
+          <div class="prompt-label" id="confuseGroup"></div>
+          <div class="prompt-word" id="confuseClue" style="font-size:clamp(1.05rem,4vw,1.4rem);"></div>
+        </div>
+        <div class="answers" id="confuseOptions"></div>
+        <div class="feedback" id="confuseFeedback"></div>
+        <div id="confuseNote" class="translation hidden" style="text-align:left;margin-top:6px;"></div>
+        <button class="btn primary center hidden" id="confuseNext">Next →</button>
+        <button class="btn center hidden" id="confuseAddBtn" style="background:rgba(255,255,255,0.15);color:#fff;">➕ Add to My Cards</button>
+        <button class="back-link hidden" id="confuseBack" style="display:block;margin:8px auto 0;">← Back (review)</button>
+      </div>
+      <div id="confuseEnd" class="order-end hidden"></div>
     </div>
   </div>
 
@@ -4320,6 +4353,173 @@ function endGender() {
   $("genAgain").onclick = startGenderRace; $("genHome").onclick = () => show("home");
 }
 
+/* ============================================================
+   TRICKY WORDS - a drill for near-synonyms learners mix up
+   (clave/contraseña/PIN/código, por/para, saber/conocer, ...). Each group
+   lists its words with a usage note; each question gives an English situation
+   and the right word. Options are that group's words; the note is revealed on
+   answer. Shares the review pager + add-to-My-Cards like every other exercise.
+   ============================================================ */
+const CONFUSE = [
+  { group: "Passwords & codes", words: [
+      ["la contraseña", "password", "online accounts, email and apps"],
+      ["la clave", "password / PIN (Col.)", "the everyday Colombian word for a password or a card's PIN"],
+      ["el PIN", "PIN", "the numeric PIN of a bank card"],
+      ["el código", "code", "a verification code texted to you, or a postal code"]
+    ], qs: [
+      ["Your Netflix or Gmail login secret", "la contraseña"],
+      ["The 4 digits you punch in at the ATM (everyday Colombian word)", "la clave"],
+      ["The one-time number the bank texts you to approve a purchase", "el código"],
+      ["A city's postal code (código postal)", "el código"]
+    ] },
+  { group: "To know", words: [
+      ["saber", "to know (facts / how to)", "a fact, information, or how to do something"],
+      ["conocer", "to know / be familiar with", "a person or place, or meeting someone for the first time"]
+    ], qs: [
+      ["To know the answer to a question", "saber"],
+      ["To know how to drive", "saber"],
+      ["To know a person", "conocer"],
+      ["To be familiar with Bogotá", "conocer"],
+      ["To meet someone for the first time", "conocer"]
+    ] },
+  { group: "For - por or para", words: [
+      ["por", "for / because of / through", "a reason or cause, an exchange, duration, or 'through'"],
+      ["para", "for / in order to", "a purpose, a destination, a recipient, or a deadline"]
+    ], qs: [
+      ["A gift FOR your mom (the recipient)", "para"],
+      ["Thank you FOR the help (the reason)", "por"],
+      ["I'm leaving FOR Cali (the destination)", "para"],
+      ["I walked THROUGH the park", "por"],
+      ["This notebook is FOR studying (its purpose)", "para"],
+      ["I paid 10 mil FOR the shirt (an exchange)", "por"]
+    ] },
+  { group: "To ask", words: [
+      ["pedir", "to ask for / request", "requesting a thing or a favor"],
+      ["preguntar", "to ask (a question)", "asking a question or asking about something"]
+    ], qs: [
+      ["To ask for the bill", "pedir"],
+      ["To ask where the bathroom is", "preguntar"],
+      ["To ask for a favor", "pedir"],
+      ["To ask someone their name", "preguntar"]
+    ] },
+  { group: "Time", words: [
+      ["el tiempo", "time (general) / weather", "time in general or how much time; also the weather"],
+      ["la vez", "time (an instance)", "one occasion - 'the first time', 'three times'"],
+      ["la hora", "time (on the clock)", "clock time or an hour"]
+    ], qs: [
+      ["What TIME is it?", "la hora"],
+      ["I don't have TIME today", "el tiempo"],
+      ["The first TIME I saw you", "la vez"],
+      ["The weather is nice", "el tiempo"],
+      ["I've been there three TIMES", "la vez"],
+      ["What TIME is your appointment?", "la hora"]
+    ] },
+  { group: "Take / bring", words: [
+      ["tomar", "to take (grab / drink / transport)", "grabbing something, drinking, or catching transport"],
+      ["llevar", "to take / carry (away)", "carrying something to another place, away from here"],
+      ["traer", "to bring (here)", "bringing something toward the speaker"]
+    ], qs: [
+      ["Bring me a coffee, please (toward you)", "traer"],
+      ["Take the bus to the center", "tomar"],
+      ["Take these papers to your boss (away)", "llevar"],
+      ["Let's drink a coffee", "tomar"],
+      ["Can you bring the documents here tomorrow?", "traer"]
+    ] },
+  { group: "Corner", words: [
+      ["la esquina", "corner (street)", "the outside corner where two streets meet"],
+      ["el rincón", "corner (inside)", "an inside corner of a room"]
+    ], qs: [
+      ["Meet me at the street corner", "la esquina"],
+      ["The plant in the corner of the living room", "el rincón"],
+      ["Turn at the corner of 10th and 5th", "la esquina"]
+    ] }
+];
+
+let conf = {};
+const confuseRev = makeRev("confuseBack", "confuseNext");
+function openConfuse() {
+  $("confuseStart").classList.remove("hidden");
+  $("confusePlay").classList.add("hidden");
+  $("confuseEnd").classList.add("hidden");
+  show("confuse");
+}
+function startConfuse() {
+  const pool = [];
+  CONFUSE.forEach(g => g.qs.forEach(q => pool.push({ group: g.group, words: g.words, clue: q[0], answer: q[1] })));
+  conf = { pool: shuffle(pool).slice(0, 12), i: 0, score: 0 };
+  conf.total = conf.pool.length;
+  $("confuseStart").classList.add("hidden");
+  $("confuseEnd").classList.add("hidden");
+  $("confusePlay").classList.remove("hidden");
+  revReset(confuseRev);
+  nextConfuse();
+}
+function nextConfuse() {
+  if (conf.i >= conf.pool.length) return endConfuse();
+  const q = conf.pool[conf.i]; conf.cur = q; q.done = false;
+  $("confuseProg").textContent = (conf.i + 1) + "/" + conf.total;
+  $("confuseScore").textContent = conf.score;
+  $("confuseGroup").textContent = "Which word? · " + q.group;
+  $("confuseClue").textContent = q.clue;
+  $("confuseFeedback").textContent = "";
+  const note = $("confuseNote"); note.textContent = ""; note.classList.add("hidden");
+  $("confuseNext").classList.add("hidden");
+  $("confuseBack").classList.add("hidden");
+  $("confuseAddBtn").classList.add("hidden");
+  const wrap = $("confuseOptions"); wrap.innerHTML = "";
+  shuffle(q.words.slice()).forEach(w => {
+    const b = document.createElement("button");
+    b.className = "btn center";
+    b.style.cssText = "background:rgba(255,255,255,0.12);color:#fff;";
+    b.textContent = w[0];
+    b.onclick = () => pickConfuse(b, w[0]);
+    wrap.appendChild(b);
+  });
+  revLive(confuseRev, nextConfuse);
+}
+function pickConfuse(btn, choice) {
+  const q = conf.cur; if (!q || q.done) return;
+  q.done = true;
+  const ok = choice === q.answer;
+  const correct = q.words.find(w => w[0] === q.answer);
+  const picked = q.words.find(w => w[0] === choice);
+  $("confuseOptions").querySelectorAll("button").forEach(b => {
+    b.disabled = true;
+    if (b.textContent === q.answer) b.style.cssText = "background:var(--good);color:#fff;";
+    else if (b === btn) b.style.cssText = "background:var(--bad);color:#fff;";
+    else b.style.opacity = "0.5";
+  });
+  const fb = $("confuseFeedback");
+  if (ok) { conf.score++; $("confuseScore").textContent = conf.score; fb.style.color = "var(--good)"; fb.textContent = "¡Correcto! ✓"; }
+  else { fb.style.color = "var(--bad)"; fb.textContent = "✗ Use " + q.answer; }
+  let html = "<b>" + escapeHtml(correct[0]) + "</b> — " + escapeHtml(correct[1]) + "<br><span style='opacity:.85;'>Use it for " + escapeHtml(correct[2]) + ".</span>";
+  if (!ok && picked) html += "<br><br><span style='opacity:.85;'>You picked <b>" + escapeHtml(picked[0]) + "</b> — " + escapeHtml(picked[2]) + ".</span>";
+  const noteEl = $("confuseNote"); noteEl.innerHTML = html; noteEl.classList.remove("hidden");
+  speak(q.answer);
+  conf.i++;
+  const addWord = [correct[0], correct[1], emojiFor(correct[0])];
+  const snap = { group: $("confuseGroup").textContent, clue: q.clue, optionsHtml: $("confuseOptions").innerHTML, fbHtml: fb.innerHTML, fbColor: fb.style.color, note: html };
+  revPush(confuseRev, () => {
+    $("confuseGroup").textContent = snap.group; $("confuseClue").textContent = snap.clue;
+    $("confuseOptions").innerHTML = snap.optionsHtml;
+    const f = $("confuseFeedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
+    const n = $("confuseNote"); n.innerHTML = snap.note; n.classList.remove("hidden");
+    wireAddCard(addWord, null, "confuseAddBtn");
+  }, conf.i >= conf.pool.length ? "See results →" : "Next →", nextConfuse);
+  wireAddCard(addWord, null, "confuseAddBtn");
+  setTimeout(() => $("confuseNext").focus(), 30);
+}
+function endConfuse() {
+  $("confusePlay").classList.add("hidden");
+  logActivity(conf.total, conf.score * 10);
+  const end = $("confuseEnd"); end.classList.remove("hidden");
+  const pct = Math.round(conf.score / conf.total * 100);
+  const msg = pct >= 80 ? "¡Excelente! 👏" : pct >= 50 ? "Good work! 💪" : "Keep practicing! 🌱";
+  end.innerHTML = "<p class='section-title'>🧩 Round complete</p><div class='big-score'>" + conf.score + "/" + conf.total + "</div><p class='result-msg'>" + msg + "</p>" +
+    "<button class='btn primary center' id='confuseAgain'>🔁 Again</button><button class='btn center' id='confuseHome'>🏠 Menu</button>";
+  $("confuseAgain").onclick = startConfuse; $("confuseHome").onclick = () => show("home");
+}
+
 /* ---- Spanish Wordle ---- */
 const WORDLE_WORDS = ["perro", "plato", "libro", "silla", "verde", "negro", "rumba", "tinto", "carro", "playa",
   "fruta", "leche", "noche", "tarde", "mujer", "mundo", "feliz", "campo", "cielo", "fuego", "nieve", "gente",
@@ -5423,7 +5623,7 @@ function buildProgress() {
    SCREENS
    ============================================================ */
 /* ---- Study-time tracking (for the Hours goal) ---- */
-const STUDY_SCREENS = { game: 1, memory: 1, listen: 1, scenario: 1, player: 1, grammar: 1, write: 1, story: 1, scramble: 1, gender: 1, wordle: 1, search: 1, tutor: 1 };
+const STUDY_SCREENS = { game: 1, memory: 1, listen: 1, scenario: 1, player: 1, grammar: 1, write: 1, story: 1, scramble: 1, gender: 1, confuse: 1, wordle: 1, search: 1, tutor: 1 };
 let studyStart = null, currentScreen = "home";
 function studyFlush() {
   if (!studyStart) return;
@@ -5447,7 +5647,7 @@ function show(screen) {
   if (_speakTimer) { clearTimeout(_speakTimer); _speakTimer = null; }
   if (window.speechSynthesis) { try { speechSynthesis.cancel(); } catch (e) {} }
   studyStart = STUDY_SCREENS[screen] ? Date.now() : null;
-  ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach","write","story","songs","scramble","gender","wordle","search"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
+  ["home","game","memory","results","progress","mycards","listen","scenario","player","tutor","grammar","coach","write","story","songs","scramble","gender","confuse","wordle","search"].forEach(s => $(s).classList.toggle("hidden", s !== screen));
   if (screen !== "gender" && typeof gen === "object" && gen.timer) { clearInterval(gen.timer); gen.timer = null; }
   if (screen !== "player" && player && player.playing) { player.playing = false; if (window.speechSynthesis) speechSynthesis.cancel(); clearTimeout(player.timer); if (typeof releaseWakeLock === "function") releaseWakeLock(); }
   if (screen === "home") buildDashboard();
@@ -6606,6 +6806,10 @@ $("genderGoBtn").onclick = startGenderRace;
 $("genderEl").onclick = () => answerGender("el");
 $("genderLa").onclick = () => answerGender("la");
 $("genderQuitBtn").onclick = () => { if (gen.timer) { clearInterval(gen.timer); gen.timer = null; } show("home"); };
+$("openConfuseBtn").onclick = openConfuse;
+$("confuseGoBtn").onclick = startConfuse;
+$("confuseBack").onclick = () => revBack(confuseRev);
+$("confuseQuitBtn").onclick = goHome;
 $("openWordleBtn").onclick = openWordle;
 $("wordleAgain").onclick = openWordle;
 $("wordleQuitBtn").onclick = goHome;
