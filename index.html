@@ -914,6 +914,8 @@
             <option value="claude-sonnet-5">Claude Sonnet 5 — cheaper</option>
             <option value="claude-haiku-4-5">Claude Haiku 4.5 — cheapest</option>
           </select>
+          <input id="speechUrl" class="mc-input" type="text" placeholder="Pronunciation backend URL (optional)" autocomplete="off" style="margin-top:8px;" />
+          <p class="ai-hint">Optional: a Cloudflare Worker URL for cloud pronunciation scoring in the Speak exercise. Blank = use the built-in browser recognizer.</p>
           <div class="ai-row">
             <button id="aiSaveKey" class="btn primary center" style="flex:1;">Save</button>
             <button id="aiClearKey" class="btn center" style="background:rgba(255,255,255,0.15);color:#fff;flex:0 0 auto;width:90px;">Clear key</button>
@@ -2547,10 +2549,12 @@ function userCardExists(es) { return (store.userCards || []).some(c => sameEs(c.
 /* ---- AI card generation (Anthropic API, bring-your-own-key) ---- */
 const API_KEY_STORE = "aventura_api_key";
 const API_MODEL_STORE = "aventura_api_model";
+const SPEECH_URL_STORE = "aventura_speech_url";
 let aiSuggested = [];
 
 function getApiKey() { return lsGet(API_KEY_STORE, ""); }
 function getApiModel() { return lsGet(API_MODEL_STORE, "claude-opus-5"); }
+function getSpeechUrl() { return (lsGet(SPEECH_URL_STORE, "") || "").trim(); }
 
 /* One place for the Anthropic request boilerplate (endpoint + headers). The
    key is stored only in this browser and sent directly to Anthropic. Callers
@@ -2572,11 +2576,13 @@ function refreshAiSettingsUI() {
   const has = !!getApiKey();
   if ($("aiModel")) $("aiModel").value = getApiModel();
   if ($("aiKey")) $("aiKey").placeholder = has ? "Key saved ✓ — paste a new one to replace" : "Anthropic API key (sk-ant-…)";
+  if ($("speechUrl")) $("speechUrl").value = getSpeechUrl();
 }
 
 function saveAiSettings() {
   const k = $("aiKey").value.trim(), m = $("aiModel").value;
   if (k) lsSet(API_KEY_STORE, k); lsSet(API_MODEL_STORE, m);
+  if ($("speechUrl")) lsSet(SPEECH_URL_STORE, $("speechUrl").value.trim());
   $("aiKey").value = "";
   $("aiStatus").textContent = (k || getApiKey()) ? "Settings saved ✓" : "Model saved — add a key to generate.";
   $("aiSettings").classList.add("hidden");
@@ -5828,7 +5834,9 @@ const SPEECH_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
    error messages, end-of-speech recovery). Callers only say what to do with the
    result (onFinal) and which UI to light up -- like speak() does for TTS. */
 let activeRecog = null;
+let activeAssess = null;
 function stopListening() {
+  if (activeAssess) { try { activeAssess.abort(); } catch (e) {} activeAssess = null; }
   if (!activeRecog) return;
   try { if (activeRecog.native) activeRecog.stop(); else { activeRecog.onend = null; activeRecog.abort(); } } catch (e) {}
   activeRecog = null;
@@ -5928,6 +5936,78 @@ function listenOnce(opts) {
     if (!got && !hadError) { setStatus(opts.noResultText || "Didn't catch that - tap the mic to try again."); if (opts.onNoResult) opts.onNoResult(); }
   };
   return r;
+}
+
+/* ---- Optional cloud pronunciation scoring (Azure via a Cloudflare Worker) ----
+   Records a short clip, POSTs it to the configured backend, and gets back the
+   transcript + a 0-100 pronunciation score. Used by the Speak exercise only
+   when a backend URL is set in settings; otherwise the browser recognizer is
+   used. Backend lives in speech-worker/. */
+function cloudSpeechOn() {
+  return !!getSpeechUrl() && navigator.onLine && !!(navigator.mediaDevices && window.MediaRecorder);
+}
+function azureResult(j) {
+  const nb = j && j.NBest && j.NBest[0];
+  const text = (j && j.DisplayText) || (nb && (nb.Display || nb.Lexical)) || "";
+  const pa = nb && (nb.PronunciationAssessment || nb.pronunciationAssessment);
+  let score = null;
+  if (pa) { const v = (pa.PronScore != null) ? pa.PronScore : pa.AccuracyScore; if (typeof v === "number") score = Math.round(v); }
+  return { text: text, score: score, status: j && j.RecognitionStatus };
+}
+function sendClipForScore(blob, reference) {
+  const base = getSpeechUrl();
+  const sep = base.indexOf("?") >= 0 ? "&" : "?";
+  const url = base + sep + "lang=" + encodeURIComponent(speakLang()) + "&ref=" + encodeURIComponent(reference || "");
+  return fetch(url, { method: "POST", headers: { "Content-Type": blob.type || "audio/webm" }, body: blob })
+    .then(function (r) { return r.json(); }).then(azureResult);
+}
+function assessSpeech(opts) {
+  const setStatus = function (t) { const el = opts.status ? $(opts.status) : null; if (el) el.textContent = t; };
+  const micBtn = opts.micBtn ? $(opts.micBtn) : null;
+  const clearMic = function () { if (micBtn) micBtn.classList.remove("listening"); };
+  let stream = null, rec = null, ac = null, chunks = [], stopped = false, aborted = false, spoke = false, silenceT = null, maxT = null, raf = 0;
+  const cleanup = function () { if (raf) cancelAnimationFrame(raf); try { if (ac) ac.close(); } catch (e) {} try { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} };
+  const stop = function () {
+    if (stopped) return; stopped = true; clearTimeout(silenceT); clearTimeout(maxT);
+    try { if (rec && rec.state !== "inactive") rec.stop(); else { cleanup(); clearMic(); } } catch (e) { cleanup(); clearMic(); }
+  };
+  activeAssess = { abort: function () { aborted = true; stop(); }, stop: stop };
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+    stream = s;
+    const mime = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/webm"].find(function (m) { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } });
+    rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = function () {
+      cleanup(); clearMic();
+      if (aborted) { activeAssess = null; return; }
+      const blob = new Blob(chunks, { type: (rec && rec.mimeType) || "audio/webm" });
+      if (blob.size < 900) { activeAssess = null; if (opts.onFail) opts.onFail("Did not catch that — tap the mic and try again."); return; }
+      setStatus("Checking your pronunciation…");
+      sendClipForScore(blob, opts.reference)
+        .then(function (res) { activeAssess = null; if (opts.onResult) opts.onResult(res); })
+        .catch(function () { activeAssess = null; if (opts.onFail) opts.onFail("Could not reach the pronunciation service — check the backend URL in ⚙️, or type instead."); });
+    };
+    rec.start();
+    if (micBtn) micBtn.classList.add("listening");
+    setStatus(opts.listeningText || "🎧 Listening — say it now");
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      const src = ac.createMediaStreamSource(stream), an = ac.createAnalyser();
+      an.fftSize = 512; src.connect(an);
+      const data = new Uint8Array(an.fftSize);
+      const tick = function () {
+        if (stopped) return;
+        an.getByteTimeDomainData(data);
+        let sum = 0; for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v; }
+        const rms = Math.sqrt(sum / data.length);
+        if (rms > 0.045) { spoke = true; if (silenceT) { clearTimeout(silenceT); silenceT = null; } }
+        else if (spoke && !silenceT) { silenceT = setTimeout(stop, 700); }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    } catch (e) {}
+    maxT = setTimeout(stop, 5000);
+  }).catch(function () { activeAssess = null; clearMic(); if (opts.onFail) opts.onFail("Microphone blocked — allow mic access, or type instead."); });
 }
 
 /* Spanish number words 0–100 → value, so the speak exercise can match a
@@ -6104,7 +6184,26 @@ function setMic(cls, text) {
 
 function startListening() {
   if (state.answeredThis) return;
+  if (activeAssess) { activeAssess.stop(); return; } // tapping again ends the recording
   const target = state.current[0];
+  if (cloudSpeechOn()) {
+    assessSpeech({
+      reference: stripArticle(target), status: "micStatus", micBtn: "micBtn",
+      onResult: (res) => {
+        if (state.answeredThis) return;
+        const matched = res.text && matchesSpoken(res.text, target);
+        const goodScore = (res.score != null && res.score >= 60);
+        const ok = !!(matched || goodScore);
+        let msg = "Heard: “" + (res.text || "—") + "”";
+        if (res.score != null) msg += "  ·  🗣️ " + res.score + "/100";
+        setMic("done", msg);
+        speak(target);
+        resolveAnswer(ok, target);
+      },
+      onFail: (m) => { setMic("idle", m); }
+    });
+    return;
+  }
   listenOnce({
     status: "micStatus", micBtn: "micBtn",
     hints: [target],

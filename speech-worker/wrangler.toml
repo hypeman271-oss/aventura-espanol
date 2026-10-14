@@ -1,0 +1,11 @@
+name = "aventura-speech"
+main = "src/worker.js"
+compatibility_date = "2024-11-01"
+
+# Public (non-secret) vars. Change the origin to your site, or "*" for any.
+[vars]
+AZURE_SPEECH_REGION = "eastus"
+ALLOW_ORIGIN = "https://hypeman271-oss.github.io"
+
+# AZURE_SPEECH_KEY is a SECRET - do NOT put it here. Set it once with:
+#   wrangler secret put AZURE_SPEECH_KEY
