@@ -1511,6 +1511,14 @@ const VOCAB = {
     ["el antibiótico","antibiotic","💊"],["la venda","bandage","🩹"],["el termómetro","thermometer","🌡️"],
     ["el algodón","cotton","☁️"],["el gotero","dropper","💧"],["vencido","expired","📅"]
   ],
+  "Landlord & Repairs 🔧": [
+    ["el administrador","property manager","🧑‍💼"],["el arrendador","landlord","🏠"],["el arriendo","rent","💵"],
+    ["la conexión","connection","🔌"],["lento","slow","🐢"],["el router","router","📡"],
+    ["reiniciar","to restart","🔄"],["la señal","signal","📶"],["el técnico","technician","🧑‍🔧"],
+    ["arreglar","to fix","🔧"],["la avería","fault / breakdown","⚠️"],["quejarse","to complain","😤"],
+    ["reclamar","to demand / complain","📢"],["el mantenimiento","maintenance","🧰"],["el daño","damage","💥"],
+    ["funcionar","to work (function)","✅"],["el contrato","lease / contract","📄"],["urgente","urgent","⏰"]
+  ],
   "Surgery & Recovery 🤕": [
     ["el quiste","cyst","🔴"],["el bulto","lump","🥚"],["la nuca","nape (back of head)","🙇"],
     ["el cráneo","skull","💀"],["la operación","operation","🏥"],["el cirujano","surgeon","🧑‍⚕️"],
@@ -1982,6 +1990,24 @@ const SENTENCES = {
   "Pharmacy 💊||el algodón": ["Limpia la herida con ___.", "algodón", "Clean the wound with cotton."],
   "Pharmacy 💊||el gotero": ["Usa el ___ para las gotas.", "gotero", "Use the dropper for the drops."],
   "Pharmacy 💊||vencido": ["Ese remedio ya está ___.", "vencido", "That medicine is already expired."],
+  "Landlord & Repairs 🔧||el administrador": ["El ___ vive en el primer piso.", "administrador", "The property manager lives on the first floor."],
+  "Landlord & Repairs 🔧||el arrendador": ["El ___ subió el arriendo.", "arrendador", "The landlord raised the rent."],
+  "Landlord & Repairs 🔧||el arriendo": ["Pago el ___ el primer día del mes.", "arriendo", "I pay the rent on the first day of the month."],
+  "Landlord & Repairs 🔧||la conexión": ["La ___ a internet está mal.", "conexión", "The internet connection is bad."],
+  "Landlord & Repairs 🔧||lento": ["El internet está muy ___ hoy.", "lento", "The internet is very slow today."],
+  "Landlord & Repairs 🔧||el router": ["Reinicié el ___ dos veces.", "router", "I restarted the router twice."],
+  "Landlord & Repairs 🔧||reiniciar": ["Tengo que ___ el módem.", "reiniciar", "I have to restart the modem."],
+  "Landlord & Repairs 🔧||la señal": ["No hay ___ en mi cuarto.", "señal", "There is no signal in my room."],
+  "Landlord & Repairs 🔧||el técnico": ["El ___ llega mañana.", "técnico", "The technician arrives tomorrow."],
+  "Landlord & Repairs 🔧||arreglar": ["Van a ___ el internet.", "arreglar", "They are going to fix the internet."],
+  "Landlord & Repairs 🔧||la avería": ["Hay una ___ en la red.", "avería", "There is a fault in the network."],
+  "Landlord & Repairs 🔧||quejarse": ["Voy a ___ con el administrador.", "quejarse", "I am going to complain to the property manager."],
+  "Landlord & Repairs 🔧||reclamar": ["Voy a ___ por el mal servicio.", "reclamar", "I am going to complain about the bad service."],
+  "Landlord & Repairs 🔧||el mantenimiento": ["El edificio necesita ___.", "mantenimiento", "The building needs maintenance."],
+  "Landlord & Repairs 🔧||el daño": ["El ___ no es mi culpa.", "daño", "The damage is not my fault."],
+  "Landlord & Repairs 🔧||funcionar": ["El wifi no va a ___.", "funcionar", "The wifi will not work."],
+  "Landlord & Repairs 🔧||el contrato": ["Mi ___ es por un año.", "contrato", "My lease is for one year."],
+  "Landlord & Repairs 🔧||urgente": ["Es un problema ___.", "urgente", "It is an urgent problem."],
   "Surgery & Recovery 🤕||el quiste": ["El médico me sacó un ___ de la cabeza.", "quiste", "The doctor removed a cyst from my head."],
   "Surgery & Recovery 🤕||el bulto": ["Sentí un ___ duro en la nuca.", "bulto", "I felt a hard lump on the back of my neck."],
   "Surgery & Recovery 🤕||la nuca": ["El quiste estaba en la ___ de la cabeza.", "nuca", "The cyst was on the back of my head."],
@@ -2256,7 +2282,9 @@ const WORD_GLOSS = {
   // ---- words from the Surgery & Recovery sentences ----
   cerca: "near", duro: "hard", grave: "serious", peligroso: "dangerous",
   segundo: "second", segunda: "second", otro: "other / another", va: "goes",
-  dos: "two", ocho: "eight", ser: "to be", gringo: "foreigner (Col.)"
+  dos: "two", ocho: "eight", ser: "to be", gringo: "foreigner (Col.)",
+  // ---- words from the Landlord & Repairs sentences ----
+  modem: "modem", servicio: "service", culpa: "fault / blame", problema: "problem", "año": "year"
 };
 
 /* Drop a leading Spanish article so cloze options/answers line up. */
@@ -4659,11 +4687,21 @@ function searchTap(r, c) {
    ============================================================ */
 const SC_PRESETS = ["Order at a café", "Ask for directions", "At the market", "At the doctor",
   "Hotel check-in", "Make small talk", "At the airport", "Ordering at a restaurant",
-  "Shopping — pay the clerk", "Report a crime to police"];
+  "Shopping — pay the clerk", "Report a crime to police", "Slow internet — call the manager"];
 
 /* Built-in dialogues so the preset conversations work fully OFFLINE.
    (Typing a custom situation still uses AI, which needs a connection.) */
 const SC_DIALOGUES = {
+  "Slow internet — call the manager": [
+    { speaker: "them", es: "Buenas, habla el administrador. ¿En qué le puedo ayudar?", en: "Hello, this is the property manager. How can I help you?" },
+    { speaker: "you", es: "Buenas. El internet está muy lento desde hace días.", en: "Hi. The internet has been very slow for days." },
+    { speaker: "them", es: "¿Ya reinició el router?", en: "Have you restarted the router yet?" },
+    { speaker: "you", es: "Sí, lo apagué y lo prendí, pero sigue igual.", en: "Yes, I turned it off and on, but it is still the same." },
+    { speaker: "them", es: "¿La señal falla en todo el apartamento?", en: "Does the signal fail in the whole apartment?" },
+    { speaker: "you", es: "Sí, casi no puedo trabajar. Necesito que lo arreglen.", en: "Yes, I can barely work. I need it fixed." },
+    { speaker: "them", es: "Voy a enviar un técnico mañana por la tarde.", en: "I will send a technician tomorrow afternoon." },
+    { speaker: "you", es: "Perfecto, muchas gracias por la ayuda.", en: "Perfect, thank you very much for the help." }
+  ],
   "Order at a café": [
     { speaker: "them", es: "¡Hola! ¿Qué le pongo?", en: "Hi! What can I get you?" },
     { speaker: "you", es: "Un café con leche, por favor.", en: "A coffee with milk, please." },
@@ -5675,7 +5713,7 @@ function inFocus(cat) { return focusAll() || cat === selectedCategory; }
 const CATEGORY_GROUPS = [
   ["🌱 Basics", ["Greetings 👋", "Numbers 🔢", "Colors 🎨", "Animals 🐶", "Food 🍎", "Body 🧍"]],
   ["🧑‍🤝‍🧑 People & Relationships", ["Family 👨‍👩‍👧", "Dating & Romance 💕", "Sex 🔞", "Health 🩺", "Doctor Visit 🏥", "Pharmacy 💊", "Surgery & Recovery 🤕"]],
-  ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱", "Gym & Exercise 🏋️"]],
+  ["🏠 Home Life", ["Roommates 🏠", "Phone & Internet 📱", "Landlord & Repairs 🔧", "Gym & Exercise 🏋️"]],
   ["🗺️ Out & About", ["Travel ✈️", "Directions 🧭", "Restaurant 🍽️", "Food Delivery 🛵", "Shopping & Money 🛍️", "Peso Amounts 💵", "Banking 🏦", "Haircut 💇", "Weather & Seasons 🌤️"]],
   ["🇨🇴 Colombian Life", ["Colombian Slang 🇨🇴", "Dance 💃", "Work & Jobs 💼"]],
   ["🚨 Emergencies", ["Earthquake 🌎", "Crime & Safety 🚔"]]
