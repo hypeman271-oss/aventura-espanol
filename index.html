@@ -4947,6 +4947,7 @@ function scCheckResponse(text) {
 function scListen() {
   listenOnce({
     status: "scMicStatus", micBtn: "scMic",
+    hints: sc.turns[sc.i] ? [sc.turns[sc.i].es] : [],
     onFinal: (alts) => {
       const cur = sc.turns[sc.i], target = normalize(cur.es);
       const ok = alts.some(a => scMatch(normalize(a), target));
@@ -5885,6 +5886,22 @@ function listenOnce(opts) {
   r.lang = speakLang();
   r.interimResults = true;                    // partial speech too - more forgiving
   r.maxAlternatives = opts.maxAlternatives || 5;
+  // Phrase-hint biasing: tell the engine which word/line we expect so it leans
+  // toward it. Uses the (legacy) SpeechGrammarList where the browser supports
+  // it; a silent no-op otherwise. Best-effort - recognition stays free-form.
+  const GList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+  if (GList && opts.hints && opts.hints.length) {
+    try {
+      const phrases = opts.hints
+        .map(h => (h || "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+      if (phrases.length) {
+        const gl = new GList();
+        gl.addFromString("#JSGF V1.0; grammar hints; public <hint> = " + phrases.join(" | ") + " ;", 1);
+        r.grammars = gl;
+      }
+    } catch (e) {}
+  }
   activeRecog = r;
   let got = false, hadError = false;
   setStatus(opts.listeningText || "🎧 Listening - speak now");
@@ -6090,6 +6107,7 @@ function startListening() {
   const target = state.current[0];
   listenOnce({
     status: "micStatus", micBtn: "micBtn",
+    hints: [target],
     offlineText: "The mic needs a connection — use “show answer” while offline.",
     onFinal: (alts) => {
       const heard = alts[0] || "";
