@@ -254,17 +254,6 @@
   }
   .speak-btn:hover { background: var(--bg1); }
 
-  /* A second, optional speaker shown only on English-prompt cards. The main
-     speaker reads the card's own language; this hint pronounces the Spanish
-     word/answer for pronunciation help. */
-  .hint-speak-btn {
-    display: block; margin: 14px auto 0; width: fit-content;
-    background: var(--bg2); color: #fff; border: none;
-    padding: 8px 14px; border-radius: 999px;
-    font-size: 0.95rem; cursor: pointer;
-  }
-  .hint-speak-btn:hover { background: var(--bg1); }
-
   .answers { margin-top: 18px; }
   .answer-btn {
     background: var(--card-solid);
@@ -829,7 +818,6 @@
         <div class="prompt-label" id="promptLabel">Spanish</div>
         <div class="prompt-emoji" id="promptEmoji"></div>
         <div class="prompt-word" id="promptWord"></div>
-        <button class="hint-speak-btn hidden" id="hintSpeakBtn" title="Hear it in Spanish">💡🔊 Hear it in Spanish</button>
       </div>
 
       <div id="clozeTools" class="hidden">
@@ -6334,14 +6322,10 @@ function nextQuestion() {
    Shared by free-play (nextQuestion) and daily SRS (nextSrsQuestion). */
 /* Re-read the current prompt (word, or the whole sentence in cloze). */
 function speakPrompt() {
-  // Read the prompt that is on screen, in its own language: Spanish for the
-  // cloze sentence and Spanish-prompt modes; English when the prompt shows the
-  // English word (English->Spanish, Type It Out, Speak It) so the speaker
-  // matches the text and does not give away the Spanish answer.
+  // Always play the Spanish (the cloze sentence, or the word) so tapping the
+  // card or the speaker gives the pronunciation the learner is practising.
   if (state.sentence) { speak(state.sentence.full); return; }
-  if (!state.current) return;
-  if (state.mode === "en2es" || state.mode === "type" || state.mode === "speak") speak(state.current[1], "en-US");
-  else speak(state.current[0]);
+  if (state.current) speak(state.current[0]);
 }
 
 /* ---- Reusable "review earlier steps" pager for any sequential exercise ----
@@ -6420,17 +6404,9 @@ function renderQuestion(skipSpeak) {
   ["promptEmoji", "promptWord", "promptCard"].forEach(id => { $(id).onclick = null; $(id).style.cursor = ""; });
   $("backBtn").classList.add("hidden");
   $("speakBtn").onclick = speakPrompt;
-
-  // English-prompt cards get an extra "hint" speaker that pronounces the
-  // Spanish word (the answer). The main speaker keeps reading the card's own
-  // language via speakPrompt().
-  const hintBtn = $("hintSpeakBtn");
-  if (mode === "en2es" || mode === "type" || mode === "speak") {
-    hintBtn.classList.remove("hidden");
-    hintBtn.onclick = () => speak(word[0]);
-  } else {
-    hintBtn.classList.add("hidden");
-  }
+  // Tap anywhere on the card (not just the speaker) to hear the Spanish.
+  $("promptCard").onclick = (e) => { if (e.target.closest("button")) return; speakPrompt(); };
+  $("promptCard").style.cursor = "pointer";
 
   if (mode === "cloze" || mode === "clozetype") {
     // Comprehensible input: show the sentence with a blank; hear it spoken.
@@ -6481,10 +6457,6 @@ function renderQuestion(skipSpeak) {
     $("promptWord").textContent = "Tap to hear it 🔊";
     answersWrap.classList.remove("hidden");
     buildChoices("es");
-    // Make the whole prompt card tappable to replay the word (before and after
-    // answering) — not just the small speaker button.
-    $("promptCard").onclick = (e) => { if (e.target.closest("#speakBtn")) return; if (state.current) speak(state.current[0]); };
-    $("promptCard").style.cursor = "pointer";
     if (!skipSpeak) speak(word[0]);
   } else if (mode === "en2es") {
     // Prompt = English, answers = Spanish
@@ -6639,12 +6611,6 @@ function resolveAnswer(isRight, correctText) {
     $("promptEmoji").textContent = w[2];
   }
 
-  // The Spanish answer is now shown on the card, so the speaker should read it
-  // in Spanish (even on English-prompt cards, where it read the English prompt
-  // before answering). The Spanish "hint" button is redundant now, so hide it.
-  $("speakBtn").onclick = () => speak(state.sentence ? state.sentence.full : w[0]);
-  $("hintSpeakBtn").classList.add("hidden");
-
   if (isRight) {
     state.correct++;
     state.streak++;
@@ -6696,12 +6662,13 @@ function resolveAnswer(isRight, correctText) {
     word: w, sent: state.sentence ? { full: state.sentence.full, en: state.sentence.en } : null
   };
   revPush(gameRev, () => {
-    ["answers", "typeInput", "submitType", "speakPanel", "clozeTools", "explainBtn", "hintSpeakBtn"].forEach(id => $(id).classList.add("hidden"));
+    ["answers", "typeInput", "submitType", "speakPanel", "clozeTools", "explainBtn"].forEach(id => $(id).classList.add("hidden"));
     $("answers").innerHTML = "";
     $("promptLabel").textContent = snap.label; $("promptEmoji").textContent = snap.emoji;
     $("promptWord").innerHTML = snap.wordHtml; $("promptWord").style.fontSize = snap.wordFont || "";
     const f = $("feedback"); f.innerHTML = snap.fbHtml; f.style.color = snap.fbColor;
     $("speakBtn").onclick = () => speak(snap.sayText);
+    $("promptCard").onclick = (e) => { if (e.target.closest("button")) return; speak(snap.sayText); };
     wireAddCard(snap.word, snap.sent); // add/remove this card while reviewing it
   }, last ? "See results →" : "Next →", advance);
   setTimeout(() => $("nextBtn").focus(), 30); // lets Enter/Space advance on desktop
