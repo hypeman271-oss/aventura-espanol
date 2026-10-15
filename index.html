@@ -904,6 +904,14 @@
           </select>
           <input id="speechUrl" class="mc-input" type="text" placeholder="Pronunciation backend URL (optional)" autocomplete="off" style="margin-top:8px;" />
           <p class="ai-hint">Optional: a Cloudflare Worker URL for cloud pronunciation scoring in the Speak exercise. Blank = use the built-in browser recognizer.</p>
+          <div class="ai-row" style="margin-top:4px;">
+            <label class="ai-hint" style="flex:1;display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;"><input type="checkbox" id="dbgToggle" /> Keep a debug log (for troubleshooting)</label>
+          </div>
+          <div class="ai-row">
+            <button id="dbgCopy" class="btn center" style="background:rgba(255,255,255,0.15);color:#fff;flex:1;">📋 Copy debug log</button>
+            <button id="dbgClear" class="btn center" style="background:rgba(255,255,255,0.15);color:#fff;flex:0 0 auto;width:80px;">Clear</button>
+          </div>
+          <textarea id="dbgView" class="mc-input hidden" readonly style="height:120px;font-family:monospace;font-size:0.72rem;white-space:pre;overflow:auto;margin-top:6px;"></textarea>
           <div class="ai-row">
             <button id="aiSaveKey" class="btn primary center" style="flex:1;">Save</button>
             <button id="aiClearKey" class="btn center" style="background:rgba(255,255,255,0.15);color:#fff;flex:0 0 auto;width:90px;">Clear key</button>
@@ -2572,6 +2580,36 @@ function getApiKey() { return lsGet(API_KEY_STORE, ""); }
 function getApiModel() { return lsGet(API_MODEL_STORE, "claude-opus-5"); }
 function getSpeechUrl() { return (lsGet(SPEECH_URL_STORE, "") || "").trim(); }
 
+/* ---- Debug log: a small ring buffer of recent events (speech, mic, cloud
+   scoring, errors) so issues that only happen on a phone can be copied from
+   Settings and shared. No audio is captured. On by default; toggle in Settings. */
+const DBG_KEY = "aventura_debug";
+let _dbgOn = lsGet(DBG_KEY, "1") !== "0";
+const _dbg = [];
+function dbg(tag, info) {
+  if (!_dbgOn) return;
+  try {
+    const t = new Date();
+    const p = (n, w) => ("000" + n).slice(-w);
+    const ts = p(t.getHours(),2) + ":" + p(t.getMinutes(),2) + ":" + p(t.getSeconds(),2) + "." + p(t.getMilliseconds(),3);
+    let line = ts + "  " + tag;
+    if (info !== undefined && info !== null) line += "  " + (typeof info === "string" ? info : JSON.stringify(info));
+    _dbg.push(line.slice(0, 300));
+    if (_dbg.length > 200) _dbg.shift();
+  } catch (e) {}
+}
+function dbgText() {
+  const NL = String.fromCharCode(10);
+  const parts = ["Aventura debug log  " + new Date().toISOString()];
+  try { parts.push(navigator.userAgent || ""); } catch (e) {}
+  try { parts.push("region=" + getRegion() + "  voices=" + (_voices ? _voices.length : "?") + "  cloud=" + (getSpeechUrl() ? "on" : "off") + "  online=" + navigator.onLine); } catch (e) {}
+  parts.push("----");
+  parts.push(_dbg.length ? _dbg.join(NL) : "(log is empty)");
+  return parts.join(NL);
+}
+window.addEventListener("error", function (e) { dbg("js-error", (e && e.message) || "?"); });
+window.addEventListener("unhandledrejection", function (e) { try { dbg("promise-reject", String((e && e.reason && (e.reason.message || e.reason)) || "?")); } catch (x) {} });
+
 /* One place for the Anthropic request boilerplate (endpoint + headers). The
    key is stored only in this browser and sent directly to Anthropic. Callers
    build the request body and handle the response as they need. */
@@ -2593,6 +2631,7 @@ function refreshAiSettingsUI() {
   if ($("aiModel")) $("aiModel").value = getApiModel();
   if ($("aiKey")) $("aiKey").placeholder = has ? "Key saved ✓ — paste a new one to replace" : "Anthropic API key (sk-ant-…)";
   if ($("speechUrl")) $("speechUrl").value = getSpeechUrl();
+  if ($("dbgToggle")) $("dbgToggle").checked = _dbgOn;
 }
 
 function saveAiSettings() {
@@ -2605,6 +2644,19 @@ function saveAiSettings() {
   refreshAiSettingsUI();
 }
 
+function dbgCopy() {
+  const txt = dbgText();
+  const view = $("dbgView");
+  if (view) { view.classList.remove("hidden"); view.value = txt; try { view.focus(); view.select(); } catch (e) {} }
+  const fallback = "Log shown below — long-press to select and copy.";
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function () { $("aiStatus").textContent = "Debug log copied ✓"; }, function () { $("aiStatus").textContent = fallback; });
+      return;
+    }
+  } catch (e) {}
+  $("aiStatus").textContent = fallback;
+}
 function clearAiKey() {
   try { localStorage.removeItem(API_KEY_STORE); } catch (e) {}
   $("aiKey").value = "";
@@ -5811,12 +5863,13 @@ let _speakTimer = null;
 function loadVoices() { try { _voices = speechSynthesis.getVoices() || []; } catch (e) { _voices = []; } }
 
 function speak(text, langOverride, rateOverride, onend, onboundary) {
-  if (getSilent()) { if (onend) setTimeout(onend, 200); return; } // silent mode: no audio
+  if (getSilent()) { dbg("tts-silent"); if (onend) setTimeout(onend, 200); return; } // silent mode: no audio
   if (!("speechSynthesis" in window)) { if (onend) setTimeout(onend, 400); return; }
   try {
     const u = new SpeechSynthesisUtterance(text);
     const lang = langOverride || speakLang();
     u.lang = lang;
+    dbg("tts", (text || "").slice(0, 28) + " [" + lang + "]");
     u.rate = rateOverride || 0.9;
     // Prefer an exact regional voice, then any voice for that language, then any Spanish voice.
     const voices = _voices.length ? _voices : speechSynthesis.getVoices();
@@ -5835,7 +5888,7 @@ function speak(text, langOverride, rateOverride, onend, onboundary) {
     _speakTimer = setTimeout(() => {
       _speakTimer = null;
       try { speechSynthesis.resume(); speechSynthesis.speak(u); }
-      catch (e) { if (onend) onend(); }
+      catch (e) { dbg("tts-err", String(e)); if (onend) onend(); }
     }, 55);
   } catch(e) { if (onend) setTimeout(onend, 400); }
 }
@@ -5930,7 +5983,7 @@ function listenOnce(opts) {
   if (nativeMic()) return nativeListen(opts, setStatus, micBtn, clearMic);
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { setStatus("Speech recognition isn't available in this browser."); return null; }
-  if (!navigator.onLine) { setStatus(opts.offlineText || "The mic needs a connection - type your reply instead."); return null; }
+  if (!navigator.onLine) { dbg("mic-offline"); setStatus(opts.offlineText || "The mic needs a connection - type your reply instead."); return null; }
   stopListening(); // never stack recognisers
   const r = new SR();
   r.lang = speakLang();
@@ -5954,6 +6007,7 @@ function listenOnce(opts) {
   }
   activeRecog = r;
   let got = false, hadError = false;
+  dbg("mic-start", r.lang + (r.grammars ? " +hints" : ""));
   setStatus(opts.listeningText || "🎧 Listening - speak now");
   if (micBtn) micBtn.classList.add("listening");
   try { r.start(); } catch (e) { clearMic(); activeRecog = null; setStatus("Tap the mic to try again."); return null; }
@@ -5964,10 +6018,12 @@ function listenOnce(opts) {
     }
     if (!finalAlts) return; // interim - keep listening
     got = true; clearMic();
+    dbg("mic-heard", finalAlts[0] || "");
     if (opts.onFinal) opts.onFinal(finalAlts);
   };
   r.onerror = (e) => {
     hadError = true; clearMic();
+    dbg("mic-error", e.error);
     setStatus((e.error === "not-allowed" || e.error === "service-not-allowed") ? "Microphone blocked - allow mic access, or type instead."
       : (e.error === "no-speech") ? "Didn't hear you - tap the mic and speak a bit louder."
       : (e.error === "aborted") ? "" : "Try again - tap the mic when ready.");
@@ -5975,6 +6031,7 @@ function listenOnce(opts) {
   r.onend = () => {
     if (activeRecog === r) activeRecog = null;
     clearMic();
+    dbg("mic-end", got ? "got" : hadError ? "err" : "noresult");
     if (!got && !hadError) { setStatus(opts.noResultText || "Didn't catch that - tap the mic to try again."); if (opts.onNoResult) opts.onNoResult(); }
   };
   return r;
@@ -6001,7 +6058,7 @@ function sendClipForScore(blob, reference) {
   const sep = base.indexOf("?") >= 0 ? "&" : "?";
   const url = base + sep + "lang=" + encodeURIComponent(speakLang()) + "&ref=" + encodeURIComponent(reference || "");
   return fetch(url, { method: "POST", headers: { "Content-Type": blob.type || "audio/webm" }, body: blob })
-    .then(function (r) { return r.json(); }).then(azureResult);
+    .then(function (r) { dbg("azure", "status=" + r.status); return r.json(); }).then(azureResult);
 }
 function assessSpeech(opts) {
   const setStatus = function (t) { const el = opts.status ? $(opts.status) : null; if (el) el.textContent = t; };
@@ -6023,13 +6080,15 @@ function assessSpeech(opts) {
       cleanup(); clearMic();
       if (aborted) { activeAssess = null; return; }
       const blob = new Blob(chunks, { type: (rec && rec.mimeType) || "audio/webm" });
+      dbg("rec-stop", "bytes=" + blob.size);
       if (blob.size < 900) { activeAssess = null; if (opts.onFail) opts.onFail("Did not catch that — tap the mic and try again."); return; }
       setStatus("Checking your pronunciation…");
       sendClipForScore(blob, opts.reference)
-        .then(function (res) { activeAssess = null; if (opts.onResult) opts.onResult(res); })
+        .then(function (res) { activeAssess = null; dbg("rec-score", res); if (opts.onResult) opts.onResult(res); })
         .catch(function () { activeAssess = null; if (opts.onFail) opts.onFail("Could not reach the pronunciation service — check the backend URL in ⚙️, or type instead."); });
     };
     rec.start();
+    dbg("rec-start", mime || "default");
     if (micBtn) micBtn.classList.add("listening");
     setStatus(opts.listeningText || "🎧 Listening — say it now");
     try {
@@ -6049,7 +6108,7 @@ function assessSpeech(opts) {
       raf = requestAnimationFrame(tick);
     } catch (e) {}
     maxT = setTimeout(stop, 5000);
-  }).catch(function () { activeAssess = null; clearMic(); if (opts.onFail) opts.onFail("Microphone blocked — allow mic access, or type instead."); });
+  }).catch(function () { activeAssess = null; clearMic(); dbg("mic-denied"); if (opts.onFail) opts.onFail("Microphone blocked — allow mic access, or type instead."); });
 }
 
 /* Spanish number words 0–100 → value, so the speak exercise can match a
@@ -6937,6 +6996,9 @@ $("aiSuggestBtn").onclick = aiSuggest;
 $("aiSettingsBtn").onclick = () => { $("aiSettings").classList.toggle("hidden"); refreshAiSettingsUI(); };
 $("aiSaveKey").onclick = saveAiSettings;
 $("aiClearKey").onclick = clearAiKey;
+$("dbgToggle").onchange = function () { _dbgOn = this.checked; lsSet(DBG_KEY, _dbgOn ? "1" : "0"); $("aiStatus").textContent = _dbgOn ? "Debug log on." : "Debug log off."; };
+$("dbgCopy").onclick = dbgCopy;
+$("dbgClear").onclick = function () { _dbg.length = 0; const v = $("dbgView"); if (v) { v.value = ""; v.classList.add("hidden"); } $("aiStatus").textContent = "Debug log cleared."; };
 
 /* Activities wiring */
 $("openListenBtn").onclick = startListen;
